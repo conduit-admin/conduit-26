@@ -1,0 +1,35 @@
+[
+  {
+    "id": "algebra",
+    "name": "Алгебра",
+    "slot": 1,
+    "subs": [
+      { "id": "inequalities", "name": "Неравенства" }
+    ]
+  },
+  {
+    "id": "geometry",
+    "name": "Геометрия",
+    "slot": 2,
+    "subs": [
+      { "id": "planimetry", "name": "Планиметрия" },
+      { "id": "stereometry", "name": "Стереометрия" }
+    ]
+  },
+  {
+    "id": "comb",
+    "name": "Комбинаторика",
+    "slot": 3,
+    "subs": [
+      { "id": "games", "name": "Игры" },
+      { "id": "graphs", "name": "Графы" },
+      { "id": "cells", "name": "Клетчатые задачи" }
+    ]
+  },
+  {
+    "id": "numbers",
+    "name": "Теория чисел",
+    "slot": 7,
+    "subs": []
+  }
+]

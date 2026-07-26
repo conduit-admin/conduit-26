@@ -1,0 +1,1637 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="color-scheme" content="light dark">
+<title>Кондуит</title>
+<style>
+/* Кондуит — оформление.
+   Палитра типов задач — проверенный категориальный набор (8 слотов),
+   светлая и тёмная темы заданы отдельными шагами, а не автоматической инверсией. */
+
+:root {
+  color-scheme: light;
+
+  --surface: #fcfcfb;
+  --plane: #f9f9f7;
+  --ink: #0b0b0b;
+  --ink-2: #52514e;
+  --ink-muted: #898781;
+  --grid: #e1e0d9;
+  --axis: #c3c2b7;
+  --border: rgba(11, 11, 11, 0.1);
+  --border-strong: rgba(11, 11, 11, 0.18);
+  --wash: rgba(11, 11, 11, 0.04);
+  --good: #006300;
+  --bad: #d03b3b;
+
+  --s1: #2a78d6;
+  --s2: #eb6834;
+  --s3: #1baf7a;
+  --s4: #eda100;
+  --s5: #e87ba4;
+  --s6: #008300;
+  --s7: #4a3aa7;
+  --s8: #e34948;
+
+  --cell-on: #23231f;
+  --cell-off: #ecebe5;
+
+  --radius: 10px;
+  --tap: 44px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+
+    --surface: #1a1a19;
+    --plane: #0d0d0d;
+    --ink: #ffffff;
+    --ink-2: #c3c2b7;
+    --ink-muted: #898781;
+    --grid: #2c2c2a;
+    --axis: #383835;
+    --border: rgba(255, 255, 255, 0.1);
+    --border-strong: rgba(255, 255, 255, 0.2);
+    --wash: rgba(255, 255, 255, 0.06);
+    --good: #0ca30c;
+    --bad: #e66767;
+
+    --s1: #3987e5;
+    --s2: #d95926;
+    --s3: #199e70;
+    --s4: #c98500;
+    --s5: #d55181;
+    --s6: #008300;
+    --s7: #9085e9;
+    --s8: #e66767;
+
+    --cell-on: #e8e7e2;
+    --cell-off: #262624;
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --surface: #1a1a19;
+  --plane: #0d0d0d;
+  --ink: #ffffff;
+  --ink-2: #c3c2b7;
+  --ink-muted: #898781;
+  --grid: #2c2c2a;
+  --axis: #383835;
+  --border: rgba(255, 255, 255, 0.1);
+  --border-strong: rgba(255, 255, 255, 0.2);
+  --wash: rgba(255, 255, 255, 0.06);
+  --good: #0ca30c;
+  --bad: #e66767;
+
+  --s1: #3987e5;
+  --s2: #d95926;
+  --s3: #199e70;
+  --s4: #c98500;
+  --s5: #d55181;
+  --s6: #008300;
+  --s7: #9085e9;
+  --s8: #e66767;
+
+  --cell-on: #e8e7e2;
+  --cell-off: #262624;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--plane);
+  color: var(--ink);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 15px;
+  line-height: 1.45;
+  -webkit-text-size-adjust: 100%;
+}
+
+.wrap {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0 16px 64px;
+}
+
+/* ── шапка ─────────────────────────────────────────────── */
+
+.topbar {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 22px 0 14px;
+}
+
+.brand {
+  font-size: 22px;
+  font-weight: 620;
+  letter-spacing: -0.01em;
+}
+
+.brand-sub {
+  color: var(--ink-muted);
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.spacer { flex: 1; }
+
+.ghost-btn {
+  appearance: none;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--ink-2);
+  border-radius: 999px;
+  font: inherit;
+  font-size: 13px;
+  padding: 6px 12px;
+  cursor: pointer;
+  min-height: 32px;
+}
+
+.ghost-btn:hover { background: var(--wash); }
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--grid);
+  margin-bottom: 18px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.tabs::-webkit-scrollbar { display: none; }
+
+.tab {
+  appearance: none;
+  background: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  color: var(--ink-muted);
+  font: inherit;
+  font-size: 14px;
+  padding: 9px 12px;
+  margin-bottom: -1px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.tab:hover { color: var(--ink-2); }
+
+.tab[aria-selected="true"] {
+  color: var(--ink);
+  font-weight: 560;
+  border-bottom-color: var(--ink);
+}
+
+/* ── карточки и фильтры ────────────────────────────────── */
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+}
+
+.filters { margin-bottom: 14px; }
+
+.filter-row + .filter-row {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--grid);
+}
+
+.filter-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 9px;
+}
+
+.filter-title {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.mini-btn {
+  appearance: none;
+  border: 0;
+  background: none;
+  color: var(--s1);
+  font: inherit;
+  font-size: 12.5px;
+  padding: 2px 4px;
+  cursor: pointer;
+}
+
+.mini-btn:hover { text-decoration: underline; }
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--ink-2);
+  border-radius: 999px;
+  font: inherit;
+  font-size: 13px;
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: background .12s, color .12s, border-color .12s;
+}
+
+.chip:hover { background: var(--wash); }
+
+.chip[aria-pressed="false"] {
+  color: var(--ink-muted);
+  border-style: dashed;
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+
+.chip[aria-pressed="false"] .dot { opacity: .28; }
+
+/* выбор дня — это не фильтр, поэтому невыбранное не зачёркивается */
+.chip.pick[aria-pressed="false"] {
+  color: var(--ink-2);
+  border-style: solid;
+  text-decoration: none;
+}
+
+/* кнопка серии: номер и дата */
+.chip.day {
+  flex-direction: column;
+  gap: 1px;
+  min-width: 52px;
+  padding: 5px 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.chip.day b { font-size: 14px; font-weight: 620; line-height: 1.15; }
+.chip.day small { font-size: 10px; line-height: 1.1; opacity: .72; letter-spacing: -0.01em; }
+
+.chip[aria-pressed="true"].day {
+  background: var(--ink);
+  color: var(--surface);
+  border-color: var(--ink);
+}
+
+.chip.day[aria-pressed="false"] {
+  text-decoration: none;
+  border-style: dashed;
+  color: var(--ink-muted);
+}
+
+/* темы: раздел и его подразделы */
+.tgroup {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  margin-top: 8px;
+}
+
+.chip.cat { font-weight: 560; }
+.chip.cat.partial { border-style: dashed; }
+
+.chip-count {
+  font-size: 11px;
+  color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.chip[aria-pressed="true"].cat .chip-count { color: var(--ink-muted); }
+
+.subs { display: flex; flex-wrap: wrap; gap: 5px; }
+
+.chip.sub {
+  font-size: 12.5px;
+  padding: 5px 10px 5px 9px;
+  border-color: var(--border);
+}
+
+.chip.sub::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  flex: none;
+  background: var(--accent);
+}
+
+.chip.sub[aria-pressed="true"] { color: var(--ink); }
+.chip.sub[aria-pressed="false"]::before { opacity: .28; }
+
+.dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 3px;
+  flex: none;
+}
+
+.summary {
+  margin-top: 12px;
+  padding-top: 11px;
+  border-top: 1px solid var(--grid);
+  color: var(--ink-2);
+  font-size: 13px;
+}
+
+.summary b { font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
+
+/* ── плитки ────────────────────────────────────────────── */
+
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.tile {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+}
+
+.tile-label {
+  font-size: 12px;
+  color: var(--ink-muted);
+  margin-bottom: 4px;
+}
+
+.tile-value {
+  font-size: 27px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+.tile-note {
+  font-size: 12px;
+  color: var(--ink-muted);
+  margin-top: 2px;
+}
+
+/* ── таблицы ───────────────────────────────────────────── */
+
+.table-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow-x: auto;
+}
+
+table.data {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+table.data th {
+  text-align: right;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--grid);
+  white-space: nowrap;
+  position: sticky;
+  top: 0;
+  background: var(--surface);
+  z-index: 2;
+}
+
+table.data th.left, table.data td.left { text-align: left; }
+
+table.data td {
+  text-align: right;
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--grid);
+  white-space: nowrap;
+}
+
+table.data tr:last-child td { border-bottom: 0; }
+table.data tbody tr:hover td { background: var(--wash); }
+table.data tr.clickable { cursor: pointer; }
+
+.rank {
+  width: 1%;
+  color: var(--ink-muted);
+  font-size: 13px;
+}
+
+.rank-top { color: var(--ink); font-weight: 600; }
+
+.name { font-weight: 500; }
+
+.score { font-weight: 620; font-size: 16px; }
+
+.muted { color: var(--ink-muted); }
+
+.delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  min-width: 34px;
+  justify-content: flex-end;
+}
+
+.delta.up { color: var(--good); }
+.delta.down { color: var(--bad); }
+.delta.same { color: var(--ink-muted); }
+
+.bar {
+  display: inline-block;
+  vertical-align: middle;
+  height: 7px;
+  border-radius: 4px;
+  background: var(--s1);
+  min-width: 2px;
+}
+
+.bar-track {
+  display: inline-block;
+  vertical-align: middle;
+  width: 74px;
+  height: 7px;
+  border-radius: 4px;
+  background: var(--cell-off);
+  overflow: hidden;
+  margin-right: 8px;
+}
+
+/* ── кондуит ───────────────────────────────────────────── */
+
+.conduit-scroll {
+  overflow-x: auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+table.conduit {
+  border-collapse: separate;
+  border-spacing: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+table.conduit th, table.conduit td {
+  padding: 0;
+  font-size: 12px;
+  font-weight: 400;
+}
+
+table.conduit th.pname, table.conduit td.pname {
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  background: var(--surface);
+  text-align: left;
+  padding: 0 12px 0 14px;
+  white-space: nowrap;
+  border-right: 1px solid var(--grid);
+  font-size: 13px;
+  min-width: 150px;
+}
+
+table.conduit thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--surface);
+  border-bottom: 1px solid var(--grid);
+  height: 40px;
+  vertical-align: bottom;
+}
+
+table.conduit thead th.pname { z-index: 4; }
+
+.phead {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding-bottom: 6px;
+  width: 26px;
+}
+
+.phead-id {
+  font-size: 11.5px;
+  color: var(--ink-2);
+  letter-spacing: -0.02em;
+}
+
+.phead-rule {
+  width: 20px;
+  height: 3px;
+  border-radius: 2px;
+}
+
+td.cell {
+  width: 26px;
+  height: 26px;
+  text-align: center;
+}
+
+.mark {
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  background: var(--cell-off);
+  margin: 0 auto;
+}
+
+.mark.on { background: var(--cell-on); }
+
+tr.crow:hover td { background: var(--wash); }
+tr.crow:hover td.pname { background: var(--wash); }
+
+table.conduit tfoot td {
+  border-top: 1px solid var(--grid);
+  text-align: center;
+  color: var(--ink-muted);
+  font-size: 11px;
+  height: 24px;
+}
+
+table.conduit tfoot td.pname {
+  text-align: left;
+  color: var(--ink-muted);
+  font-size: 11.5px;
+}
+
+table.conduit tfoot tr.weights td { color: var(--ink-2); font-weight: 560; }
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin: 12px 0 0;
+  font-size: 12.5px;
+  color: var(--ink-2);
+}
+
+.legend-item { display: inline-flex; align-items: center; gap: 6px; }
+
+/* ── прочее ────────────────────────────────────────────── */
+
+.section-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 22px 0 10px;
+}
+
+.section-title { font-size: 16px; font-weight: 600; }
+
+.section-note { font-size: 12.5px; color: var(--ink-muted); }
+
+.back-btn {
+  appearance: none;
+  border: 0;
+  background: none;
+  color: var(--s1);
+  font: inherit;
+  font-size: 13.5px;
+  padding: 4px 0;
+  cursor: pointer;
+  margin-bottom: 6px;
+}
+
+.type-name { display: inline-flex; align-items: center; gap: 8px; }
+
+/* блок темы: заголовок, полоса, строки подразделов */
+.tblock { padding: 11px 0; border-bottom: 1px solid var(--grid); }
+.tblock:first-child { padding-top: 2px; }
+.tblock:last-child { border-bottom: 0; padding-bottom: 2px; }
+
+.tblock-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 7px;
+  font-size: 14px;
+}
+
+.subline {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 0 0;
+  font-size: 12.5px;
+  color: var(--ink-2);
+}
+
+.subline-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.subline-val { font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* вкладка «Темы» — карточками, а не широкой таблицей */
+.tcards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.tcard .subline { grid-template-columns: minmax(72px, 118px) 1fr auto; }
+
+.tfacts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin: 9px 0 2px;
+}
+
+.tfact { display: flex; flex-direction: column; gap: 1px; }
+.tfact-label { font-size: 11px; color: var(--ink-muted); }
+.tfact-value { font-size: 14px; font-weight: 560; font-variant-numeric: tabular-nums; }
+
+.tsubs { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--grid); }
+
+.track {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--cell-off);
+  overflow: hidden;
+}
+
+.track > i { display: block; height: 100%; border-radius: 4px; }
+.track.thin { height: 6px; }
+
+.type-val {
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-2);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.series-mini {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.smini {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 9px;
+  font-size: 12.5px;
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.smini b { color: var(--ink); font-weight: 600; }
+
+.tip {
+  position: fixed;
+  z-index: 40;
+  pointer-events: none;
+  background: var(--ink);
+  color: var(--surface);
+  font-size: 12px;
+  line-height: 1.35;
+  padding: 6px 9px;
+  border-radius: 7px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, .18);
+  max-width: 220px;
+  opacity: 0;
+  transition: opacity .1s;
+}
+
+.tip.show { opacity: 1; }
+
+.foot {
+  margin-top: 26px;
+  padding-top: 14px;
+  border-top: 1px solid var(--grid);
+  color: var(--ink-muted);
+  font-size: 12.5px;
+}
+
+@media (max-width: 560px) {
+  .wrap { padding: 0 12px 48px; }
+  .brand { font-size: 19px; }
+  .tile-value { font-size: 23px; }
+  table.data td, table.data th { padding: 9px 8px; }
+  .bar-track { display: none; }
+  .tcards { grid-template-columns: 1fr; }
+  table.conduit th.pname, table.conduit td.pname { min-width: 118px; font-size: 12px; padding: 0 8px 0 10px; }
+}
+
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="topbar">
+    <div>
+      <div class="brand" id="brand-title">Кондуит</div>
+      <div class="brand-sub" id="brand-sub"></div>
+    </div>
+    <div class="spacer"></div>
+    <button class="ghost-btn" id="theme" type="button">Тема</button>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab" type="button" data-view="rating" aria-selected="true">Рейтинг</button>
+    <button class="tab" type="button" data-view="series" aria-selected="false">Кондуиты</button>
+    <button class="tab" type="button" data-view="students" aria-selected="false">Ученики</button>
+    <button class="tab" type="button" data-view="types" aria-selected="false">Темы</button>
+  </nav>
+
+  <main id="main"></main>
+</div>
+<script>window.__CONDUIT__={"config":{"title":"Кондуит","subtitle":"Летняя математическая смена · 2026","students_total":30,"noindex":true,"scoring":{"formula":"students_total - solvers","note":"Вес задачи = число учеников на смене минус число решивших."},"offline_date":"2026-07-27"},"types":[{"id":"algebra","name":"Алгебра","slot":1,"subs":[{"id":"inequalities","name":"Неравенства"}]},{"id":"geometry","name":"Геометрия","slot":2,"subs":[{"id":"planimetry","name":"Планиметрия"},{"id":"stereometry","name":"Стереометрия"}]},{"id":"comb","name":"Комбинаторика","slot":3,"subs":[{"id":"games","name":"Игры"},{"id":"graphs","name":"Графы"},{"id":"cells","name":"Клетчатые задачи"}]},{"id":"numbers","name":"Теория чисел","slot":7,"subs":[]}],"students":[{"id":"abramova-sonya","name":"Абрамова Соня"},{"id":"baranov-kirill","name":"Баранов Кирилл"},{"id":"belkina-nastya","name":"Белкина Настя"},{"id":"vereschagin-gosha","name":"Верещагин Гоша"},{"id":"gavrilov-timur","name":"Гаврилов Тимур"},{"id":"gordeeva-liza","name":"Гордеева Лиза"},{"id":"dementev-matvey","name":"Дементьев Матвей"},{"id":"erohina-dasha","name":"Ерохина Даша"},{"id":"zhukovskiy-mark","name":"Жуковский Марк"},{"id":"zayceva-polina","name":"Зайцева Полина"},{"id":"ilin-serezha","name":"Ильин Серёжа"},{"id":"karpova-anya","name":"Карпова Аня"},{"id":"kovalev-dima","name":"Ковалёв Дима"},{"id":"lebedeva-masha","name":"Лебедева Маша"},{"id":"lozinskiy-artem","name":"Лозинский Артём"},{"id":"mescheryakova-vera","name":"Мещерякова Вера"},{"id":"nikitin-egor","name":"Никитин Егор"},{"id":"orlova-ksyusha","name":"Орлова Ксюша"},{"id":"pankratov-lesha","name":"Панкратов Лёша"},{"id":"prohorova-yulya","name":"Прохорова Юля"},{"id":"romanov-vanya","name":"Романов Ваня"},{"id":"saveleva-katya","name":"Савельева Катя"},{"id":"sizov-misha","name":"Сизов Миша"},{"id":"tarasova-olya","name":"Тарасова Оля"},{"id":"ustinov-pasha","name":"Устинов Паша"},{"id":"fomina-rita","name":"Фомина Рита"},{"id":"hrustalev-kostya","name":"Хрусталёв Костя"},{"id":"chernova-zhenya","name":"Чернова Женя"},{"id":"shapovalov-roma","name":"Шаповалов Рома"},{"id":"yakovleva-nina","name":"Яковлева Нина"}],"series":[{"n":1,"day":1,"date":"2026-07-27","title":"Серия 1","problems":[{"id":"1","type":"comb","sub":"graphs"},{"id":"2","type":"comb","sub":"cells"},{"id":"3","type":"numbers","sub":null},{"id":"4","type":"comb","sub":"graphs"},{"id":"5","type":"algebra","sub":"inequalities"},{"id":"6а","type":"geometry","sub":"planimetry"},{"id":"6б","type":"geometry","sub":"planimetry"},{"id":"7","type":"comb","sub":"graphs"},{"id":"8а","type":"numbers","sub":null},{"id":"8б","type":"numbers","sub":null},{"id":"8в","type":"numbers","sub":null},{"id":"9","type":"comb","sub":"games"},{"id":"10","type":"algebra","sub":"inequalities"},{"id":"11а","type":"comb","sub":"graphs"},{"id":"11б","type":"comb","sub":"graphs"}],"solved":{"abramova-sonya":["1","3","5","7","8а","8в","10","11а"],"baranov-kirill":["1","5","6б","8а","8б","8в","9","10"],"belkina-nastya":["4","5"],"vereschagin-gosha":["8в"],"gavrilov-timur":["1","2","6а","8б","8в","9","10","11а"],"gordeeva-liza":["7","8в","10"],"dementev-matvey":["1","8а","8в","10"],"erohina-dasha":["1","2","5","10","11а"],"zhukovskiy-mark":["8в"],"zayceva-polina":["1","3","4","5","6а","6б","7","8а","8б","8в","10","11а","11б"],"ilin-serezha":["1","2","5","6а","6б","7","8в","9","10","11а","11б"],"karpova-anya":["1","4","6а","8а","10","11а","11б"],"kovalev-dima":["6а","6б","7","11б"],"lebedeva-masha":["1","3","4","8а","11а"],"lozinskiy-artem":["8а","8в"],"mescheryakova-vera":["2","7","8б","10","11а"],"nikitin-egor":["1","2","3","4","6а","6б","8а","8в","9","11а"],"orlova-ksyusha":["1","7","8а","8б","8в","10","11а"],"pankratov-lesha":["1","3","5","8а","8б","8в","10"],"prohorova-yulya":["1","2","4","5","6б","7","11а","11б"],"romanov-vanya":["1","2","4","5","8а","8б"],"saveleva-katya":["3","4","8а","8б","8в"],"sizov-misha":["1","4","8а"],"tarasova-olya":["1","2","8а","8б","8в","10"],"ustinov-pasha":["1","4","5","8в","10","11а"],"fomina-rita":["1","2","4","5","7","8а","8б","8в","11а","11б"],"hrustalev-kostya":["1","2","4","6а","9","10","11а","11б"],"chernova-zhenya":["1","4","5","6а","7","8а","8б","8в","11а","11б"],"shapovalov-roma":["1","3","4","5","6а","8а","8б","8в","11а"],"yakovleva-nina":["4","5","6а","7","8а","8в","11а"]}},{"n":2,"day":2,"date":"2026-07-28","title":"Серия 2","problems":[{"id":"1а","type":"numbers","sub":null},{"id":"1б","type":"numbers","sub":null},{"id":"1в","type":"numbers","sub":null},{"id":"2","type":"geometry","sub":"planimetry"},{"id":"3","type":"comb","sub":"cells"},{"id":"4","type":"comb","sub":"cells"},{"id":"5а","type":"numbers","sub":null},{"id":"5б","type":"numbers","sub":null},{"id":"5в","type":"numbers","sub":null},{"id":"6а","type":"comb","sub":"cells"},{"id":"6б","type":"comb","sub":"cells"}],"solved":{"abramova-sonya":["1а","1б","1в","3","5а","5б","5в","6б"],"baranov-kirill":["1а","1в","5а","5б","6б"],"belkina-nastya":["1а","1б","2","5а","5в"],"vereschagin-gosha":[],"gavrilov-timur":["1а","1б","5а","5б","5в"],"gordeeva-liza":["1а","5а","5б"],"dementev-matvey":["1в","3","4","5б"],"erohina-dasha":["1а","5а","6б"],"zhukovskiy-mark":["5в"],"zayceva-polina":["1а","1б","1в","2","3","4","5а","5б","6б"],"ilin-serezha":["1а","1б","2","3","4","5а","5б","5в","6а","6б"],"karpova-anya":["3","6а"],"kovalev-dima":["2","5а"],"lebedeva-masha":["1а","1б","4","5а","6а"],"lozinskiy-artem":["2","5а","5б"],"mescheryakova-vera":["1а","4","6а","6б"],"nikitin-egor":["1б","2","4","5а","6б"],"orlova-ksyusha":["5а","5б"],"pankratov-lesha":["1а","1б","5а","5б","5в"],"prohorova-yulya":["2","3","4","5а","5б","6а","6б"],"romanov-vanya":["1б","3","4","5а","6а","6б"],"saveleva-katya":["1а","3","4","5а"],"sizov-misha":["2"],"tarasova-olya":["1а","1в","5а"],"ustinov-pasha":["1б","3","5а","5б","6б"],"fomina-rita":["1в","2","3","4","5а","5б","6а","6б"],"hrustalev-kostya":["3","5а","5б","6а","6б"],"chernova-zhenya":["1б","3","4","5а","5б","6б"],"shapovalov-roma":["1а","1в","4","5а"],"yakovleva-nina":["1а","1б","1в","3","5а","5б"]}},{"n":3,"day":3,"date":"2026-07-29","title":"Серия 3","problems":[{"id":"1","type":"algebra","sub":"inequalities"},{"id":"2","type":"numbers","sub":null},{"id":"3","type":"geometry","sub":"planimetry"},{"id":"4а","type":"comb","sub":"games"},{"id":"4б","type":"comb","sub":"games"},{"id":"5","type":"numbers","sub":null},{"id":"6","type":"numbers","sub":null},{"id":"7","type":"numbers","sub":null},{"id":"8","type":"geometry","sub":"planimetry"}],"solved":{"abramova-sonya":["1","2","3","4б","7","8"],"baranov-kirill":["1","2","3","4б","5","8"],"belkina-nastya":["1","4б","8"],"vereschagin-gosha":["8"],"gavrilov-timur":["2","3","4б","5","8"],"gordeeva-liza":[],"dementev-matvey":["1","2","3","4б"],"erohina-dasha":["2","3","4а","4б","7"],"zhukovskiy-mark":[],"zayceva-polina":["1","2","3","4б","5","7","8"],"ilin-serezha":["1","2","3","4а","4б","5","6"],"karpova-anya":["4б"],"kovalev-dima":["3","5","8"],"lebedeva-masha":["2","3","4б"],"lozinskiy-artem":["4б","7"],"mescheryakova-vera":["1","4б","7"],"nikitin-egor":["2","3","4б","5","7","8"],"orlova-ksyusha":["2","3","5","7"],"pankratov-lesha":["1","2","3","4б","5","6"],"prohorova-yulya":["1","3","4а","4б","5","8"],"romanov-vanya":["1","2","4б"],"saveleva-katya":["2","4б"],"sizov-misha":[],"tarasova-olya":["1","3","4б","5","6"],"ustinov-pasha":["3","4б"],"fomina-rita":["2","3","4б","7","8"],"hrustalev-kostya":["3","4б","7","8"],"chernova-zhenya":["1","3","4а","4б","5"],"shapovalov-roma":["1","3","4а","4б","5","8"],"yakovleva-nina":["2","3","4б"]}},{"n":4,"day":4,"date":"2026-07-30","title":"Серия 4","problems":[{"id":"1","type":"algebra","sub":"inequalities"},{"id":"2","type":"comb","sub":"graphs"},{"id":"3","type":"comb","sub":"cells"},{"id":"4","type":"numbers","sub":null},{"id":"5","type":"numbers","sub":null},{"id":"6а","type":"numbers","sub":null},{"id":"6б","type":"numbers","sub":null},{"id":"7","type":"comb","sub":"games"},{"id":"8а","type":"comb","sub":"games"},{"id":"8б","type":"comb","sub":"games"},{"id":"9","type":"algebra","sub":"inequalities"},{"id":"10","type":"algebra","sub":"inequalities"},{"id":"11","type":"comb","sub":"cells"}],"solved":{"abramova-sonya":["2","3","4","5","6а","6б","8а","10"],"baranov-kirill":["3","4","7","8а","10"],"belkina-nastya":["1","8а","10","11"],"vereschagin-gosha":["9","10"],"gavrilov-timur":["3","5","6а","6б","7","8а","10","11"],"gordeeva-liza":["2"],"dementev-matvey":["2","4","6б","9","10","11"],"erohina-dasha":["1","2","4","7","8а","9"],"zhukovskiy-mark":["6а","8а"],"zayceva-polina":["1","2","3","4","6а","7","8а","9","10","11"],"ilin-serezha":["1","2","3","4","6а","6б","7","8а","8б","10","11"],"karpova-anya":["4","7","9","10"],"kovalev-dima":["8а"],"lebedeva-masha":["3","4","8а","10","11"],"lozinskiy-artem":["1","3","6б","7","8а"],"mescheryakova-vera":["2","3","4"],"nikitin-egor":["2","3","5","8а","10"],"orlova-ksyusha":["8а","10"],"pankratov-lesha":["2","3","4","6б","7","8а","8б","9","10"],"prohorova-yulya":["1","2","3","6а","8а","8б","9","10","11"],"romanov-vanya":["4","6б","9","10","11"],"saveleva-katya":["5","7","10"],"sizov-misha":["5","7","8а","10"],"tarasova-olya":["1","4","8а","8б","10","11"],"ustinov-pasha":["1","2","3","4","6а","10","11"],"fomina-rita":["1","2","3","4","5","6а","6б","7","8б","10","11"],"hrustalev-kostya":["1","3","4","5","7","8а","8б","9","10","11"],"chernova-zhenya":["3","4","6а","6б","8а","8б","9","10","11"],"shapovalov-roma":["1","2","3","6б","7","8а","9","10","11"],"yakovleva-nina":["1","3","4","6а","8а","9","10"]}},{"n":5,"day":5,"date":"2026-07-31","title":"Серия 5","problems":[{"id":"1","type":"numbers","sub":null},{"id":"2","type":"comb","sub":"cells"},{"id":"3","type":"geometry","sub":"stereometry"},{"id":"4","type":"comb","sub":"games"},{"id":"5а","type":"comb","sub":"graphs"},{"id":"5б","type":"comb","sub":"graphs"},{"id":"6","type":"algebra","sub":"inequalities"}],"solved":{"abramova-sonya":["1","4","5а","5б","6"],"baranov-kirill":["2","5а","5б","6"],"belkina-nastya":[],"vereschagin-gosha":[],"gavrilov-timur":["1","3","5а","5б"],"gordeeva-liza":["1"],"dementev-matvey":[],"erohina-dasha":["1","2","5б","6"],"zhukovskiy-mark":[],"zayceva-polina":["1","2","3","4","5а","5б"],"ilin-serezha":["1","2","5а","5б","6"],"karpova-anya":["2","5а"],"kovalev-dima":["5а"],"lebedeva-masha":["1"],"lozinskiy-artem":["3"],"mescheryakova-vera":["6"],"nikitin-egor":["1"],"orlova-ksyusha":["1"],"pankratov-lesha":["1","4","5а","5б"],"prohorova-yulya":["1","2","4","5а","5б"],"romanov-vanya":["3","5а","5б"],"saveleva-katya":["5б"],"sizov-misha":[],"tarasova-olya":["1","5а"],"ustinov-pasha":["1","6"],"fomina-rita":["2","3","5а","5б"],"hrustalev-kostya":["1","2","5б"],"chernova-zhenya":["5б"],"shapovalov-roma":["1","5а","5б"],"yakovleva-nina":[]}},{"n":6,"day":6,"date":"2026-08-01","title":"Серия 6","problems":[{"id":"1","type":"comb","sub":"graphs"},{"id":"2а","type":"comb","sub":"cells"},{"id":"2б","type":"comb","sub":"cells"},{"id":"2в","type":"comb","sub":"cells"},{"id":"3","type":"comb","sub":"graphs"},{"id":"4","type":"algebra","sub":"inequalities"},{"id":"5","type":"numbers","sub":null}],"solved":{"abramova-sonya":["2а"],"baranov-kirill":["2б","2в","3","4"],"belkina-nastya":[],"vereschagin-gosha":[],"gavrilov-timur":["2а","2б","2в","5"],"gordeeva-liza":["5"],"dementev-matvey":["4","5"],"erohina-dasha":["2а","4","5"],"zhukovskiy-mark":[],"zayceva-polina":["2а","2б","2в","3","4","5"],"ilin-serezha":["1","2а","2б","2в","3","4","5"],"karpova-anya":["3"],"kovalev-dima":["5"],"lebedeva-masha":["2б","2в"],"lozinskiy-artem":["1"],"mescheryakova-vera":["2а","2б","3","5"],"nikitin-egor":["2а","3"],"orlova-ksyusha":["5"],"pankratov-lesha":["2а","2в","4","5"],"prohorova-yulya":["2а","4"],"romanov-vanya":["5"],"saveleva-katya":["5"],"sizov-misha":[],"tarasova-olya":["5"],"ustinov-pasha":["4"],"fomina-rita":["1","2а","2б","2в","3"],"hrustalev-kostya":["2а","3","4","5"],"chernova-zhenya":["2а","2б","2в","5"],"shapovalov-roma":["1","3","5"],"yakovleva-nina":["2а","2б"]}},{"n":7,"day":8,"date":"2026-08-03","title":"Серия 7","problems":[{"id":"1","type":"comb","sub":"games"},{"id":"2","type":"geometry","sub":"stereometry"},{"id":"3","type":"numbers","sub":null},{"id":"4","type":"comb","sub":"cells"},{"id":"5","type":"numbers","sub":null},{"id":"6","type":"algebra","sub":"inequalities"},{"id":"7","type":"numbers","sub":null},{"id":"8","type":"comb","sub":"games"},{"id":"9","type":"comb","sub":"games"},{"id":"10","type":"comb","sub":"cells"},{"id":"11","type":"algebra","sub":"inequalities"}],"solved":{"abramova-sonya":["1","2","4","5","7","9"],"baranov-kirill":["1","2","4","5","6","7","11"],"belkina-nastya":["8","11"],"vereschagin-gosha":["2"],"gavrilov-timur":["2","4","5","7","8","11"],"gordeeva-liza":["2","6","11"],"dementev-matvey":["1","2","4","5","11"],"erohina-dasha":["1","2","3","4","5","6","8","9","11"],"zhukovskiy-mark":["1","2","4","7","9"],"zayceva-polina":["1","2","3","4","5","6","7","8","9"],"ilin-serezha":["1","2","3","5","7","9","11"],"karpova-anya":["1","2","4","7","8","9","11"],"kovalev-dima":["1","2","4","11"],"lebedeva-masha":["1","2","4","5","11"],"lozinskiy-artem":["2","4","5","10"],"mescheryakova-vera":["1","2","3","4","10","11"],"nikitin-egor":["2","4","5","7","8","11"],"orlova-ksyusha":["2","4","7","9","11"],"pankratov-lesha":["2","3","4","5","7","8","11"],"prohorova-yulya":["1","2","4","6","9","11"],"romanov-vanya":["2","4","5","7","11"],"saveleva-katya":["1","2","4","5"],"sizov-misha":["2","4","5"],"tarasova-olya":["1","2","4","5","8","9","11"],"ustinov-pasha":["1","2","3","4","5","7","9","11"],"fomina-rita":["1","2","4","8","9","10","11"],"hrustalev-kostya":["1","2","4","5","9","10","11"],"chernova-zhenya":["1","2","4","5","7","11"],"shapovalov-roma":["1","2","3","5","6","7","11"],"yakovleva-nina":["2","5","9","11"]}},{"n":8,"day":9,"date":"2026-08-04","title":"Серия 8","problems":[{"id":"1а","type":"geometry","sub":"planimetry"},{"id":"1б","type":"geometry","sub":"planimetry"},{"id":"2","type":"geometry","sub":"stereometry"},{"id":"3а","type":"numbers","sub":null},{"id":"3б","type":"numbers","sub":null},{"id":"3в","type":"numbers","sub":null},{"id":"4а","type":"comb","sub":"games"},{"id":"4б","type":"comb","sub":"games"},{"id":"5","type":"geometry","sub":"planimetry"},{"id":"6","type":"geometry","sub":"stereometry"},{"id":"7","type":"geometry","sub":"planimetry"},{"id":"8","type":"numbers","sub":null}],"solved":{"abramova-sonya":["1б","2","3а","3б","3в","4б"],"baranov-kirill":["3а","3б","3в","4а","4б"],"belkina-nastya":["1а","1б","3в"],"vereschagin-gosha":["3б","3в","7"],"gavrilov-timur":["3а","3в","8"],"gordeeva-liza":["1б","3б","6","7"],"dementev-matvey":["2","3в","4а"],"erohina-dasha":["1а","1б","2","3а","3в","6","8"],"zhukovskiy-mark":["1б"],"zayceva-polina":["1а","1б","3а","3в","4б","5","6","7","8"],"ilin-serezha":["1а","1б","2","3а","3б","3в","4а","4б","5","6","7","8"],"karpova-anya":["1б","2","3а","3б","3в","4б","7","8"],"kovalev-dima":["1б","3в","6","7"],"lebedeva-masha":["1б","4а"],"lozinskiy-artem":["1а","3а"],"mescheryakova-vera":["1б","2","3в","4б"],"nikitin-egor":["1б","2","3в","6"],"orlova-ksyusha":["2","3б","3в","8"],"pankratov-lesha":["3а","3б","3в","4а","6","8"],"prohorova-yulya":["1а","1б","3б","3в","4а","4б","5","7","8"],"romanov-vanya":["1б","3в","4б"],"saveleva-katya":["3б","3в"],"sizov-misha":["3в"],"tarasova-olya":["3а","3в","4б"],"ustinov-pasha":["3б","3в","5"],"fomina-rita":["1а","1б","3б","3в","4б","5","6","7"],"hrustalev-kostya":["1б","3а","3б","3в","4а","5"],"chernova-zhenya":["1б","3а","3б","3в","4а","4б","7"],"shapovalov-roma":["1а","1б","3а","3в","4а","4б","5","6","8"],"yakovleva-nina":["1а","3б","3в","6"]}},{"n":9,"day":10,"date":"2026-08-05","title":"Серия 9","problems":[{"id":"1а","type":"numbers","sub":null},{"id":"1б","type":"numbers","sub":null},{"id":"2","type":"numbers","sub":null},{"id":"3","type":"numbers","sub":null},{"id":"4","type":"comb","sub":"cells"},{"id":"5","type":"algebra","sub":"inequalities"},{"id":"6","type":"numbers","sub":null},{"id":"7","type":"geometry","sub":"planimetry"}],"solved":{"abramova-sonya":["1б","2","6"],"baranov-kirill":["6"],"belkina-nastya":[],"vereschagin-gosha":["1б"],"gavrilov-timur":["1а","1б","2","5"],"gordeeva-liza":["6"],"dementev-matvey":["1а","5"],"erohina-dasha":["1а","1б"],"zhukovskiy-mark":[],"zayceva-polina":["1а","1б","3","4","6","7"],"ilin-serezha":["1а","1б","2","3","6"],"karpova-anya":["1а"],"kovalev-dima":[],"lebedeva-masha":["1а","3"],"lozinskiy-artem":["6"],"mescheryakova-vera":["2"],"nikitin-egor":["1а","6"],"orlova-ksyusha":["1б","5","6"],"pankratov-lesha":["2","3","6"],"prohorova-yulya":["7"],"romanov-vanya":[],"saveleva-katya":["1б"],"sizov-misha":["6"],"tarasova-olya":["1а","3","6","7"],"ustinov-pasha":["1б","5","6"],"fomina-rita":["2","4","6","7"],"hrustalev-kostya":["2","6","7"],"chernova-zhenya":["1б","3","4"],"shapovalov-roma":["1б","6"],"yakovleva-nina":["1а","1б","2","6"]}},{"n":10,"day":11,"date":"2026-08-06","title":"Серия 10","problems":[{"id":"1а","type":"geometry","sub":"stereometry"},{"id":"1б","type":"geometry","sub":"stereometry"},{"id":"1в","type":"geometry","sub":"stereometry"},{"id":"2","type":"algebra","sub":"inequalities"},{"id":"3а","type":"geometry","sub":"stereometry"},{"id":"3б","type":"geometry","sub":"stereometry"},{"id":"3в","type":"geometry","sub":"stereometry"},{"id":"4","type":"geometry","sub":"planimetry"},{"id":"5","type":"comb","sub":"cells"}],"solved":{"abramova-sonya":["1б","1в","3а","3б","3в","4","5"],"baranov-kirill":["1б","1в","2","3а","3б","3в","4","5"],"belkina-nastya":["1б","1в","3а","3в","4"],"vereschagin-gosha":["1б","3а","3б","3в"],"gavrilov-timur":["1б","1в","3а","3б","3в","5"],"gordeeva-liza":["1б","1в","3а","3б","3в"],"dementev-matvey":["1а","1б","1в","3а","3б","3в","4","5"],"erohina-dasha":["1б","1в","3а","3б","3в","4","5"],"zhukovskiy-mark":["4"],"zayceva-polina":["1б","1в","2","3а","3б","3в","4","5"],"ilin-serezha":["1а","1б","1в","2","3а","3б","3в","4","5"],"karpova-anya":["1а","3а","3б","3в","4","5"],"kovalev-dima":["1б","1в","3а","3б","4"],"lebedeva-masha":["3а","5"],"lozinskiy-artem":["1в","3б","5"],"mescheryakova-vera":["1б","1в","3а","3б","3в","4","5"],"nikitin-egor":["1а","1б","1в","2","3а","3б","3в"],"orlova-ksyusha":["1а","1б","2","3в","4"],"pankratov-lesha":["1б","1в","2","3а","3б","3в","4","5"],"prohorova-yulya":["1б","1в","3а","3б","3в","4","5"],"romanov-vanya":["1б","1в","2","3а","3б","3в","4","5"],"saveleva-katya":["1б","3а","3б","3в","5"],"sizov-misha":["1в","3а","3б","4"],"tarasova-olya":["1б","1в","2","3а","3б"],"ustinov-pasha":["1б","1в","2","3а","3б","3в","4"],"fomina-rita":["1б","1в","2","3а","3б","3в","4","5"],"hrustalev-kostya":["1б","1в","2","3а","3б","3в","5"],"chernova-zhenya":["2","3а","3б","5"],"shapovalov-roma":["1б","3а","3б","3в","5"],"yakovleva-nina":["1б","1в","3а","3б","3в","5"]}},{"n":11,"day":12,"date":"2026-08-07","title":"Серия 11","problems":[{"id":"1","type":"comb","sub":"cells"},{"id":"2","type":"numbers","sub":null},{"id":"3","type":"comb","sub":"games"},{"id":"4а","type":"algebra","sub":"inequalities"},{"id":"4б","type":"algebra","sub":"inequalities"},{"id":"5","type":"algebra","sub":"inequalities"},{"id":"6","type":"algebra","sub":"inequalities"},{"id":"7","type":"comb","sub":"cells"},{"id":"8","type":"comb","sub":"cells"}],"solved":{"abramova-sonya":["2","3","4а","4б","5"],"baranov-kirill":["3","4а","6","8"],"belkina-nastya":["1","3","4б","5","8"],"vereschagin-gosha":[],"gavrilov-timur":["1","2","3","6"],"gordeeva-liza":["4а","8"],"dementev-matvey":["1","2","3","4а","4б","5","8"],"erohina-dasha":["1","2","3","4а","4б","5","6"],"zhukovskiy-mark":["4а"],"zayceva-polina":["1","2","3","4а","4б","5","8"],"ilin-serezha":["1","2","3","4а","4б","5","6","8"],"karpova-anya":["1","3","4а","8"],"kovalev-dima":["1","6"],"lebedeva-masha":["2","3","4а","4б","5","6","8"],"lozinskiy-artem":["3","4а","4б","8"],"mescheryakova-vera":["3","4а","4б","6","8"],"nikitin-egor":["1","2","4а","4б","5","8"],"orlova-ksyusha":["2","3","4а","4б","6"],"pankratov-lesha":["2","3","4а","5","8"],"prohorova-yulya":["1","2","3","4а","4б","5","6","8"],"romanov-vanya":["1","2","3","4а","5","6"],"saveleva-katya":["1","2","4а","8"],"sizov-misha":["4б","8"],"tarasova-olya":["1","2","3","4а","4б","5"],"ustinov-pasha":["2","4а","4б","5","6"],"fomina-rita":["1","3","4а","4б","5","8"],"hrustalev-kostya":["1","2","3","4а","4б","5","8"],"chernova-zhenya":["1","2","3","4а","8"],"shapovalov-roma":["1","3","4а","4б","5","6"],"yakovleva-nina":["1","3","4а","5","8"]}},{"n":12,"day":13,"date":"2026-08-08","title":"Серия 12","problems":[{"id":"1","type":"geometry","sub":"stereometry"},{"id":"2а","type":"comb","sub":"games"},{"id":"2б","type":"comb","sub":"games"},{"id":"3а","type":"comb","sub":"graphs"},{"id":"3б","type":"comb","sub":"graphs"},{"id":"4","type":"geometry","sub":"stereometry"},{"id":"5","type":"geometry","sub":"stereometry"},{"id":"6","type":"comb","sub":"cells"},{"id":"7","type":"numbers","sub":null},{"id":"8","type":"numbers","sub":null},{"id":"9","type":"comb","sub":"graphs"},{"id":"10","type":"geometry","sub":"stereometry"},{"id":"11","type":"numbers","sub":null},{"id":"12","type":"numbers","sub":null}],"solved":{"abramova-sonya":["1","2б","3а","3б","4","7","8","10","11","12"],"baranov-kirill":["2а","2б","3а","3б","4","7","9"],"belkina-nastya":["2б","3б"],"vereschagin-gosha":["2б"],"gavrilov-timur":["2а","2б","3б","4","7","8","11","12"],"gordeeva-liza":["2а","2б","9"],"dementev-matvey":["2б","3а","3б","5","6","7"],"erohina-dasha":["1","2а","2б","3а","3б","4","5","6","7","8"],"zhukovskiy-mark":["3б","7"],"zayceva-polina":["1","2а","2б","3а","4","7","8","9","10","11","12"],"ilin-serezha":["1","2а","2б","3а","3б","4","5","6","7","8","11","12"],"karpova-anya":["1","2а","2б","3а","3б","4","7","9","10"],"kovalev-dima":["1","2а","2б","3а","4","8"],"lebedeva-masha":["2а","2б","3б","8"],"lozinskiy-artem":["2а","2б","3б"],"mescheryakova-vera":["1","2б","3а","3б","8","9"],"nikitin-egor":["2б","3а","3б","4","7","10","11","12"],"orlova-ksyusha":["3б"],"pankratov-lesha":["2а","2б","3б","4","7","10","11","12"],"prohorova-yulya":["2а","2б","3а","3б","4","10"],"romanov-vanya":["1","2б","3б","4","6","10","12"],"saveleva-katya":["1","2а","2б","11"],"sizov-misha":["3б","7","8"],"tarasova-olya":["2а","2б","3а","6","12"],"ustinov-pasha":["2а","3а","3б","4","10"],"fomina-rita":["2а","2б","3а","3б","4","5","6","7","8","11","12"],"hrustalev-kostya":["2б","3а","3б","4","5","6","7","8","9"],"chernova-zhenya":["2а","2б","3а","7","8","9"],"shapovalov-roma":["2б","3а","3б","4","7","8","9","12"],"yakovleva-nina":["1","2б","3а","3б","5","6","7","8","9","10"]}},{"n":13,"day":15,"date":"2026-08-10","title":"Серия 13","problems":[{"id":"1","type":"numbers","sub":null},{"id":"2а","type":"algebra","sub":"inequalities"},{"id":"2б","type":"algebra","sub":"inequalities"},{"id":"3","type":"geometry","sub":"planimetry"},{"id":"4а","type":"comb","sub":"games"},{"id":"4б","type":"comb","sub":"games"},{"id":"5а","type":"comb","sub":"cells"},{"id":"5б","type":"comb","sub":"cells"},{"id":"6","type":"geometry","sub":"planimetry"},{"id":"7","type":"comb","sub":"graphs"},{"id":"8","type":"algebra","sub":"inequalities"},{"id":"9а","type":"numbers","sub":null},{"id":"9б","type":"numbers","sub":null},{"id":"9в","type":"numbers","sub":null}],"solved":{"abramova-sonya":["1","2а","2б","3","4б","5а","5б","6","8","9а","9б","9в"],"baranov-kirill":["2а","2б","4а","4б","5а","8","9а","9б"],"belkina-nastya":["4б","8","9а"],"vereschagin-gosha":["9а","9б"],"gavrilov-timur":["1","2а","4а","4б","5б","8","9а","9б","9в"],"gordeeva-liza":["1","4б","6","8","9а","9б"],"dementev-matvey":["2а","2б","4а","4б","5б","8","9а","9б","9в"],"erohina-dasha":["1","2а","2б","4б","5б","7","8","9а","9б","9в"],"zhukovskiy-mark":["5б"],"zayceva-polina":["1","2б","3","4а","4б","5а","7","8","9а","9б","9в"],"ilin-serezha":["1","2а","2б","4а","4б","5а","5б","6","7","8","9а","9б","9в"],"karpova-anya":["4б","5а","5б","7","8"],"kovalev-dima":["4а","4б","5а","5б","8","9в"],"lebedeva-masha":["1","2б","4а","4б","5а","8","9б","9в"],"lozinskiy-artem":["1","2б","4б","9а"],"mescheryakova-vera":["4а","4б","5б","8","9а","9б"],"nikitin-egor":["2а","2б","4а","4б","5а","5б","7","8","9а","9б","9в"],"orlova-ksyusha":["2а","2б","4б","6","8","9а"],"pankratov-lesha":["1","2а","2б","4б","5а","5б","7","8","9а","9в"],"prohorova-yulya":["2а","2б","4б","5а","5б","6","7","8"],"romanov-vanya":["2а","2б","4б","5а","5б","7","8","9а","9б"],"saveleva-katya":["2а","4б","5а","9а","9б"],"sizov-misha":["4б","5б","8","9а","9б"],"tarasova-olya":["1","2б","4а","4б","6","8","9а","9б","9в"],"ustinov-pasha":["5а","6","8","9а","9б","9в"],"fomina-rita":["1","4а","4б","5а","5б","7","8","9а","9б","9в"],"hrustalev-kostya":["1","2а","3","4а","4б","5а","5б","8","9а","9б","9в"],"chernova-zhenya":["1","2б","4а","4б","5а","5б","7","9а","9б","9в"],"shapovalov-roma":["2б","4а","4б","5а","5б","8","9а","9б","9в"],"yakovleva-nina":["2а","2б","4а","4б","5а","5б","8","9а","9б","9в"]}},{"n":14,"day":16,"date":"2026-08-11","title":"Серия 14","problems":[{"id":"1","type":"numbers","sub":null},{"id":"2а","type":"comb","sub":"graphs"},{"id":"2б","type":"comb","sub":"graphs"},{"id":"3","type":"geometry","sub":"planimetry"},{"id":"4а","type":"geometry","sub":"stereometry"},{"id":"4б","type":"geometry","sub":"stereometry"},{"id":"5","type":"geometry","sub":"planimetry"},{"id":"6а","type":"comb","sub":"games"},{"id":"6б","type":"comb","sub":"games"},{"id":"6в","type":"comb","sub":"games"},{"id":"7","type":"algebra","sub":"inequalities"},{"id":"8","type":"numbers","sub":null}],"solved":{"abramova-sonya":["1","4а","5","6а","6б","7"],"baranov-kirill":["4а","5","6б","6в"],"belkina-nastya":["4а","5","6а","6в"],"vereschagin-gosha":["5"],"gavrilov-timur":["1","3","5"],"gordeeva-liza":["3","4а","5"],"dementev-matvey":["4а","4б","5","6а","6в","7"],"erohina-dasha":["3","4а","4б","5","6в"],"zhukovskiy-mark":[],"zayceva-polina":["1","2б","3","4а","4б","5","6а","6б","6в","7","8"],"ilin-serezha":["2б","4а","4б","5","6а","6б","6в","7","8"],"karpova-anya":["4б","5"],"kovalev-dima":["4а","4б","5","6в"],"lebedeva-masha":["2а","4б","5","6а","6в","8"],"lozinskiy-artem":["4а","6а"],"mescheryakova-vera":["1","4б","6а","7"],"nikitin-egor":["4а","4б","5"],"orlova-ksyusha":["4а","6в","7"],"pankratov-lesha":["4а","4б","6а","6в","8"],"prohorova-yulya":["2б","4а","4б","5","6б","6в"],"romanov-vanya":["2б","4а","6в","7"],"saveleva-katya":["4б","5"],"sizov-misha":["4а"],"tarasova-olya":["4а","4б","6б","7"],"ustinov-pasha":["4а","4б","6в","7"],"fomina-rita":["1","2а","4а","4б","5","6б","6в"],"hrustalev-kostya":["4а","5","6а","6в"],"chernova-zhenya":["3","4а","4б","5","6а","6в"],"shapovalov-roma":["4а","5","6а","6б","6в","7"],"yakovleva-nina":["6в"]}},{"n":15,"day":17,"date":"2026-08-12","title":"Серия 15","problems":[{"id":"1","type":"comb","sub":"graphs"},{"id":"2","type":"algebra","sub":"inequalities"},{"id":"3","type":"comb","sub":"games"},{"id":"4а","type":"comb","sub":"graphs"},{"id":"4б","type":"comb","sub":"graphs"},{"id":"5","type":"geometry","sub":"stereometry"},{"id":"6а","type":"geometry","sub":"stereometry"},{"id":"6б","type":"geometry","sub":"stereometry"},{"id":"6в","type":"geometry","sub":"stereometry"},{"id":"7","type":"geometry","sub":"stereometry"},{"id":"8","type":"comb","sub":"graphs"},{"id":"9а","type":"geometry","sub":"stereometry"},{"id":"9б","type":"geometry","sub":"stereometry"},{"id":"10","type":"numbers","sub":null}],"solved":{"abramova-sonya":["2","3","4а","4б","6а","7","9а","9б","10"],"baranov-kirill":["2","4а","9а","9б"],"belkina-nastya":["3","4а"],"vereschagin-gosha":["9а"],"gavrilov-timur":["1","3","5","6б","6в","7","9а"],"gordeeva-liza":["4а","4б","5","6б","9б"],"dementev-matvey":["3","4а","6а","6б","6в","7","9а"],"erohina-dasha":["1","3","4а","4б","6а","6б","7","9а","9б","10"],"zhukovskiy-mark":[],"zayceva-polina":["2","3","4а","4б","6б","6в","9а","9б","10"],"ilin-serezha":["1","2","3","6а","6б","6в","7","9а","9б","10"],"karpova-anya":["3","4а","4б","5","6б","9а","10"],"kovalev-dima":["1","6а","6б","9а"],"lebedeva-masha":["3","4б","6б","6в"],"lozinskiy-artem":["3","4а"],"mescheryakova-vera":["3","4а","6б","9б"],"nikitin-egor":["3","4а","4б","6б","7","9а","9б"],"orlova-ksyusha":["2","3","4б","6б","9б","10"],"pankratov-lesha":["4а","4б","6б","10"],"prohorova-yulya":["6а","6в"],"romanov-vanya":["2","6б","6в","7","9б"],"saveleva-katya":["2","3","4а","4б","6в","9а"],"sizov-misha":["3","6б","9б"],"tarasova-olya":["2","3","6а","9б","10"],"ustinov-pasha":["2","3","9б"],"fomina-rita":["1","2","3","4а","4б","6а","6б","6в","9а","9б"],"hrustalev-kostya":["3","6а","6в","7","9а","9б","10"],"chernova-zhenya":["1","2","3","4б"],"shapovalov-roma":["2","3","4а","4б","6б","9а"],"yakovleva-nina":["4а","4б","7"]}},{"n":16,"day":18,"date":"2026-08-13","title":"Серия 16","problems":[{"id":"1","type":"algebra","sub":"inequalities"},{"id":"2а","type":"comb","sub":"cells"},{"id":"2б","type":"comb","sub":"cells"},{"id":"3а","type":"geometry","sub":"stereometry"},{"id":"3б","type":"geometry","sub":"stereometry"},{"id":"4","type":"geometry","sub":"planimetry"},{"id":"5а","type":"algebra","sub":"inequalities"},{"id":"5б","type":"algebra","sub":"inequalities"},{"id":"6","type":"comb","sub":"games"},{"id":"7","type":"comb","sub":"games"},{"id":"8","type":"comb","sub":"games"},{"id":"9а","type":"algebra","sub":"inequalities"},{"id":"9б","type":"algebra","sub":"inequalities"}],"solved":{"abramova-sonya":["3б","5а","5б","7","9а","9б"],"baranov-kirill":["2б","5а","5б","6","7","8","9б"],"belkina-nastya":["7"],"vereschagin-gosha":[],"gavrilov-timur":["7","8","9б"],"gordeeva-liza":["5а","7"],"dementev-matvey":["2б","3б","7","9а","9б"],"erohina-dasha":["2б","3б","4","5а","6","7","9б"],"zhukovskiy-mark":["6","8"],"zayceva-polina":["1","2б","3а","3б","6","7","8","9а","9б"],"ilin-serezha":["1","2а","2б","3а","3б","4","5а","5б","6","7","8","9а","9б"],"karpova-anya":["3а","6","7","8"],"kovalev-dima":["3б","4","5б"],"lebedeva-masha":["2а","5а","5б","7","8","9б"],"lozinskiy-artem":["2б","7"],"mescheryakova-vera":["2а","2б","5а","7","8","9а","9б"],"nikitin-egor":["3а","3б","5а","7","9а","9б"],"orlova-ksyusha":["2а","5б","9а","9б"],"pankratov-lesha":["4","5а","6","7","9а","9б"],"prohorova-yulya":["2а","2б","3а","4","5а","5б","6","7","8","9а","9б"],"romanov-vanya":["1","2б","5а","6","7","9а","9б"],"saveleva-katya":["3а","4","6","8","9б"],"sizov-misha":["6","9а","9б"],"tarasova-olya":["1","2а","5а","5б","6","7","9а","9б"],"ustinov-pasha":["3а","4","5а","5б","9а","9б"],"fomina-rita":["2а","2б","3а","3б","6","8","9б"],"hrustalev-kostya":["4","5б","7","8","9а","9б"],"chernova-zhenya":["1","2б","5а","5б","6","7","8","9а","9б"],"shapovalov-roma":["1","5а","5б","6","8","9а","9б"],"yakovleva-nina":["1","2б","5а","6","8","9б"]}},{"n":17,"day":19,"date":"2026-08-14","title":"Серия 17","problems":[{"id":"1","type":"comb","sub":"cells"},{"id":"2а","type":"numbers","sub":null},{"id":"2б","type":"numbers","sub":null},{"id":"3","type":"algebra","sub":"inequalities"},{"id":"4а","type":"numbers","sub":null},{"id":"4б","type":"numbers","sub":null},{"id":"5","type":"comb","sub":"games"},{"id":"6а","type":"geometry","sub":"planimetry"},{"id":"6б","type":"geometry","sub":"planimetry"},{"id":"7","type":"comb","sub":"cells"},{"id":"8","type":"comb","sub":"games"},{"id":"9","type":"numbers","sub":null},{"id":"10","type":"algebra","sub":"inequalities"},{"id":"11а","type":"comb","sub":"graphs"},{"id":"11б","type":"comb","sub":"graphs"}],"solved":{"abramova-sonya":["1","2б","3","4а","4б","5","6а","6б","7","8","9","10","11а"],"baranov-kirill":["2а","2б","4а","4б","5","6а","8","11а","11б"],"belkina-nastya":["5","6а"],"vereschagin-gosha":["2б","6б","11б"],"gavrilov-timur":["2а","2б","4а","4б","6а","11б"],"gordeeva-liza":["5","6а"],"dementev-matvey":["3","4б","7","8","10","11а","11б"],"erohina-dasha":["4б","5","6а","9","10","11а","11б"],"zhukovskiy-mark":["4б","5","6а","6б"],"zayceva-polina":["1","2а","2б","3","4а","4б","5","6а","6б","7","8","9","10","11а","11б"],"ilin-serezha":["1","2а","2б","3","4а","4б","5","6а","6б","7","8","9","10","11а","11б"],"karpova-anya":["3","5","6а","6б","8","9","10","11б"],"kovalev-dima":["1","5","6а","6б","8","10","11б"],"lebedeva-masha":["1","2б","4а","5","7","8","11а","11б"],"lozinskiy-artem":["4б","10"],"mescheryakova-vera":["1","4а","4б","5","6а","6б","7","9","10","11а","11б"],"nikitin-egor":["1","3","4а","4б","7","8","10","11б"],"orlova-ksyusha":["2б","4а","4б","6а","10"],"pankratov-lesha":["2б","4а","4б","6а","6б","7","8","10","11а","11б"],"prohorova-yulya":["1","2б","3","4а","4б","5","6а","6б","8","10","11а","11б"],"romanov-vanya":["1","3","6б","8","9","10"],"saveleva-katya":["2б","4б","10","11а"],"sizov-misha":["4б","5","6б","7","8","11а"],"tarasova-olya":["2б","3","4а","4б","5","6а","6б","8","9"],"ustinov-pasha":["2а","2б","4б","6а","8","10"],"fomina-rita":["1","2б","4б","5","6а","6б","7","8","11а","11б"],"hrustalev-kostya":["2б","4б","5","7","9","10","11б"],"chernova-zhenya":["1","4а","4б","6а","6б","8","11б"],"shapovalov-roma":["1","2б","3","4а","5","6а","6б","7","8","10","11а","11б"],"yakovleva-nina":["3","4а","4б","5","7","8","9","10","11б"]}},{"n":18,"day":20,"date":"2026-08-15","title":"Серия 18","problems":[{"id":"1","type":"comb","sub":"graphs"},{"id":"2","type":"comb","sub":"cells"},{"id":"3а","type":"comb","sub":"graphs"},{"id":"3б","type":"comb","sub":"graphs"},{"id":"4","type":"algebra","sub":"inequalities"},{"id":"5","type":"comb","sub":"cells"},{"id":"6а","type":"algebra","sub":"inequalities"},{"id":"6б","type":"algebra","sub":"inequalities"},{"id":"7","type":"geometry","sub":"planimetry"},{"id":"8","type":"comb","sub":"cells"},{"id":"9","type":"comb","sub":"cells"},{"id":"10","type":"comb","sub":"graphs"}],"solved":{"abramova-sonya":["1","3а","3б","6б","10"],"baranov-kirill":["2","3а","5","6б","8","10"],"belkina-nastya":["1","4","5"],"vereschagin-gosha":["6б"],"gavrilov-timur":["3а","6б"],"gordeeva-liza":["3а"],"dementev-matvey":["2","4","6б","7","10"],"erohina-dasha":["2","3а","3б","4","5","6а","6б","10"],"zhukovskiy-mark":["3а"],"zayceva-polina":["1","2","3а","3б","4","5","6б","7","9","10"],"ilin-serezha":["1","2","3а","3б","4","5","6а","6б","7","9"],"karpova-anya":["2","3а","10"],"kovalev-dima":["2","3а","3б","10"],"lebedeva-masha":["2","3а","3б","4","5","6б"],"lozinskiy-artem":["1","2","3б","6а","6б"],"mescheryakova-vera":["1","2","3а","3б","4","6б","10"],"nikitin-egor":["1","2","3б","4","6а","6б","7","10"],"orlova-ksyusha":["2"],"pankratov-lesha":["3а","3б","6а","6б","10"],"prohorova-yulya":["2","3а","3б","4","5","6а","6б","9","10"],"romanov-vanya":["3а","3б","4","6б","9"],"saveleva-katya":["6б"],"sizov-misha":["3а"],"tarasova-olya":["1","2","4","5","6б","10"],"ustinov-pasha":["3а","6а","6б"],"fomina-rita":["1","2","3а","3б","4","5","6б","9","10"],"hrustalev-kostya":["3а","3б","4","6б","9","10"],"chernova-zhenya":["1","2","3а","3б","4","6б","9"],"shapovalov-roma":["1","2","3а","3б","5","6б","7","10"],"yakovleva-nina":["2","3а","5","6б"]}}]};</script>
+<script>
+/* Кондуит — весь подсчёт идёт в браузере читателя.
+   Данные приходят одним из двух способов:
+     1) window.__CONDUIT__ — офлайн-сборка, всё зашито в один файл;
+     2) fetch из папки data/ — обычный режим на сайте.
+
+   Темы двухуровневые: раздел (Алгебра, Геометрия, Комбинаторика, Теория чисел)
+   и необязательный подраздел. Единица фильтрации — «лист»: раздел без
+   подразбиения или пара раздел+подраздел. Задача без указанного подраздела
+   попадает в лист «без уточнения» своего раздела — так новые подразделы можно
+   добавлять по ходу смены, ничего не ломая. */
+
+(function () {
+  "use strict";
+
+  var DATA = null;    // {config, types, students, series}
+  var UNITS = [];     // плоский список единиц зачёта: решившие, вес, лист темы
+  var CAT = {};       // id раздела -> раздел
+  var LEAVES = [];    // [{key, catId, catName, subId, subName, slot, label}]
+  var LEAF = {};      // key -> лист
+  var FULL = null;    // рейтинг без фильтров — для сравнения мест
+
+  var state = {
+    view: "rating",
+    leaves: new Set(),
+    series: new Set(),
+    openSeries: 1,
+    openStudent: null
+  };
+
+  var MONTHS = ["января", "февраля", "марта", "апреля", "мая", "июня",
+    "июля", "августа", "сентября", "октября", "ноября", "декабря"];
+  var MONTHS_SHORT = ["янв", "фев", "мар", "апр", "мая", "июн",
+    "июл", "авг", "сен", "окт", "ноя", "дек"];
+
+  // ── мелкие помощники ────────────────────────────────────
+
+  function el(tag, cls, text) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text !== undefined && text !== null) n.textContent = String(text);
+    return n;
+  }
+
+  function num(n) { return Number(n).toLocaleString("ru-RU"); }
+
+  function plural(n, one, few, many) {
+    var a = Math.abs(n) % 100, b = a % 10;
+    if (a > 10 && a < 20) return many;
+    if (b > 1 && b < 5) return few;
+    if (b === 1) return one;
+    return many;
+  }
+
+  function withNum(n, one, few, many) {
+    return num(n) + " " + plural(n, one, few, many);
+  }
+
+  function prettyDate(iso, short) {
+    var p = String(iso).split("-");
+    if (p.length !== 3) return iso;
+    var m = (short ? MONTHS_SHORT : MONTHS)[Number(p[1]) - 1];
+    return Number(p[2]) + " " + m;
+  }
+
+  function clear(node) {
+    while (node.firstChild) node.removeChild(node.firstChild);
+  }
+
+  function pct(x) { return Math.round(x * 100) + "%"; }
+
+  // ── подготовка данных ───────────────────────────────────
+
+  function leafKey(catId, subId) { return catId + "/" + (subId || ""); }
+
+  function buildIndex() {
+    CAT = {};
+    DATA.types.forEach(function (t) { CAT[t.id] = t; });
+
+    // какие пары раздел+подраздел реально встречаются в данных
+    var seen = {};
+    DATA.series.forEach(function (s) {
+      s.problems.forEach(function (p) { seen[leafKey(p.type, p.sub)] = true; });
+    });
+
+    LEAVES = [];
+    LEAF = {};
+    DATA.types.forEach(function (t) {
+      var subs = t.subs || [];
+      subs.forEach(function (sub) {
+        add(t, sub.id, sub.name, t.name + " · " + sub.name);
+      });
+      // раздел без подразбиения — либо задачи, которым подраздел не проставили
+      if (!subs.length || seen[leafKey(t.id, null)]) {
+        add(t, null, subs.length ? "без уточнения" : null,
+          subs.length ? t.name + " · без уточнения" : t.name);
+      }
+    });
+
+    function add(t, subId, subName, label) {
+      var leaf = {
+        key: leafKey(t.id, subId),
+        catId: t.id,
+        catName: t.name,
+        subId: subId,
+        subName: subName,
+        slot: t.slot,
+        label: label
+      };
+      LEAVES.push(leaf);
+      LEAF[leaf.key] = leaf;
+    }
+
+    UNITS = [];
+    DATA.series.forEach(function (s) {
+      s.problems.forEach(function (p) {
+        var solvers = [];
+        DATA.students.forEach(function (st) {
+          var list = s.solved[st.id];
+          if (list && list.indexOf(p.id) !== -1) solvers.push(st.id);
+        });
+        UNITS.push({
+          sn: s.n,
+          id: p.id,
+          leafKey: leafKey(p.type, p.sub),
+          catId: p.type,
+          solvers: solvers,
+          solverSet: new Set(solvers),
+          weight: DATA.config.students_total - solvers.length
+        });
+      });
+    });
+
+    state.leaves = new Set(LEAVES.map(function (l) { return l.key; }));
+    state.series = new Set(DATA.series.map(function (s) { return s.n; }));
+    state.openSeries = DATA.series.length ? DATA.series[DATA.series.length - 1].n : 1;
+    FULL = computeRating(state.series, state.leaves);
+  }
+
+  function catLeaves(catId) {
+    return LEAVES.filter(function (l) { return l.catId === catId; });
+  }
+
+  function computeRating(seriesSet, leafSet) {
+    var rows = DATA.students.map(function (s) {
+      return { id: s.id, name: s.name, score: 0, pluses: 0 };
+    });
+    var byId = {};
+    rows.forEach(function (r) { byId[r.id] = r; });
+
+    var available = 0, ceiling = 0;
+    UNITS.forEach(function (u) {
+      if (!seriesSet.has(u.sn) || !leafSet.has(u.leafKey)) return;
+      available += 1;
+      ceiling += u.weight;
+      u.solvers.forEach(function (id) {
+        var r = byId[id];
+        if (!r) return;
+        r.score += u.weight;
+        r.pluses += 1;
+      });
+    });
+
+    rows.sort(function (a, b) {
+      return b.score - a.score || b.pluses - a.pluses || a.name.localeCompare(b.name, "ru");
+    });
+
+    var rank = 0, prev = null;
+    rows.forEach(function (r, i) {
+      var key = r.score + "/" + r.pluses;
+      if (key !== prev) { rank = i + 1; prev = key; }
+      r.rank = rank;
+    });
+
+    var place = {};
+    rows.forEach(function (r) { place[r.id] = r.rank; });
+
+    return { rows: rows, available: available, ceiling: ceiling, place: place };
+  }
+
+  function filtered() { return computeRating(state.series, state.leaves); }
+
+  function filterActive() {
+    return state.leaves.size !== LEAVES.length || state.series.size !== DATA.series.length;
+  }
+
+  // ── подсказки ───────────────────────────────────────────
+
+  var tip = null;
+
+  function showTip(target, html) {
+    if (!tip) {
+      tip = el("div", "tip");
+      document.body.appendChild(tip);
+    }
+    tip.innerHTML = html;
+    tip.classList.add("show");
+    var r = target.getBoundingClientRect();
+    var t = tip.getBoundingClientRect();
+    var left = Math.min(Math.max(8, r.left + r.width / 2 - t.width / 2), window.innerWidth - t.width - 8);
+    var top = r.top - t.height - 8;
+    if (top < 8) top = r.bottom + 8;
+    tip.style.left = left + "px";
+    tip.style.top = top + "px";
+  }
+
+  function hideTip() { if (tip) tip.classList.remove("show"); }
+
+  function tipify(node, html) {
+    node.addEventListener("mouseenter", function () { showTip(node, html); });
+    node.addEventListener("mouseleave", hideTip);
+  }
+
+  // ── общие детали ────────────────────────────────────────
+
+  function dot(slot) {
+    var d = el("span", "dot");
+    d.style.background = "var(--s" + slot + ")";
+    return d;
+  }
+
+  function mini(text, fn) {
+    var b = el("button", "mini-btn", text);
+    b.type = "button";
+    b.addEventListener("click", fn);
+    return b;
+  }
+
+  function dayChip(s, pressed, extraClass, onClick) {
+    var b = el("button", "chip day" + (extraClass ? " " + extraClass : ""));
+    b.type = "button";
+    b.setAttribute("aria-pressed", pressed ? "true" : "false");
+    b.appendChild(el("b", null, s.n));
+    b.appendChild(el("small", null, prettyDate(s.date, true)));
+    tipify(b, "Серия " + s.n + " · " + prettyDate(s.date) + "<br>" +
+      withNum(s.problems.length, "задача", "задачи", "задач"));
+    b.addEventListener("click", onClick);
+    return b;
+  }
+
+  function tile(label, value, note) {
+    var t = el("div", "tile");
+    t.appendChild(el("div", "tile-label", label));
+    t.appendChild(el("div", "tile-value", value));
+    if (note) t.appendChild(el("div", "tile-note", note));
+    return t;
+  }
+
+  function th(text, cls) { return el("th", cls, text); }
+
+  // ── фильтры ─────────────────────────────────────────────
+
+  function renderFilters(host) {
+    var card = el("div", "card filters");
+
+    // темы
+    var r1 = el("div", "filter-row");
+    var h1 = el("div", "filter-head");
+    h1.appendChild(el("span", "filter-title", "Темы"));
+    h1.appendChild(mini("все", function () {
+      state.leaves = new Set(LEAVES.map(function (l) { return l.key; }));
+      render();
+    }));
+    h1.appendChild(mini("ни одной", function () {
+      state.leaves = new Set();
+      render();
+    }));
+    r1.appendChild(h1);
+
+    DATA.types.forEach(function (t) {
+      var leaves = catLeaves(t.id);
+      if (!leaves.length) return;
+      var on = leaves.filter(function (l) { return state.leaves.has(l.key); }).length;
+
+      var group = el("div", "tgroup");
+
+      var cat = el("button", "chip cat" + (on && on < leaves.length ? " partial" : ""));
+      cat.type = "button";
+      cat.setAttribute("aria-pressed", on ? "true" : "false");
+      cat.appendChild(dot(t.slot));
+      cat.appendChild(document.createTextNode(t.name));
+      if (leaves.length > 1) {
+        cat.appendChild(el("span", "chip-count", on + "/" + leaves.length));
+      }
+      cat.addEventListener("click", function () {
+        var all = on === leaves.length;
+        leaves.forEach(function (l) {
+          if (all) state.leaves.delete(l.key); else state.leaves.add(l.key);
+        });
+        render();
+      });
+      group.appendChild(cat);
+
+      if (leaves.length > 1 || leaves[0].subName) {
+        var subs = el("div", "subs");
+        leaves.forEach(function (l) {
+          var b = el("button", "chip sub", l.subName || t.name);
+          b.type = "button";
+          b.setAttribute("aria-pressed", state.leaves.has(l.key) ? "true" : "false");
+          b.style.setProperty("--accent", "var(--s" + t.slot + ")");
+          b.addEventListener("click", function () {
+            if (state.leaves.has(l.key)) state.leaves.delete(l.key);
+            else state.leaves.add(l.key);
+            render();
+          });
+          subs.appendChild(b);
+        });
+        group.appendChild(subs);
+      }
+
+      r1.appendChild(group);
+    });
+    card.appendChild(r1);
+
+    // серии
+    var r2 = el("div", "filter-row");
+    var h2 = el("div", "filter-head");
+    h2.appendChild(el("span", "filter-title", "Серии"));
+    h2.appendChild(mini("все", function () {
+      state.series = new Set(DATA.series.map(function (s) { return s.n; }));
+      render();
+    }));
+    h2.appendChild(mini("последние 5", function () {
+      state.series = new Set(DATA.series.slice(-5).map(function (s) { return s.n; }));
+      render();
+    }));
+    h2.appendChild(mini("ни одной", function () {
+      state.series = new Set();
+      render();
+    }));
+    r2.appendChild(h2);
+
+    var c2 = el("div", "chips");
+    DATA.series.forEach(function (s) {
+      c2.appendChild(dayChip(s, state.series.has(s.n), null, function () {
+        if (state.series.has(s.n)) state.series.delete(s.n);
+        else state.series.add(s.n);
+        render();
+      }));
+    });
+    r2.appendChild(c2);
+    card.appendChild(r2);
+
+    var f = filtered();
+    var sum = el("div", "summary");
+    sum.innerHTML =
+      "Учтено <b>" + state.series.size + "</b> из " + DATA.series.length + " " +
+      plural(DATA.series.length, "серии", "серий", "серий") +
+      " · <b>" + f.available + "</b> из " + UNITS.length + " задач" +
+      " · потолок <b>" + num(f.ceiling) + "</b> " + plural(f.ceiling, "балл", "балла", "баллов");
+    card.appendChild(sum);
+
+    host.appendChild(card);
+    return f;
+  }
+
+  // ── вид: рейтинг ────────────────────────────────────────
+
+  function viewRating(host) {
+    var f = renderFilters(host);
+    var active = filterActive();
+
+    var tiles = el("div", "tiles");
+    tiles.appendChild(tile("Учеников", num(DATA.config.students_total),
+      "число зафиксировано в начале смены"));
+    tiles.appendChild(tile("Серий в фильтре", state.series.size + " / " + DATA.series.length, null));
+    tiles.appendChild(tile("Задач в фильтре", f.available + " / " + UNITS.length, null));
+    tiles.appendChild(tile("Потолок баллов", num(f.ceiling), "если решить всё учтённое"));
+    host.appendChild(tiles);
+
+    var wrap = el("div", "table-wrap");
+    var table = el("table", "data");
+    var thead = el("thead");
+    var hr = el("tr");
+    hr.appendChild(th("№", "rank"));
+    if (active) hr.appendChild(th("сдвиг"));
+    hr.appendChild(th("Ученик", "left"));
+    hr.appendChild(th("Баллы"));
+    hr.appendChild(th("Плюсы"));
+    hr.appendChild(th("Доля решённого", "left"));
+    thead.appendChild(hr);
+    table.appendChild(thead);
+
+    var tbody = el("tbody");
+    f.rows.forEach(function (r) {
+      var tr = el("tr", "clickable");
+      tr.addEventListener("click", function () {
+        state.openStudent = r.id;
+        state.view = "students";
+        render();
+        window.scrollTo(0, 0);
+      });
+
+      tr.appendChild(el("td", "rank" + (r.rank <= 3 ? " rank-top" : ""), r.rank));
+
+      if (active) {
+        var was = FULL.place[r.id];
+        var d = was - r.rank;
+        var cell = el("td");
+        var span = el("span", "delta " + (d > 0 ? "up" : d < 0 ? "down" : "same"));
+        span.textContent = d > 0 ? "▲ " + d : d < 0 ? "▼ " + (-d) : "—";
+        tipify(span, "Без фильтра — " + was + " место");
+        cell.appendChild(span);
+        tr.appendChild(cell);
+      }
+
+      tr.appendChild(el("td", "left name", r.name));
+      tr.appendChild(el("td", "score", num(r.score)));
+      tr.appendChild(el("td", "muted", r.pluses));
+
+      var share = f.available ? r.pluses / f.available : 0;
+      var td = el("td", "left");
+      var track = el("span", "bar-track");
+      var bar = el("span", "bar");
+      bar.style.width = Math.max(2, Math.round(share * 74)) + "px";
+      track.appendChild(bar);
+      td.appendChild(track);
+      td.appendChild(el("span", "muted", pct(share)));
+      tr.appendChild(td);
+
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    wrap.appendChild(table);
+    host.appendChild(wrap);
+
+    var note = el("div", "foot");
+    note.textContent = "Вес задачи = " + DATA.config.students_total +
+      " − число решивших. Задача, которую сдали трое, стоит " +
+      (DATA.config.students_total - 3) + " баллов; задача, которую сдали все, — 0. " +
+      "Вес не зависит от выбранного фильтра, поэтому рейтинги сопоставимы между собой.";
+    host.appendChild(note);
+  }
+
+  // ── вид: кондуиты ───────────────────────────────────────
+
+  function viewSeries(host) {
+    var picker = el("div", "card");
+    var head = el("div", "filter-head");
+    head.appendChild(el("span", "filter-title", "День"));
+    picker.appendChild(head);
+    var chips = el("div", "chips");
+    DATA.series.forEach(function (s) {
+      chips.appendChild(dayChip(s, s.n === state.openSeries, "pick", function () {
+        state.openSeries = s.n;
+        render();
+      }));
+    });
+    picker.appendChild(chips);
+    host.appendChild(picker);
+
+    var s = DATA.series.filter(function (x) { return x.n === state.openSeries; })[0];
+    if (!s) return;
+
+    var units = UNITS.filter(function (u) { return u.sn === s.n; });
+    var byId = {};
+    units.forEach(function (u) { byId[u.id] = u; });
+
+    var sh = el("div", "section-head");
+    sh.appendChild(el("span", "section-title", "Серия " + s.n));
+    sh.appendChild(el("span", "section-note", prettyDate(s.date) + " · " +
+      withNum(s.problems.length, "задача", "задачи", "задач") + " · всего сдано " +
+      withNum(units.reduce(function (a, u) { return a + u.solvers.length; }, 0),
+        "плюс", "плюса", "плюсов")));
+    host.appendChild(sh);
+
+    var scroll = el("div", "conduit-scroll");
+    var table = el("table", "conduit");
+
+    var thead = el("thead");
+    var hr = el("tr");
+    hr.appendChild(el("th", "pname", "Ученик"));
+    s.problems.forEach(function (p) {
+      var leaf = LEAF[leafKey(p.type, p.sub)];
+      var slot = leaf ? leaf.slot : (CAT[p.type] ? CAT[p.type].slot : 1);
+      var cell = el("th");
+      var box = el("div", "phead");
+      box.appendChild(el("div", "phead-id", p.id));
+      var rule = el("div", "phead-rule");
+      rule.style.background = "var(--s" + slot + ")";
+      box.appendChild(rule);
+      cell.appendChild(box);
+      tipify(cell, "Задача " + p.id + " · " + (leaf ? leaf.label : p.type) +
+        "<br>решили " + byId[p.id].solvers.length + " из " + DATA.config.students_total +
+        " · вес " + byId[p.id].weight);
+      hr.appendChild(cell);
+    });
+    thead.appendChild(hr);
+    table.appendChild(thead);
+
+    // строки — в порядке результата этой серии
+    var order = computeRating(new Set([s.n]),
+      new Set(LEAVES.map(function (l) { return l.key; }))).rows;
+
+    var tbody = el("tbody");
+    order.forEach(function (r) {
+      var tr = el("tr", "crow");
+      tr.appendChild(el("td", "pname", r.name));
+      s.problems.forEach(function (p) {
+        var u = byId[p.id];
+        var on = u.solverSet.has(r.id);
+        var td = el("td", "cell");
+        td.appendChild(el("div", "mark" + (on ? " on" : "")));
+        tipify(td, r.name + "<br>задача " + p.id + " — " + (on ? "плюс, +" + u.weight : "нет"));
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+
+    var tfoot = el("tfoot");
+    var f1 = el("tr");
+    f1.appendChild(el("td", "pname", "решили"));
+    s.problems.forEach(function (p) { f1.appendChild(el("td", null, byId[p.id].solvers.length)); });
+    tfoot.appendChild(f1);
+    var f2 = el("tr", "weights");
+    f2.appendChild(el("td", "pname", "вес"));
+    s.problems.forEach(function (p) { f2.appendChild(el("td", null, byId[p.id].weight)); });
+    tfoot.appendChild(f2);
+    table.appendChild(tfoot);
+
+    scroll.appendChild(table);
+    host.appendChild(scroll);
+
+    // легенда — только темы, встретившиеся в этой серии
+    var used = {};
+    s.problems.forEach(function (p) { used[leafKey(p.type, p.sub)] = true; });
+    var legend = el("div", "legend");
+    DATA.types.forEach(function (t) {
+      var mine = catLeaves(t.id).filter(function (l) { return used[l.key]; });
+      if (!mine.length) return;
+      var item = el("span", "legend-item");
+      item.appendChild(dot(t.slot));
+      var names = mine.map(function (l) { return l.subName; }).filter(Boolean);
+      item.appendChild(document.createTextNode(
+        t.name + (names.length ? " · " + names.join(", ") : "")));
+      legend.appendChild(item);
+    });
+    host.appendChild(legend);
+  }
+
+  // ── вид: ученики ────────────────────────────────────────
+
+  function viewStudents(host) {
+    if (state.openStudent) return viewStudentCard(host, state.openStudent);
+
+    var f = renderFilters(host);
+    var wrap = el("div", "table-wrap");
+    var table = el("table", "data");
+    var thead = el("thead");
+    var hr = el("tr");
+    hr.appendChild(th("№", "rank"));
+    hr.appendChild(th("Ученик", "left"));
+    hr.appendChild(th("Баллы"));
+    hr.appendChild(th("Плюсы"));
+    thead.appendChild(hr);
+    table.appendChild(thead);
+
+    var tbody = el("tbody");
+    DATA.students.slice().sort(function (a, b) {
+      return a.name.localeCompare(b.name, "ru");
+    }).forEach(function (s) {
+      var row = f.rows.filter(function (r) { return r.id === s.id; })[0];
+      var tr = el("tr", "clickable");
+      tr.addEventListener("click", function () {
+        state.openStudent = s.id;
+        render();
+        window.scrollTo(0, 0);
+      });
+      tr.appendChild(el("td", "rank", row.rank));
+      tr.appendChild(el("td", "left name", s.name));
+      tr.appendChild(el("td", "score", num(row.score)));
+      tr.appendChild(el("td", "muted", row.pluses));
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    wrap.appendChild(table);
+    host.appendChild(wrap);
+  }
+
+  function viewStudentCard(host, id) {
+    var back = el("button", "back-btn", "← ко всем ученикам");
+    back.type = "button";
+    back.addEventListener("click", function () { state.openStudent = null; render(); });
+    host.appendChild(back);
+
+    var student = DATA.students.filter(function (s) { return s.id === id; })[0];
+    var f = filtered();
+    var row = f.rows.filter(function (r) { return r.id === id; })[0];
+
+    var sh = el("div", "section-head");
+    sh.appendChild(el("span", "section-title", student.name));
+    if (filterActive()) {
+      sh.appendChild(el("span", "section-note",
+        "по текущему фильтру · без фильтра " + FULL.place[id] + " место"));
+    }
+    host.appendChild(sh);
+
+    var tiles = el("div", "tiles");
+    tiles.appendChild(tile("Место", row.rank + " / " + DATA.students.length, null));
+    tiles.appendChild(tile("Баллы", num(row.score), "из " + num(f.ceiling) + " возможных"));
+    tiles.appendChild(tile("Плюсы", row.pluses + " / " + f.available, null));
+    var best = bestProblem(id);
+    tiles.appendChild(tile("Самый ценный плюс", best ? "+" + best.weight : "—",
+      best ? "серия " + best.sn + ", задача " + best.id : null));
+    host.appendChild(tiles);
+
+    var sh2 = el("div", "section-head");
+    sh2.appendChild(el("span", "section-title", "По темам"));
+    sh2.appendChild(el("span", "section-note", "по выбранным сериям, темы показаны все"));
+    host.appendChild(sh2);
+
+    var card = el("div", "card");
+    DATA.types.forEach(function (t) {
+      var leaves = catLeaves(t.id);
+      if (!leaves.length) return;
+
+      var catStat = statFor(leaves.map(function (l) { return l.key; }), id);
+      var block = el("div", "tblock");
+
+      var head = el("div", "tblock-head");
+      var nameBox = el("span", "type-name");
+      nameBox.appendChild(dot(t.slot));
+      nameBox.appendChild(el("b", null, t.name));
+      head.appendChild(nameBox);
+      head.appendChild(el("span", "type-val",
+        catStat.got + " / " + catStat.total + " · " + num(catStat.score) + " б."));
+      block.appendChild(head);
+
+      block.appendChild(trackBar(catStat.total ? catStat.got / catStat.total : 0, t.slot));
+
+      if (leaves.length > 1 || leaves[0].subName) {
+        leaves.forEach(function (l) {
+          var st = statFor([l.key], id);
+          var line = el("div", "subline");
+          line.appendChild(el("span", "subline-name", l.subName || t.name));
+          line.appendChild(el("span", "subline-val",
+            st.got + " / " + st.total + " · " + num(st.score)));
+          block.appendChild(line);
+        });
+      }
+
+      card.appendChild(block);
+    });
+    host.appendChild(card);
+
+    var sh3 = el("div", "section-head");
+    sh3.appendChild(el("span", "section-title", "По сериям"));
+    host.appendChild(sh3);
+
+    var mini2 = el("div", "series-mini");
+    DATA.series.forEach(function (s) {
+      var got = 0, total = 0, score = 0;
+      UNITS.forEach(function (u) {
+        if (u.sn !== s.n) return;
+        total += 1;
+        if (u.solverSet.has(id)) { got += 1; score += u.weight; }
+      });
+      var b = el("span", "smini");
+      b.innerHTML = "С" + s.n + " · <b>" + got + "</b>/" + total + " · " + num(score);
+      tipify(b, prettyDate(s.date) + "<br>" + withNum(score, "балл", "балла", "баллов"));
+      mini2.appendChild(b);
+    });
+    host.appendChild(mini2);
+  }
+
+  function statFor(keys, studentId) {
+    var set = new Set(keys);
+    var total = 0, got = 0, score = 0, solvers = 0, weight = 0;
+    UNITS.forEach(function (u) {
+      if (!set.has(u.leafKey) || !state.series.has(u.sn)) return;
+      total += 1;
+      solvers += u.solvers.length;
+      weight += u.weight;
+      if (studentId && u.solverSet.has(studentId)) { got += 1; score += u.weight; }
+    });
+    return {
+      total: total,
+      got: got,
+      score: score,
+      rate: total ? solvers / (total * DATA.config.students_total) : 0,
+      avgWeight: total ? weight / total : 0
+    };
+  }
+
+  function trackBar(share, slot) {
+    var track = el("div", "track");
+    var fill = el("i");
+    fill.style.width = Math.round(share * 100) + "%";
+    fill.style.background = "var(--s" + slot + ")";
+    track.appendChild(fill);
+    return track;
+  }
+
+  function bestProblem(id) {
+    var best = null;
+    UNITS.forEach(function (u) {
+      if (!u.solverSet.has(id)) return;
+      if (!best || u.weight > best.weight) best = u;
+    });
+    return best;
+  }
+
+  // ── вид: темы ───────────────────────────────────────────
+
+  function viewTypes(host) {
+    var note = el("div", "section-note");
+    note.textContent = "По сериям, выбранным в фильтре на вкладке «Рейтинг». " +
+      "Решаемость — какая доля учеников в среднем берёт задачу этой темы.";
+    host.appendChild(note);
+
+    var grid = el("div", "tcards");
+
+    DATA.types.forEach(function (t) {
+      var leaves = catLeaves(t.id);
+      if (!leaves.length) return;
+      var st = statFor(leaves.map(function (l) { return l.key; }), null);
+      if (!st.total) return;
+
+      var card = el("div", "card tcard");
+
+      var head = el("div", "tblock-head");
+      var nameBox = el("span", "type-name");
+      nameBox.appendChild(dot(t.slot));
+      nameBox.appendChild(el("b", null, t.name));
+      head.appendChild(nameBox);
+      head.appendChild(el("span", "type-val", withNum(st.total, "задача", "задачи", "задач")));
+      card.appendChild(head);
+
+      var facts = el("div", "tfacts");
+      facts.appendChild(fact("решаемость", pct(st.rate)));
+      facts.appendChild(fact("средний вес", st.avgWeight.toFixed(1)));
+      var top = computeRating(state.series,
+        new Set(leaves.map(function (l) { return l.key; }))).rows[0];
+      facts.appendChild(fact("лучший", top ? top.name : "—"));
+      card.appendChild(facts);
+
+      if (leaves.length > 1 || leaves[0].subName) {
+        var subs = el("div", "tsubs");
+        leaves.forEach(function (l) {
+          var ls = statFor([l.key], null);
+          var line = el("div", "subline");
+          line.appendChild(el("span", "subline-name", l.subName || t.name));
+          var bar = trackBar(ls.rate, t.slot);
+          bar.className = "track thin";
+          line.appendChild(bar);
+          line.appendChild(el("span", "subline-val",
+            ls.total + " " + plural(ls.total, "задача", "задачи", "задач") + " · " + pct(ls.rate)));
+          subs.appendChild(line);
+        });
+        card.appendChild(subs);
+      }
+
+      grid.appendChild(card);
+    });
+
+    host.appendChild(grid);
+  }
+
+  function fact(label, value) {
+    var f = el("div", "tfact");
+    f.appendChild(el("span", "tfact-label", label));
+    f.appendChild(el("span", "tfact-value", value));
+    return f;
+  }
+
+  // ── каркас ──────────────────────────────────────────────
+
+  function render() {
+    hideTip();
+    var main = document.getElementById("main");
+    clear(main);
+
+    Array.prototype.forEach.call(document.querySelectorAll(".tab"), function (t) {
+      t.setAttribute("aria-selected", t.dataset.view === state.view ? "true" : "false");
+    });
+
+    if (state.view === "rating") viewRating(main);
+    else if (state.view === "series") viewSeries(main);
+    else if (state.view === "students") viewStudents(main);
+    else if (state.view === "types") viewTypes(main);
+  }
+
+  function setupChrome() {
+    document.getElementById("brand-title").textContent = DATA.config.title;
+    var sub = DATA.config.subtitle || "";
+    if (DATA.config.offline_date) {
+      var d = String(DATA.config.offline_date).split("-");
+      sub += (sub ? " · " : "") + "офлайн-копия от " + d[2] + "." + d[1] + "." + d[0];
+    }
+    document.getElementById("brand-sub").textContent = sub;
+    document.title = DATA.config.title + " — " + (DATA.config.subtitle || "");
+
+    Array.prototype.forEach.call(document.querySelectorAll(".tab"), function (t) {
+      t.addEventListener("click", function () {
+        state.view = t.dataset.view;
+        if (state.view !== "students") state.openStudent = null;
+        render();
+      });
+    });
+
+    var saved = null;
+    try { saved = localStorage.getItem("conduit-theme"); } catch (e) { /* приватный режим */ }
+    if (saved) document.documentElement.setAttribute("data-theme", saved);
+
+    document.getElementById("theme").addEventListener("click", function () {
+      var cur = document.documentElement.getAttribute("data-theme");
+      var next;
+      if (cur) next = cur === "dark" ? "light" : "dark";
+      else next = window.matchMedia("(prefers-color-scheme: dark)").matches ? "light" : "dark";
+      document.documentElement.setAttribute("data-theme", next);
+      try { localStorage.setItem("conduit-theme", next); } catch (e) { /* пусто */ }
+    });
+
+    window.addEventListener("scroll", hideTip, { passive: true });
+  }
+
+  function boot(data) {
+    DATA = data;
+    DATA.series.sort(function (a, b) { return a.n - b.n; });
+    buildIndex();
+    setupChrome();
+    render();
+  }
+
+  function loadFromFiles() {
+    var base = "data/";
+    function get(path) {
+      return fetch(base + path, { cache: "no-store" }).then(function (r) {
+        if (!r.ok) throw new Error(path + ": " + r.status);
+        return r.json();
+      });
+    }
+    return Promise.all([
+      get("config.json"), get("types.json"), get("students.json"), get("series/manifest.json")
+    ]).then(function (res) {
+      return Promise.all(res[3].series.map(function (f) { return get("series/" + f); }))
+        .then(function (series) {
+          return { config: res[0], types: res[1], students: res[2], series: series };
+        });
+    });
+  }
+
+  document.addEventListener("DOMContentLoaded", function () {
+    if (window.__CONDUIT__) { boot(window.__CONDUIT__); return; }
+    loadFromFiles().then(boot).catch(function (err) {
+      var main = document.getElementById("main");
+      clear(main);
+      var box = el("div", "card");
+      box.appendChild(el("div", "section-title", "Не удалось загрузить данные"));
+      box.appendChild(el("div", "tile-note", String(err.message || err)));
+      box.appendChild(el("div", "tile-note",
+        "Если файл открыт с диска напрямую, браузер не даёт читать соседние файлы — " +
+        "для локального просмотра используйте офлайн-сборку."));
+      main.appendChild(box);
+    });
+  });
+})();
+
+</script>
+</body>
+</html>

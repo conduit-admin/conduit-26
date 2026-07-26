@@ -1,0 +1,293 @@
+{
+  "n": 7,
+  "day": 8,
+  "date": "2026-08-03",
+  "title": "Серия 7",
+  "problems": [
+    {
+      "id": "1",
+      "type": "comb",
+      "sub": "games"
+    },
+    {
+      "id": "2",
+      "type": "geometry",
+      "sub": "stereometry"
+    },
+    {
+      "id": "3",
+      "type": "numbers",
+      "sub": null
+    },
+    {
+      "id": "4",
+      "type": "comb",
+      "sub": "cells"
+    },
+    {
+      "id": "5",
+      "type": "numbers",
+      "sub": null
+    },
+    {
+      "id": "6",
+      "type": "algebra",
+      "sub": "inequalities"
+    },
+    {
+      "id": "7",
+      "type": "numbers",
+      "sub": null
+    },
+    {
+      "id": "8",
+      "type": "comb",
+      "sub": "games"
+    },
+    {
+      "id": "9",
+      "type": "comb",
+      "sub": "games"
+    },
+    {
+      "id": "10",
+      "type": "comb",
+      "sub": "cells"
+    },
+    {
+      "id": "11",
+      "type": "algebra",
+      "sub": "inequalities"
+    }
+  ],
+  "solved": {
+    "abramova-sonya": [
+      "1",
+      "2",
+      "4",
+      "5",
+      "7",
+      "9"
+    ],
+    "baranov-kirill": [
+      "1",
+      "2",
+      "4",
+      "5",
+      "6",
+      "7",
+      "11"
+    ],
+    "belkina-nastya": [
+      "8",
+      "11"
+    ],
+    "vereschagin-gosha": [
+      "2"
+    ],
+    "gavrilov-timur": [
+      "2",
+      "4",
+      "5",
+      "7",
+      "8",
+      "11"
+    ],
+    "gordeeva-liza": [
+      "2",
+      "6",
+      "11"
+    ],
+    "dementev-matvey": [
+      "1",
+      "2",
+      "4",
+      "5",
+      "11"
+    ],
+    "erohina-dasha": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "8",
+      "9",
+      "11"
+    ],
+    "zhukovskiy-mark": [
+      "1",
+      "2",
+      "4",
+      "7",
+      "9"
+    ],
+    "zayceva-polina": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9"
+    ],
+    "ilin-serezha": [
+      "1",
+      "2",
+      "3",
+      "5",
+      "7",
+      "9",
+      "11"
+    ],
+    "karpova-anya": [
+      "1",
+      "2",
+      "4",
+      "7",
+      "8",
+      "9",
+      "11"
+    ],
+    "kovalev-dima": [
+      "1",
+      "2",
+      "4",
+      "11"
+    ],
+    "lebedeva-masha": [
+      "1",
+      "2",
+      "4",
+      "5",
+      "11"
+    ],
+    "lozinskiy-artem": [
+      "2",
+      "4",
+      "5",
+      "10"
+    ],
+    "mescheryakova-vera": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "10",
+      "11"
+    ],
+    "nikitin-egor": [
+      "2",
+      "4",
+      "5",
+      "7",
+      "8",
+      "11"
+    ],
+    "orlova-ksyusha": [
+      "2",
+      "4",
+      "7",
+      "9",
+      "11"
+    ],
+    "pankratov-lesha": [
+      "2",
+      "3",
+      "4",
+      "5",
+      "7",
+      "8",
+      "11"
+    ],
+    "prohorova-yulya": [
+      "1",
+      "2",
+      "4",
+      "6",
+      "9",
+      "11"
+    ],
+    "romanov-vanya": [
+      "2",
+      "4",
+      "5",
+      "7",
+      "11"
+    ],
+    "saveleva-katya": [
+      "1",
+      "2",
+      "4",
+      "5"
+    ],
+    "sizov-misha": [
+      "2",
+      "4",
+      "5"
+    ],
+    "tarasova-olya": [
+      "1",
+      "2",
+      "4",
+      "5",
+      "8",
+      "9",
+      "11"
+    ],
+    "ustinov-pasha": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "7",
+      "9",
+      "11"
+    ],
+    "fomina-rita": [
+      "1",
+      "2",
+      "4",
+      "8",
+      "9",
+      "10",
+      "11"
+    ],
+    "hrustalev-kostya": [
+      "1",
+      "2",
+      "4",
+      "5",
+      "9",
+      "10",
+      "11"
+    ],
+    "chernova-zhenya": [
+      "1",
+      "2",
+      "4",
+      "5",
+      "7",
+      "11"
+    ],
+    "shapovalov-roma": [
+      "1",
+      "2",
+      "3",
+      "5",
+      "6",
+      "7",
+      "11"
+    ],
+    "yakovleva-nina": [
+      "2",
+      "5",
+      "9",
+      "11"
+    ]
+  }
+}

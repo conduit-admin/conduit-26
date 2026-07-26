@@ -1,0 +1,169 @@
+{
+  "n": 6,
+  "day": 6,
+  "date": "2026-08-01",
+  "title": "Серия 6",
+  "problems": [
+    {
+      "id": "1",
+      "type": "comb",
+      "sub": "graphs"
+    },
+    {
+      "id": "2а",
+      "type": "comb",
+      "sub": "cells"
+    },
+    {
+      "id": "2б",
+      "type": "comb",
+      "sub": "cells"
+    },
+    {
+      "id": "2в",
+      "type": "comb",
+      "sub": "cells"
+    },
+    {
+      "id": "3",
+      "type": "comb",
+      "sub": "graphs"
+    },
+    {
+      "id": "4",
+      "type": "algebra",
+      "sub": "inequalities"
+    },
+    {
+      "id": "5",
+      "type": "numbers",
+      "sub": null
+    }
+  ],
+  "solved": {
+    "abramova-sonya": [
+      "2а"
+    ],
+    "baranov-kirill": [
+      "2б",
+      "2в",
+      "3",
+      "4"
+    ],
+    "belkina-nastya": [],
+    "vereschagin-gosha": [],
+    "gavrilov-timur": [
+      "2а",
+      "2б",
+      "2в",
+      "5"
+    ],
+    "gordeeva-liza": [
+      "5"
+    ],
+    "dementev-matvey": [
+      "4",
+      "5"
+    ],
+    "erohina-dasha": [
+      "2а",
+      "4",
+      "5"
+    ],
+    "zhukovskiy-mark": [],
+    "zayceva-polina": [
+      "2а",
+      "2б",
+      "2в",
+      "3",
+      "4",
+      "5"
+    ],
+    "ilin-serezha": [
+      "1",
+      "2а",
+      "2б",
+      "2в",
+      "3",
+      "4",
+      "5"
+    ],
+    "karpova-anya": [
+      "3"
+    ],
+    "kovalev-dima": [
+      "5"
+    ],
+    "lebedeva-masha": [
+      "2б",
+      "2в"
+    ],
+    "lozinskiy-artem": [
+      "1"
+    ],
+    "mescheryakova-vera": [
+      "2а",
+      "2б",
+      "3",
+      "5"
+    ],
+    "nikitin-egor": [
+      "2а",
+      "3"
+    ],
+    "orlova-ksyusha": [
+      "5"
+    ],
+    "pankratov-lesha": [
+      "2а",
+      "2в",
+      "4",
+      "5"
+    ],
+    "prohorova-yulya": [
+      "2а",
+      "4"
+    ],
+    "romanov-vanya": [
+      "5"
+    ],
+    "saveleva-katya": [
+      "5"
+    ],
+    "sizov-misha": [],
+    "tarasova-olya": [
+      "5"
+    ],
+    "ustinov-pasha": [
+      "4"
+    ],
+    "fomina-rita": [
+      "1",
+      "2а",
+      "2б",
+      "2в",
+      "3"
+    ],
+    "hrustalev-kostya": [
+      "2а",
+      "3",
+      "4",
+      "5"
+    ],
+    "chernova-zhenya": [
+      "2а",
+      "2б",
+      "2в",
+      "5"
+    ],
+    "shapovalov-roma": [
+      "1",
+      "3",
+      "5"
+    ],
+    "yakovleva-nina": [
+      "2а",
+      "2б"
+    ]
+  }
+}

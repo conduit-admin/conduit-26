@@ -1,0 +1,295 @@
+{
+  "n": 15,
+  "day": 17,
+  "date": "2026-08-12",
+  "title": "Серия 15",
+  "problems": [
+    {
+      "id": "1",
+      "type": "comb",
+      "sub": "graphs"
+    },
+    {
+      "id": "2",
+      "type": "algebra",
+      "sub": "inequalities"
+    },
+    {
+      "id": "3",
+      "type": "comb",
+      "sub": "games"
+    },
+    {
+      "id": "4а",
+      "type": "comb",
+      "sub": "graphs"
+    },
+    {
+      "id": "4б",
+      "type": "comb",
+      "sub": "graphs"
+    },
+    {
+      "id": "5",
+      "type": "geometry",
+      "sub": "stereometry"
+    },
+    {
+      "id": "6а",
+      "type": "geometry",
+      "sub": "stereometry"
+    },
+    {
+      "id": "6б",
+      "type": "geometry",
+      "sub": "stereometry"
+    },
+    {
+      "id": "6в",
+      "type": "geometry",
+      "sub": "stereometry"
+    },
+    {
+      "id": "7",
+      "type": "geometry",
+      "sub": "stereometry"
+    },
+    {
+      "id": "8",
+      "type": "comb",
+      "sub": "graphs"
+    },
+    {
+      "id": "9а",
+      "type": "geometry",
+      "sub": "stereometry"
+    },
+    {
+      "id": "9б",
+      "type": "geometry",
+      "sub": "stereometry"
+    },
+    {
+      "id": "10",
+      "type": "numbers",
+      "sub": null
+    }
+  ],
+  "solved": {
+    "abramova-sonya": [
+      "2",
+      "3",
+      "4а",
+      "4б",
+      "6а",
+      "7",
+      "9а",
+      "9б",
+      "10"
+    ],
+    "baranov-kirill": [
+      "2",
+      "4а",
+      "9а",
+      "9б"
+    ],
+    "belkina-nastya": [
+      "3",
+      "4а"
+    ],
+    "vereschagin-gosha": [
+      "9а"
+    ],
+    "gavrilov-timur": [
+      "1",
+      "3",
+      "5",
+      "6б",
+      "6в",
+      "7",
+      "9а"
+    ],
+    "gordeeva-liza": [
+      "4а",
+      "4б",
+      "5",
+      "6б",
+      "9б"
+    ],
+    "dementev-matvey": [
+      "3",
+      "4а",
+      "6а",
+      "6б",
+      "6в",
+      "7",
+      "9а"
+    ],
+    "erohina-dasha": [
+      "1",
+      "3",
+      "4а",
+      "4б",
+      "6а",
+      "6б",
+      "7",
+      "9а",
+      "9б",
+      "10"
+    ],
+    "zhukovskiy-mark": [],
+    "zayceva-polina": [
+      "2",
+      "3",
+      "4а",
+      "4б",
+      "6б",
+      "6в",
+      "9а",
+      "9б",
+      "10"
+    ],
+    "ilin-serezha": [
+      "1",
+      "2",
+      "3",
+      "6а",
+      "6б",
+      "6в",
+      "7",
+      "9а",
+      "9б",
+      "10"
+    ],
+    "karpova-anya": [
+      "3",
+      "4а",
+      "4б",
+      "5",
+      "6б",
+      "9а",
+      "10"
+    ],
+    "kovalev-dima": [
+      "1",
+      "6а",
+      "6б",
+      "9а"
+    ],
+    "lebedeva-masha": [
+      "3",
+      "4б",
+      "6б",
+      "6в"
+    ],
+    "lozinskiy-artem": [
+      "3",
+      "4а"
+    ],
+    "mescheryakova-vera": [
+      "3",
+      "4а",
+      "6б",
+      "9б"
+    ],
+    "nikitin-egor": [
+      "3",
+      "4а",
+      "4б",
+      "6б",
+      "7",
+      "9а",
+      "9б"
+    ],
+    "orlova-ksyusha": [
+      "2",
+      "3",
+      "4б",
+      "6б",
+      "9б",
+      "10"
+    ],
+    "pankratov-lesha": [
+      "4а",
+      "4б",
+      "6б",
+      "10"
+    ],
+    "prohorova-yulya": [
+      "6а",
+      "6в"
+    ],
+    "romanov-vanya": [
+      "2",
+      "6б",
+      "6в",
+      "7",
+      "9б"
+    ],
+    "saveleva-katya": [
+      "2",
+      "3",
+      "4а",
+      "4б",
+      "6в",
+      "9а"
+    ],
+    "sizov-misha": [
+      "3",
+      "6б",
+      "9б"
+    ],
+    "tarasova-olya": [
+      "2",
+      "3",
+      "6а",
+      "9б",
+      "10"
+    ],
+    "ustinov-pasha": [
+      "2",
+      "3",
+      "9б"
+    ],
+    "fomina-rita": [
+      "1",
+      "2",
+      "3",
+      "4а",
+      "4б",
+      "6а",
+      "6б",
+      "6в",
+      "9а",
+      "9б"
+    ],
+    "hrustalev-kostya": [
+      "3",
+      "6а",
+      "6в",
+      "7",
+      "9а",
+      "9б",
+      "10"
+    ],
+    "chernova-zhenya": [
+      "1",
+      "2",
+      "3",
+      "4б"
+    ],
+    "shapovalov-roma": [
+      "2",
+      "3",
+      "4а",
+      "4б",
+      "6б",
+      "9а"
+    ],
+    "yakovleva-nina": [
+      "4а",
+      "4б",
+      "7"
+    ]
+  }
+}
