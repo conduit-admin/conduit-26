@@ -1,28 +1,48 @@
-"""Сборка офлайн-копии.
+"""Сборка: версия статики и офлайн-копия.
 
     python tools/build.py
 
 Сам сайт собирать не нужно: GitHub Pages раздаёт корень репозитория как есть,
-index.html читает файлы из data/ прямо в браузере. Поэтому редактору с телефона
-достаточно поменять один json — сайт обновится сам.
+index.html читает файлы из data/ прямо в браузере. Поэтому правка данных с
+телефона меняет сайт без всякой пересборки.
 
-Этот скрипт делает только офлайн-копию offline.html: страница, стили, скрипт и
-все данные, зашитые в один файл. Её можно кинуть в чат или на флешку — она
-открывается без интернета. Копия — снимок на момент сборки, поэтому в шапке
-проставляется дата: запускать после того, как данные обновились.
+Скрипт делает две вещи:
+
+1. Проставляет версию в ссылки на стили и скрипты: assets/style.css?v=…
+   Без этого браузер телефона может неделю показывать старый кэш, и правки
+   выглядят «не применившимися». Версия — время сборки.
+
+2. Собирает offline.html: страница, стили, скрипт и все данные в одном файле.
+   Он открывается без интернета, но это снимок на момент сборки — в шапке
+   проставляется дата, чтобы вчерашнюю копию нельзя было спутать с сегодняшней.
 """
 
 import json
-from datetime import date
+import re
+from datetime import date, datetime
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "data"
+PAGES = ["index.html", "edit.html"]
 OUT = ROOT / "offline.html"
+
+ASSET_RE = re.compile(r'(?P<attr>href|src)="(?P<path>assets/[\w.-]+)(?:\?v=[^"]*)?"')
 
 
 def read_json(path: Path):
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def stamp_pages(version: str) -> None:
+    for name in PAGES:
+        path = ROOT / name
+        text = path.read_text(encoding="utf-8")
+        stamped = ASSET_RE.sub(
+            lambda m: f'{m.group("attr")}="{m.group("path")}?v={version}"', text
+        )
+        if stamped != text:
+            path.write_text(stamped, encoding="utf-8")
 
 
 def load_all() -> dict:
@@ -37,9 +57,7 @@ def load_all() -> dict:
     return bundle
 
 
-def main() -> None:
-    bundle = load_all()
-
+def build_offline(bundle: dict) -> None:
     html = (ROOT / "index.html").read_text(encoding="utf-8")
     css = (ROOT / "assets" / "style.css").read_text(encoding="utf-8")
     js = (ROOT / "assets" / "app.js").read_text(encoding="utf-8")
@@ -48,21 +66,33 @@ def main() -> None:
     # чтобы </script> внутри данных не закрыл тег раньше времени
     payload = payload.replace("</", "<\\/")
 
-    html = html.replace(
-        '<link rel="stylesheet" href="assets/style.css">',
-        "<style>\n" + css + "\n</style>",
+    html = re.sub(
+        r'<link rel="stylesheet" href="assets/style\.css(?:\?v=[^"]*)?">',
+        lambda _: "<style>\n" + css + "\n</style>",
+        html,
     )
-    html = html.replace(
-        '<script src="assets/app.js"></script>',
-        "<script>window.__CONDUIT__=" + payload + ";</script>\n<script>\n" + js + "\n</script>",
+    html = re.sub(
+        r'<script src="assets/app\.js(?:\?v=[^"]*)?"></script>',
+        lambda _: "<script>window.__CONDUIT__=" + payload + ";</script>\n<script>\n" + js + "\n</script>",
+        html,
     )
     assert "assets/" not in html, "остались ссылки на внешние файлы"
 
     OUT.write_text(html, encoding="utf-8")
 
+
+def main() -> None:
+    version = datetime.now().strftime("%Y%m%d%H%M")
+    stamp_pages(version)
+
+    bundle = load_all()
+    build_offline(bundle)
+
     cells = sum(len(s["problems"]) for s in bundle["series"])
+    print(f"версия статики: {version}")
     print(f"offline.html — {OUT.stat().st_size / 1024:.0f} КБ, снимок от {date.today():%d.%m.%Y}")
-    print(f"данные: {len(bundle['students'])} учеников, {len(bundle['series'])} серий, {cells} задач")
+    print(f"данные: {len(bundle['students'])} учеников, "
+          f"{len(bundle['series'])} серий, {cells} задач")
 
 
 if __name__ == "__main__":

@@ -1,41 +1,46 @@
-/* Кондуит — редактор. Работает в браузере телефона, без сервера.
+﻿/* Кондуит — редактор. Работает в браузере телефона, без сервера.
 
-   Что делает: собирает кондуит серии (сетка «ученики × задачи»), правит список
-   тем и отправляет изменения прямо в репозиторий через GitHub API. Публичный
-   сайт после этого обновляется сам.
+   Схема простая: правишь на экране — жмёшь «Сохранить» — изменение уходит в
+   репозиторий, публичный сайт обновляется сам примерно за минуту. Ничего между
+   этим не копится: несохранённое живёт только пока открыта страница.
 
-   Токен лежит только в localStorage этого браузера и уходит единственному
-   адресату — api.github.com. Черновик сохраняется на каждое касание, поэтому
-   без сети можно спокойно отмечать плюсы и отправить их позже. */
+   Токен лежит в localStorage этого браузера и уходит единственному адресату —
+   api.github.com. */
 
 (function () {
   "use strict";
 
   var DATA = null;      // {config, types, students, series}
   var TOKEN = null;
-  var DRAFTS = {};      // "07" -> {series, savedAt}
-  var SENT = {};        // "19" -> когда отправлено; ждём, пока Pages выложит сайт
-  var TYPES_DRAFT = null; // правки тем живут здесь, пока их не отправили
+  var SENT = {};        // "01" -> когда сохранено; сайт обновляется не мгновенно
 
   var state = {
     view: "series",
-    draft: null,        // редактируемая серия
+    series: null,       // открытая серия {n, date, problems, solved}
     isNew: false,
+    dirty: false,
+    typesEdit: null,    // правка тем, пока не сохранена
     busy: false,
-    note: "",           // сообщение вверху страницы
+    note: "",
     noteKind: "",       // good | bad | ""
-    sending: {},        // что сейчас в очереди отправки: ключ -> состояние
-    confirmSub: null    // подраздел, удаление которого ждёт подтверждения
+    confirmSub: null,
+    pickTheme: null,    // id задачи, у которой открыт выбор темы
+    pickDate: false
   };
 
   var LS_TOKEN = "conduit-token";
-  var LS_DRAFTS = "conduit-drafts";
   var LS_SENT = "conduit-sent";
-  var LS_TYPES = "conduit-types-draft";
-  var LS_TYPES_SENT = "conduit-types-sent";
   var LETTERS = "абвгде";
+
+  var MONTHS = ["января", "февраля", "марта", "апреля", "мая", "июня",
+    "июля", "августа", "сентября", "октября", "ноября", "декабря"];
+  var MONTHS_NOM = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь",
+    "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
   var MONTHS_SHORT = ["янв", "фев", "мар", "апр", "мая", "июн",
     "июл", "авг", "сен", "окт", "ноя", "дек"];
+  var WEEKDAYS = ["пн", "вт", "ср", "чт", "пт", "сб", "вс"];
+  var WEEKDAYS_FULL = ["понедельник", "вторник", "среда", "четверг",
+    "пятница", "суббота", "воскресенье"];
 
   // ── помощники ───────────────────────────────────────────
 
@@ -60,16 +65,28 @@
 
   function pad2(n) { return (n < 10 ? "0" : "") + n; }
 
+  function parseISO(iso) {
+    var p = String(iso).split("-");
+    return new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+  }
+
+  function toISO(d) {
+    return d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate());
+  }
+
   function shortDate(iso) {
     var p = String(iso).split("-");
     if (p.length !== 3) return iso;
     return Number(p[2]) + " " + MONTHS_SHORT[Number(p[1]) - 1];
   }
 
-  function todayISO() {
-    var d = new Date();
-    return d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate());
+  function longDate(iso) {
+    var d = parseISO(iso);
+    var wd = (d.getDay() + 6) % 7;
+    return d.getDate() + " " + MONTHS[d.getMonth()] + ", " + WEEKDAYS_FULL[wd];
   }
+
+  function todayISO() { return toISO(new Date()); }
 
   function lsGet(key, fallback) {
     try {
@@ -104,7 +121,7 @@
 
   // ── GitHub API ──────────────────────────────────────────
 
-  function repo() { return DATA.config.repo || {}; }
+  function repo() { return (DATA && DATA.config.repo) || {}; }
 
   function api(path, opts) {
     var r = repo();
@@ -128,26 +145,24 @@
         try { j = JSON.parse(t); } catch (e) { /* не json */ }
         if (!res.ok) {
           var msg = (j && j.message) || ("HTTP " + res.status);
-          if (res.status === 401) msg = "токен не принят (401) — проверь, не истёк ли он";
-          if (res.status === 403) msg = "нет прав (403) — нужен доступ Contents: Read and write";
-          if (res.status === 404) msg = "не найдено (404) — проверь ник, имя репозитория и права токена";
-          if (res.status === 409) msg = "файл изменился на сервере (409) — обнови страницу и повтори";
+          if (res.status === 401) msg = "токен не принят — проверь, не истёк ли он";
+          if (res.status === 403) msg = "нет прав — нужен доступ Contents: Read and write";
+          if (res.status === 404) msg = "не найдено — проверь ник, имя репозитория и права токена";
+          if (res.status === 409) msg = "файл изменился на сервере — обнови страницу и повтори";
           throw new Error(msg);
         }
         return j;
       });
     }, function () {
-      throw new Error("нет связи с GitHub — черновик сохранён, отправь позже");
+      throw new Error("нет связи с GitHub");
     });
   }
 
   function getFile(path) {
     return api("/contents/" + path + "?ref=" + (repo().branch || "main"))
-      .then(function (j) {
-        return { sha: j.sha, text: utf8FromB64(j.content) };
-      })
+      .then(function (j) { return { sha: j.sha, text: utf8FromB64(j.content) }; })
       .catch(function (e) {
-        if (/404/.test(e.message) || /не найдено/.test(e.message)) return null;
+        if (/не найдено/.test(e.message)) return null;
         throw e;
       });
   }
@@ -162,152 +177,27 @@
     return api("/contents/" + path, { method: "PUT", body: JSON.stringify(body) });
   }
 
-  // ── черновики ───────────────────────────────────────────
-
-  function loadDrafts() {
-    try { DRAFTS = JSON.parse(lsGet(LS_DRAFTS, "{}")) || {}; } catch (e) { DRAFTS = {}; }
-  }
-
-  function saveDrafts() { lsSet(LS_DRAFTS, JSON.stringify(DRAFTS)); }
-
-  function draftKey(n) { return pad2(n); }
-
-  function touchDraft() {
-    if (!state.draft) return;
-    DRAFTS[draftKey(state.draft.n)] = { series: state.draft, savedAt: new Date().toISOString() };
-    saveDrafts();
-    renderSavebar();
-  }
-
-  function dropDraft(n) {
-    delete DRAFTS[draftKey(n)];
-    saveDrafts();
-  }
+  // ── серии ───────────────────────────────────────────────
 
   function loadSent() {
     try { SENT = JSON.parse(lsGet(LS_SENT, "{}")) || {}; } catch (e) { SENT = {}; }
   }
 
-  /* Темы правятся так же, как серии: сначала локально, отправка — отдельным
-     действием. Пока правка не уехала, редактор показывает её везде, чтобы новым
-     подразделом можно было размечать задачи сразу. */
-  function loadTypesDraft() {
-    try {
-      var raw = lsGet(LS_TYPES, null);
-      TYPES_DRAFT = raw ? JSON.parse(raw) : null;
-    } catch (e) { TYPES_DRAFT = null; }
-  }
-
-  function saveTypesDraft() {
-    if (TYPES_DRAFT) lsSet(LS_TYPES, JSON.stringify(TYPES_DRAFT));
-    else lsDel(LS_TYPES);
-  }
-
-  function types() { return TYPES_DRAFT || (DATA ? DATA.types : []); }
-
-  function typesDirty() {
-    return !!TYPES_DRAFT && JSON.stringify(TYPES_DRAFT) !== JSON.stringify(DATA.types);
-  }
-
-  /* Правка тем проходит те же три состояния, что и серия: не отправлена →
-     отправлена, но сайт ещё не обновился → сайт догнал, копия не нужна.
-     Снимок отправленного нужен, чтобы правка после отправки снова считалась
-     неотправленной. */
-  function typesSentSnapshot() {
-    try { return JSON.parse(lsGet(LS_TYPES_SENT, "null")); } catch (e) { return null; }
-  }
-
-  function markTypesSent() {
-    lsSet(LS_TYPES_SENT, JSON.stringify({
-      at: new Date().toISOString(),
-      snapshot: JSON.stringify(TYPES_DRAFT)
-    }));
-  }
-
-  function typesWaiting() {
-    var sent = typesSentSnapshot();
-    return typesDirty() && !!sent && sent.snapshot === JSON.stringify(TYPES_DRAFT);
-  }
-
-  function typesPending() {
-    return typesDirty() && !typesWaiting();
-  }
-
-  function editTypes() {
-    if (!TYPES_DRAFT) TYPES_DRAFT = JSON.parse(JSON.stringify(DATA.types));
-    return TYPES_DRAFT;
-  }
-
-  function typeById(id) {
-    return types().filter(function (t) { return t.id === id; })[0] || null;
-  }
-
-  /* Что нового в правке тем по сравнению с тем, что уже на сайте. */
-  function typesAdded() {
-    if (!TYPES_DRAFT) return { cats: [], subs: [] };
-    var cats = [], subs = [];
-    var old = {};
-    DATA.types.forEach(function (t) {
-      old[t.id] = {};
-      (t.subs || []).forEach(function (s) { old[t.id][s.id] = true; });
-    });
-    TYPES_DRAFT.forEach(function (t) {
-      if (!old[t.id]) { cats.push(t.name); return; }
-      (t.subs || []).forEach(function (s) {
-        if (!old[t.id][s.id]) subs.push(t.name + " · " + s.name);
-      });
-    });
-    return { cats: cats, subs: subs };
-  }
-
-  /* Сколько задач уже помечено этим подразделом — и на сайте, и в черновиках.
-     Удалять его можно, но тогда у этих задач останется метка, которой больше
-     нет в списке тем: сайт покажет её кодом, пока задачи не переразметить. */
-  function subUsage(catId, subId) {
-    var n = 0;
-    DATA.series.forEach(function (s) {
-      (s.problems || []).forEach(function (p) {
-        if (p.type === catId && (p.sub || null) === subId) n += 1;
-      });
-    });
-    Object.keys(DRAFTS).forEach(function (k) {
-      (DRAFTS[k].series.problems || []).forEach(function (p) {
-        if (p.type === catId && (p.sub || null) === subId) n += 1;
-      });
-    });
-    return n;
-  }
-
-  function isNewSub(catId, subId) {
-    var cat = DATA.types.filter(function (t) { return t.id === catId; })[0];
-    if (!cat) return true;
-    return !(cat.subs || []).some(function (s) { return s.id === subId; });
-  }
-
+  /* Сайт переразворачивается не мгновенно, поэтому только что сохранённая серия
+     ещё минуту не видна в данных. Помним такие номера, иначе «+ новая» предложит
+     занятый номер и следующая серия затрёт предыдущую. */
   function markSent(n) {
-    SENT[draftKey(n)] = new Date().toISOString();
+    SENT[pad2(n)] = new Date().toISOString();
     lsSet(LS_SENT, JSON.stringify(SENT));
   }
 
-  /* Сайт обновляется не мгновенно: пока Pages не переразвернулся, отправленной
-     серии в данных ещё нет. Держим её в списке помеченной, чтобы её нельзя было
-     случайно создать заново поверх уже отправленной. */
   function pruneSent() {
     var changed = false;
-    Object.keys(SENT).forEach(function (key) {
-      if (seriesByNumber(Number(key))) { delete SENT[key]; changed = true; }
+    Object.keys(SENT).forEach(function (k) {
+      if (seriesByNumber(Number(k))) { delete SENT[k]; changed = true; }
     });
     if (changed) lsSet(LS_SENT, JSON.stringify(SENT));
-
-    // темы догнали сайт — локальная копия больше не нужна
-    if (TYPES_DRAFT && JSON.stringify(TYPES_DRAFT) === JSON.stringify(DATA.types)) {
-      TYPES_DRAFT = null;
-      saveTypesDraft();
-      lsDel(LS_TYPES_SENT);
-    }
   }
-
-  // ── работа с сериями ────────────────────────────────────
 
   function seriesByNumber(n) {
     return DATA.series.filter(function (s) { return s.n === n; })[0] || null;
@@ -316,76 +206,80 @@
   function nextNumber() {
     var max = 0;
     DATA.series.forEach(function (s) { if (s.n > max) max = s.n; });
-    Object.keys(DRAFTS).forEach(function (k) {
-      var n = DRAFTS[k].series.n;
-      if (n > max) max = n;
-    });
-    Object.keys(SENT).forEach(function (k) {
-      var n = Number(k);
-      if (n > max) max = n;
-    });
+    Object.keys(SENT).forEach(function (k) { if (Number(k) > max) max = Number(k); });
     return max + 1;
   }
 
-  function blankSeries(n) {
-    var solved = {};
-    DATA.students.forEach(function (s) { solved[s.id] = []; });
-    return { n: n, date: todayISO(), problems: [], solved: solved };
-  }
-
   function openSeries(n) {
-    var key = draftKey(n);
-    if (DRAFTS[key]) {
-      state.draft = JSON.parse(JSON.stringify(DRAFTS[key].series));
-      state.isNew = !seriesByNumber(n);
+    if (!confirmLeave()) return;
+    var s = seriesByNumber(n);
+    state.isNew = !s;
+    if (s) {
+      state.series = JSON.parse(JSON.stringify({
+        n: s.n, date: s.date, problems: s.problems, solved: s.solved
+      }));
+      DATA.students.forEach(function (st) {
+        if (!state.series.solved[st.id]) state.series.solved[st.id] = [];
+      });
     } else {
-      var s = seriesByNumber(n);
-      state.isNew = !s;
-      if (s) {
-        state.draft = JSON.parse(JSON.stringify({
-          n: s.n, date: s.date, problems: s.problems, solved: s.solved
-        }));
-        // ученик мог появиться после того, как серия была записана
-        DATA.students.forEach(function (st) {
-          if (!state.draft.solved[st.id]) state.draft.solved[st.id] = [];
-        });
-      } else {
-        state.draft = blankSeries(n);
-      }
+      var solved = {};
+      DATA.students.forEach(function (st) { solved[st.id] = []; });
+      state.series = { n: n, date: todayISO(), problems: [], solved: solved };
     }
+    state.dirty = false;
     state.note = "";
+    state.noteKind = "";
+    state.pickTheme = null;
+    state.pickDate = false;
     render();
   }
 
+  function confirmLeave() {
+    if (!state.dirty) return true;
+    return window.confirm("Есть несохранённые изменения. Уйти и потерять их?");
+  }
+
+  function touch() {
+    state.dirty = true;
+    state.note = "";
+    state.noteKind = "";
+  }
+
   function toggleMark(studentId, pid) {
-    var list = state.draft.solved[studentId] || (state.draft.solved[studentId] = []);
+    var list = state.series.solved[studentId] || (state.series.solved[studentId] = []);
     var i = list.indexOf(pid);
     if (i === -1) list.push(pid); else list.splice(i, 1);
-    touchDraft();
+    touch();
   }
 
   function solvedCount(pid) {
     var c = 0;
     DATA.students.forEach(function (s) {
-      var list = state.draft.solved[s.id];
+      var list = state.series.solved[s.id];
       if (list && list.indexOf(pid) !== -1) c += 1;
     });
     return c;
   }
 
+  function totalPluses() {
+    return DATA.students.reduce(function (a, s) {
+      return a + ((state.series.solved[s.id] || []).length);
+    }, 0);
+  }
+
   function renameProblem(oldId, newId) {
-    state.draft.problems.forEach(function (p) { if (p.id === oldId) p.id = newId; });
-    Object.keys(state.draft.solved).forEach(function (sid) {
-      var list = state.draft.solved[sid];
+    state.series.problems.forEach(function (p) { if (p.id === oldId) p.id = newId; });
+    Object.keys(state.series.solved).forEach(function (sid) {
+      var list = state.series.solved[sid];
       var i = list.indexOf(oldId);
       if (i !== -1) list[i] = newId;
     });
   }
 
   function removeProblem(pid) {
-    state.draft.problems = state.draft.problems.filter(function (p) { return p.id !== pid; });
-    Object.keys(state.draft.solved).forEach(function (sid) {
-      state.draft.solved[sid] = state.draft.solved[sid].filter(function (x) { return x !== pid; });
+    state.series.problems = state.series.problems.filter(function (p) { return p.id !== pid; });
+    Object.keys(state.series.solved).forEach(function (sid) {
+      state.series.solved[sid] = state.series.solved[sid].filter(function (x) { return x !== pid; });
     });
   }
 
@@ -396,44 +290,44 @@
 
   function addProblem() {
     var max = 0;
-    state.draft.problems.forEach(function (p) {
+    state.series.problems.forEach(function (p) {
       var n = numPrefix(p.id);
       if (n > max) max = n;
     });
     var first = types()[0];
-    state.draft.problems.push({
+    state.series.problems.push({
       id: String(max + 1),
       type: first.id,
       sub: first.subs && first.subs.length ? first.subs[0].id : null
     });
-    touchDraft();
+    touch();
   }
 
   function addPart() {
-    var ps = state.draft.problems;
+    var ps = state.series.problems;
     if (!ps.length) return addProblem();
     var lastNum = numPrefix(ps[ps.length - 1].id);
     var family = ps.filter(function (p) { return numPrefix(p.id) === lastNum; });
     var sample = family[family.length - 1];
 
     if (family.length === 1 && String(sample.id) === String(lastNum)) {
-      // была цельная задача 5 — становится 5а, добавляем 5б
       renameProblem(sample.id, lastNum + LETTERS[0]);
       insertAfter(sample, { id: lastNum + LETTERS[1], type: sample.type, sub: sample.sub });
     } else {
       var letter = LETTERS[family.length] || LETTERS[LETTERS.length - 1];
       insertAfter(sample, { id: lastNum + letter, type: sample.type, sub: sample.sub });
     }
-    touchDraft();
+    touch();
   }
 
   function insertAfter(anchor, item) {
-    var i = state.draft.problems.indexOf(anchor);
-    state.draft.problems.splice(i === -1 ? state.draft.problems.length : i + 1, 0, item);
+    var i = state.series.problems.indexOf(anchor);
+    state.series.problems.splice(i === -1 ? state.series.problems.length : i + 1, 0, item);
   }
 
-  function validate(d) {
-    if (!d) return "нечего отправлять";
+  function validate() {
+    var d = state.series;
+    if (!d) return "нечего сохранять";
     if (!/^\d{4}-\d{2}-\d{2}$/.test(d.date)) return "не указана дата";
     if (!d.problems.length) return "не добавлено ни одной задачи";
     var seen = {};
@@ -441,24 +335,28 @@
       var p = d.problems[i];
       var id = String(p.id).trim();
       if (!id) return "у задачи пустой номер";
-      if (seen[id]) return "номер задачи «" + id + "» встречается дважды";
+      if (seen[id]) return "номер «" + id + "» встречается дважды";
       seen[id] = true;
       if (!p.type) return "у задачи " + id + " не выбрана тема";
     }
     return null;
   }
 
-  // ── отправка ────────────────────────────────────────────
+  function cmpIds(a, b) {
+    return numPrefix(a) - numPrefix(b) || String(a).localeCompare(String(b), "ru");
+  }
 
-  /* Отправка одной серии. Возвращает обещание, чтобы «отправить всё» могло
-     выстроить очередь: темы первыми, потом серии. */
-  function sendSeries(n) {
-    var entry = DRAFTS[draftKey(n)];
-    if (!entry) return Promise.reject(new Error("черновик серии " + n + " не найден"));
-    var d = entry.series;
-    var problem = validate(d);
-    if (problem) return Promise.reject(new Error(problem));
+  function saveSeries() {
+    if (state.busy) return;
+    if (!TOKEN) return needToken();
+    var problem = validate();
+    if (problem) {
+      state.note = "Не сохранено: " + problem;
+      state.noteKind = "bad";
+      return render();
+    }
 
+    var d = state.series;
     var file = "data/series/" + pad2(d.n) + ".json";
     var payload = {
       n: d.n,
@@ -472,12 +370,14 @@
     DATA.students.forEach(function (s) {
       payload.solved[s.id] = (d.solved[s.id] || []).slice().sort(cmpIds);
     });
+    var pluses = totalPluses();
 
-    var pluses = Object.keys(payload.solved).reduce(function (a, k) {
-      return a + payload.solved[k].length;
-    }, 0);
+    state.busy = true;
+    state.note = "Сохраняю…";
+    state.noteKind = "";
+    render();
 
-    return getFile(file)
+    getFile(file)
       .then(function (cur) {
         return putFile(file, JSON.stringify(payload, null, 2) + "\n",
           "Серия " + d.n + " (" + shortDate(d.date) + "): " +
@@ -487,23 +387,19 @@
       })
       .then(function () { return ensureManifest(pad2(d.n) + ".json"); })
       .then(function () {
-        dropDraft(d.n);
         markSent(d.n);
-        if (state.draft && state.draft.n === d.n) state.draft = null;
+        state.busy = false;
+        state.dirty = false;
+        state.note = "Сохранено. Сайт обновится примерно за минуту.";
+        state.noteKind = "good";
+        return reload();
+      })
+      .catch(function (err) {
+        state.busy = false;
+        state.note = "Не сохранилось: " + err.message + ". Всё, что на экране, на месте — попробуй ещё раз.";
+        state.noteKind = "bad";
+        render();
       });
-  }
-
-  function sendTypes() {
-    if (!TYPES_DRAFT) return Promise.resolve();
-    var added = typesAdded();
-    var what = added.cats.concat(added.subs);
-    var path = "data/types.json";
-    var payload = TYPES_DRAFT;
-    return getFile(path).then(function (cur) {
-      return putFile(path, JSON.stringify(payload, null, 2) + "\n",
-        "Темы: " + (what.length ? "добавлено — " + what.join(", ") : "правка"),
-        cur && cur.sha);
-    }).then(function () { markTypesSent(); });
   }
 
   function ensureManifest(name) {
@@ -521,12 +417,75 @@
     });
   }
 
-  function cmpIds(a, b) {
-    var na = numPrefix(a), nb = numPrefix(b);
-    return na - nb || String(a).localeCompare(String(b), "ru");
+  function needToken() {
+    state.view = "access";
+    state.note = "Сначала нужен токен — вставь его здесь.";
+    state.noteKind = "bad";
+    render();
   }
 
   // ── темы ────────────────────────────────────────────────
+
+  function types() { return state.typesEdit || (DATA ? DATA.types : []); }
+
+  function typeById(id) {
+    return types().filter(function (t) { return t.id === id; })[0] || null;
+  }
+
+  function editTypes() {
+    if (!state.typesEdit) state.typesEdit = JSON.parse(JSON.stringify(DATA.types));
+    return state.typesEdit;
+  }
+
+  function typesDirty() {
+    return !!state.typesEdit &&
+      JSON.stringify(state.typesEdit) !== JSON.stringify(DATA.types);
+  }
+
+  function subUsage(catId, subId) {
+    var n = 0;
+    DATA.series.forEach(function (s) {
+      (s.problems || []).forEach(function (p) {
+        if (p.type === catId && (p.sub || null) === subId) n += 1;
+      });
+    });
+    if (state.series) {
+      state.series.problems.forEach(function (p) {
+        if (p.type === catId && (p.sub || null) === subId) n += 1;
+      });
+    }
+    return n;
+  }
+
+  function saveTypes() {
+    if (state.busy) return;
+    if (!TOKEN) return needToken();
+    if (!typesDirty()) return;
+
+    state.busy = true;
+    state.note = "Сохраняю…";
+    state.noteKind = "";
+    render();
+
+    var payload = state.typesEdit;
+    getFile("data/types.json")
+      .then(function (cur) {
+        return putFile("data/types.json", JSON.stringify(payload, null, 2) + "\n",
+          "Темы обновлены", cur && cur.sha);
+      })
+      .then(function () {
+        state.busy = false;
+        state.note = "Темы сохранены. Сайт обновится примерно за минуту.";
+        state.noteKind = "good";
+        return reload();
+      })
+      .catch(function (err) {
+        state.busy = false;
+        state.note = "Не сохранилось: " + err.message;
+        state.noteKind = "bad";
+        render();
+      });
+  }
 
   function translit(name) {
     var table = {
@@ -540,7 +499,7 @@
     String(name).toLowerCase().split("").forEach(function (ch) {
       out += table[ch] !== undefined ? table[ch] : (/[a-z0-9]/.test(ch) ? ch : "");
     });
-    return out.replace(/-+/g, "-").replace(/^-|-$/g, "") || "sub";
+    return out.replace(/-+/g, "-").replace(/^-|-$/g, "") || "tema";
   }
 
   function uniqueId(base, taken) {
@@ -549,19 +508,12 @@
     return id;
   }
 
-  // ── общие детали ────────────────────────────────────────
+  // ── детали интерфейса ───────────────────────────────────
 
   function dot(slot) {
     var d = el("span", "dot");
     d.style.background = "var(--s" + slot + ")";
     return d;
-  }
-
-  function field(label, node) {
-    var f = el("label", "field");
-    f.appendChild(el("span", "field-label", label));
-    f.appendChild(node);
-    return f;
   }
 
   function button(text, cls, fn) {
@@ -571,10 +523,103 @@
     return b;
   }
 
+  function field(label, node) {
+    var f = el("div", "field");
+    f.appendChild(el("span", "field-label", label));
+    f.appendChild(node);
+    return f;
+  }
+
+  /* Свой выбор даты вместо системного: у мобильных браузеров он выглядит
+     по-разному и всегда чужеродно. */
+  function dateField() {
+    var box = el("div", "datefield");
+
+    var btn = el("button", "picker-btn" + (state.pickDate ? " open" : ""));
+    btn.type = "button";
+    btn.appendChild(el("span", null, longDate(state.series.date)));
+    btn.appendChild(el("span", "picker-caret", "▾"));
+    btn.addEventListener("click", function () {
+      state.pickDate = !state.pickDate;
+      state.pickTheme = null;
+      render();
+    });
+    box.appendChild(btn);
+
+    if (state.pickDate) box.appendChild(calendar());
+    return box;
+  }
+
+  function calendar() {
+    var cur = parseISO(state.series.date);
+    var shown = state.calMonth ? parseISO(state.calMonth + "-01")
+      : new Date(cur.getFullYear(), cur.getMonth(), 1);
+
+    var wrap = el("div", "calendar");
+
+    var head = el("div", "cal-head");
+    head.appendChild(button("‹", "cal-nav", function () {
+      var m = new Date(shown.getFullYear(), shown.getMonth() - 1, 1);
+      state.calMonth = m.getFullYear() + "-" + pad2(m.getMonth() + 1);
+      render();
+    }));
+    head.appendChild(el("span", "cal-title",
+      MONTHS_NOM[shown.getMonth()] + " " + shown.getFullYear()));
+    head.appendChild(button("›", "cal-nav", function () {
+      var m = new Date(shown.getFullYear(), shown.getMonth() + 1, 1);
+      state.calMonth = m.getFullYear() + "-" + pad2(m.getMonth() + 1);
+      render();
+    }));
+    wrap.appendChild(head);
+
+    var grid = el("div", "cal-grid");
+    WEEKDAYS.forEach(function (w) { grid.appendChild(el("span", "cal-wd", w)); });
+
+    var first = new Date(shown.getFullYear(), shown.getMonth(), 1);
+    var offset = (first.getDay() + 6) % 7;
+    var days = new Date(shown.getFullYear(), shown.getMonth() + 1, 0).getDate();
+    var today = todayISO();
+
+    for (var i = 0; i < offset; i++) grid.appendChild(el("span", "cal-empty"));
+    for (var d = 1; d <= days; d++) {
+      (function (day) {
+        var iso = toISO(new Date(shown.getFullYear(), shown.getMonth(), day));
+        var b = el("button", "cal-day" +
+          (iso === state.series.date ? " sel" : "") +
+          (iso === today ? " today" : ""), day);
+        b.type = "button";
+        b.addEventListener("click", function () {
+          state.series.date = iso;
+          state.pickDate = false;
+          state.calMonth = null;
+          touch();
+          render();
+        });
+        grid.appendChild(b);
+      })(d);
+    }
+    wrap.appendChild(grid);
+
+    var foot = el("div", "cal-foot");
+    foot.appendChild(button("сегодня", "mini-btn", function () {
+      state.series.date = todayISO();
+      state.pickDate = false;
+      state.calMonth = null;
+      touch();
+      render();
+    }));
+    foot.appendChild(button("закрыть", "mini-btn", function () {
+      state.pickDate = false;
+      render();
+    }));
+    wrap.appendChild(foot);
+
+    return wrap;
+  }
+
   // ── вид: серия ──────────────────────────────────────────
 
   function viewSeries(host) {
-    // выбор серии
     var picker = el("div", "card");
     var head = el("div", "filter-head");
     head.appendChild(el("span", "filter-title", "Какую серию правим"));
@@ -582,45 +627,12 @@
 
     var chips = el("div", "chips");
     DATA.series.forEach(function (s) {
-      var key = draftKey(s.n);
-      var b = el("button", "chip day" + (DRAFTS[key] ? " has-draft" : ""));
-      b.type = "button";
-      b.setAttribute("aria-pressed", state.draft && state.draft.n === s.n ? "true" : "false");
-      b.appendChild(el("b", null, s.n));
-      b.appendChild(el("small", null, shortDate(s.date)));
-      b.addEventListener("click", function () { openSeries(s.n); });
-      chips.appendChild(b);
+      chips.appendChild(dayChip(s.n, shortDate(s.date), false, s.n));
     });
-
-    // черновики новых серий, которых ещё нет на сайте
-    Object.keys(DRAFTS).sort().forEach(function (key) {
-      var d = DRAFTS[key].series;
-      if (seriesByNumber(d.n)) return;
-      var b = el("button", "chip day has-draft");
-      b.type = "button";
-      b.setAttribute("aria-pressed", state.draft && state.draft.n === d.n ? "true" : "false");
-      b.appendChild(el("b", null, d.n));
-      b.appendChild(el("small", null, shortDate(d.date)));
-      b.addEventListener("click", function () { openSeries(d.n); });
-      chips.appendChild(b);
-    });
-
-    // отправленные, но ещё не выложенные Pages
-    Object.keys(SENT).sort().forEach(function (key) {
-      var n = Number(key);
-      if (seriesByNumber(n) || DRAFTS[key]) return;
-      var b = el("button", "chip day pending");
-      b.type = "button";
-      b.setAttribute("aria-pressed", "false");
-      b.appendChild(el("b", null, n));
-      b.appendChild(el("small", null, "ждём"));
-      b.addEventListener("click", function () {
-        state.note = "Серия " + n + " уже отправлена, но сайт ещё не обновился. " +
-          "Подожди минуту и обнови страницу — тогда её можно будет править.";
-        state.noteKind = "bad";
-        render();
-      });
-      chips.appendChild(b);
+    Object.keys(SENT).sort().forEach(function (k) {
+      var n = Number(k);
+      if (seriesByNumber(n)) return;
+      chips.appendChild(dayChip(n, "ждём", true, n));
     });
 
     var add = el("button", "chip day new");
@@ -632,63 +644,54 @@
     chips.appendChild(add);
 
     picker.appendChild(chips);
-
-    var hint = el("div", "summary");
-    hint.textContent = Object.keys(DRAFTS).length
-      ? "Точка на кнопке — есть неотправленный черновик."
-      : "Кнопка «+» создаёт следующую серию.";
-    picker.appendChild(hint);
     host.appendChild(picker);
 
-    if (!state.draft) return;
+    if (!state.series) {
+      var hint = el("div", "card");
+      hint.appendChild(el("div", "summary",
+        DATA.series.length
+          ? "Выбери день, чтобы поправить его кондуит, или заведи новую серию."
+          : "Серий ещё нет. Кнопка «+» заведёт первую."));
+      host.appendChild(hint);
+      return;
+    }
 
     // шапка серии
     var meta = el("div", "card");
-    var mrow = el("div", "frow");
+    var mrow = el("div", "frow top");
 
     var numInput = el("input");
     numInput.type = "number";
+    numInput.inputMode = "numeric";
     numInput.min = "1";
-    numInput.value = state.draft.n;
+    numInput.value = state.series.n;
     numInput.className = "input short";
     numInput.addEventListener("change", function () {
       var v = parseInt(numInput.value, 10);
-      if (!v || v < 1) { numInput.value = state.draft.n; return; }
-      dropDraft(state.draft.n);
-      state.draft.n = v;
+      if (!v || v < 1) { numInput.value = state.series.n; return; }
+      state.series.n = v;
       state.isNew = !seriesByNumber(v);
-      touchDraft();
+      touch();
       render();
     });
     mrow.appendChild(field("Номер серии", numInput));
-
-    var dateInput = el("input");
-    dateInput.type = "date";
-    dateInput.value = state.draft.date;
-    dateInput.className = "input";
-    dateInput.addEventListener("change", function () {
-      state.draft.date = dateInput.value;
-      touchDraft();
-    });
-    mrow.appendChild(field("Дата", dateInput));
-
+    mrow.appendChild(field("Дата", dateField()));
     meta.appendChild(mrow);
 
-    var where = el("div", "summary");
-    where.textContent = (state.isNew ? "Новая серия → " : "Правим существующую → ") +
-      "data/series/" + pad2(state.draft.n) + ".json";
-    meta.appendChild(where);
+    meta.appendChild(el("div", "summary",
+      (state.isNew ? "Новая серия → " : "Правим существующую → ") +
+      "data/series/" + pad2(state.series.n) + ".json"));
     host.appendChild(meta);
 
     // задачи
     var sh = el("div", "section-head");
     sh.appendChild(el("span", "section-title", "Задачи"));
     sh.appendChild(el("span", "section-note",
-      withNum(state.draft.problems.length, "единица", "единицы", "единиц") + " зачёта"));
+      withNum(state.series.problems.length, "единица", "единицы", "единиц") + " зачёта"));
     host.appendChild(sh);
 
     var pcard = el("div", "card");
-    state.draft.problems.forEach(function (p) { pcard.appendChild(problemRow(p)); });
+    state.series.problems.forEach(function (p) { pcard.appendChild(problemRow(p)); });
 
     var actions = el("div", "frow gap");
     actions.appendChild(button("+ задача", "ghost-btn", function () { addProblem(); render(); }));
@@ -696,40 +699,59 @@
     pcard.appendChild(actions);
     host.appendChild(pcard);
 
-    if (!state.draft.problems.length) return;
+    if (state.series.problems.length) {
+      var sh2 = el("div", "section-head");
+      sh2.appendChild(el("span", "section-title", "Кондуит"));
+      sh2.appendChild(el("span", "section-note", "касание клетки ставит и снимает плюс"));
+      host.appendChild(sh2);
+      host.appendChild(grid());
+    }
 
-    // сетка
-    var sh2 = el("div", "section-head");
-    sh2.appendChild(el("span", "section-title", "Кондуит"));
-    sh2.appendChild(el("span", "section-note", "касание клетки ставит и снимает плюс"));
-    host.appendChild(sh2);
+    host.appendChild(saveBar());
+  }
 
-    host.appendChild(grid());
-
-    var problem = validate(state.draft);
-    var status = el("div", "card draft-status");
-    var line = el("div", "sendrow");
-    var left = el("div", "sendrow-main");
-    left.appendChild(el("div", "sendrow-title",
-      problem ? "Пока нельзя отправить: " + problem : "Черновик сохранён"));
-    left.appendChild(el("div", "sendrow-note",
-      "Серия " + state.draft.n + " · " +
-      withNum(state.draft.problems.length, "задача", "задачи", "задач") + " · " +
-      withNum(totalPluses(), "плюс", "плюса", "плюсов") +
-      ". Хранится в памяти телефона, пока не отправишь."));
-    line.appendChild(left);
-    var go = button("К отправке", "primary-btn", function () {
-      state.view = "send";
-      render();
-      window.scrollTo(0, 0);
+  function dayChip(n, label, waiting, open) {
+    var b = el("button", "chip day" + (waiting ? " pending" : ""));
+    b.type = "button";
+    b.setAttribute("aria-pressed",
+      state.series && state.series.n === n ? "true" : "false");
+    b.appendChild(el("b", null, n));
+    b.appendChild(el("small", null, label));
+    b.addEventListener("click", function () {
+      if (waiting) {
+        state.note = "Серия " + n + " сохранена, но сайт ещё не обновился. " +
+          "Подожди минуту и обнови страницу.";
+        state.noteKind = "bad";
+        return render();
+      }
+      openSeries(open);
     });
-    go.disabled = !!problem;
-    line.appendChild(go);
-    status.appendChild(line);
-    host.appendChild(status);
+    return b;
+  }
+
+  function saveBar() {
+    var problem = validate();
+    var card = el("div", "card savecard");
+
+    var left = el("div", "savecard-main");
+    left.appendChild(el("div", "savecard-title",
+      problem ? "Пока нельзя сохранить: " + problem
+        : (state.dirty ? "Есть несохранённые изменения" : "Изменений нет")));
+    left.appendChild(el("div", "savecard-note",
+      "Серия " + state.series.n + " · " +
+      withNum(state.series.problems.length, "задача", "задачи", "задач") + " · " +
+      withNum(totalPluses(), "плюс", "плюса", "плюсов")));
+    card.appendChild(left);
+
+    var b = button(state.busy ? "…" : "Сохранить", "primary-btn", saveSeries);
+    b.disabled = state.busy || !!problem || !state.dirty;
+    card.appendChild(b);
+
+    return card;
   }
 
   function problemRow(p) {
+    var wrap = el("div", "prow-wrap");
     var row = el("div", "prow");
 
     var idIn = el("input");
@@ -739,69 +761,100 @@
       var v = String(idIn.value).trim();
       if (!v) { idIn.value = p.id; return; }
       renameProblem(p.id, v);
-      touchDraft();
+      touch();
       render();
     });
     row.appendChild(idIn);
 
-    var catSel = el("select", "input");
-    types().forEach(function (t) {
-      var o = el("option", null, t.name);
-      o.value = t.id;
-      if (t.id === p.type) o.selected = true;
-      catSel.appendChild(o);
-    });
-    catSel.addEventListener("change", function () {
-      p.type = catSel.value;
-      var t = typeById(p.type);
-      p.sub = t && t.subs && t.subs.length ? t.subs[0].id : null;
-      touchDraft();
+    var t = typeById(p.type);
+    var sub = t && (t.subs || []).filter(function (s) { return s.id === p.sub; })[0];
+    var open = state.pickTheme === p.id;
+
+    var pick = el("button", "picker-btn" + (open ? " open" : ""));
+    pick.type = "button";
+    var label = el("span", "picker-label");
+    label.appendChild(dot(t ? t.slot : 1));
+    label.appendChild(document.createTextNode(
+      (t ? t.name : "тема?") + (sub ? " · " + sub.name : "")));
+    pick.appendChild(label);
+    pick.appendChild(el("span", "picker-caret", "▾"));
+    pick.addEventListener("click", function () {
+      state.pickTheme = open ? null : p.id;
+      state.pickDate = false;
       render();
     });
-    row.appendChild(catSel);
-
-    var t = typeById(p.type);
-    var subSel = el("select", "input");
-    if (t && t.subs && t.subs.length) {
-      t.subs.forEach(function (s) {
-        var o = el("option", null, s.name);
-        o.value = s.id;
-        if (s.id === p.sub) o.selected = true;
-        subSel.appendChild(o);
-      });
-      var none = el("option", null, "без уточнения");
-      none.value = "";
-      if (!p.sub) none.selected = true;
-      subSel.appendChild(none);
-      subSel.addEventListener("change", function () {
-        p.sub = subSel.value || null;
-        touchDraft();
-      });
-    } else {
-      var only = el("option", null, "—");
-      only.value = "";
-      subSel.appendChild(only);
-      subSel.disabled = true;
-    }
-    row.appendChild(subSel);
+    row.appendChild(pick);
 
     row.appendChild(button("×", "icon-btn", function () {
       removeProblem(p.id);
-      touchDraft();
+      touch();
       render();
     }));
 
-    var mark = el("span", "prow-dot");
-    mark.appendChild(dot(t ? t.slot : 1));
-    row.appendChild(mark);
+    wrap.appendChild(row);
+    if (open) wrap.appendChild(themeChooser(p));
+    return wrap;
+  }
 
-    return row;
+  function themeChooser(p) {
+    var box = el("div", "chooser");
+
+    var cats = el("div", "chips");
+    types().forEach(function (t) {
+      var b = el("button", "chip pick");
+      b.type = "button";
+      b.setAttribute("aria-pressed", t.id === p.type ? "true" : "false");
+      b.appendChild(dot(t.slot));
+      b.appendChild(document.createTextNode(t.name));
+      b.addEventListener("click", function () {
+        p.type = t.id;
+        p.sub = t.subs && t.subs.length ? t.subs[0].id : null;
+        touch();
+        render();
+      });
+      cats.appendChild(b);
+    });
+    box.appendChild(cats);
+
+    var t = typeById(p.type);
+    if (t && (t.subs || []).length) {
+      var subs = el("div", "chips subs-row");
+      t.subs.forEach(function (s) {
+        var b = el("button", "chip sub pick");
+        b.type = "button";
+        b.style.setProperty("--accent", "var(--s" + t.slot + ")");
+        b.setAttribute("aria-pressed", s.id === p.sub ? "true" : "false");
+        b.appendChild(document.createTextNode(s.name));
+        b.addEventListener("click", function () {
+          p.sub = s.id;
+          state.pickTheme = null;
+          touch();
+          render();
+        });
+        subs.appendChild(b);
+      });
+      var none = el("button", "chip sub pick");
+      none.type = "button";
+      none.style.setProperty("--accent", "var(--s" + t.slot + ")");
+      none.setAttribute("aria-pressed", p.sub ? "false" : "true");
+      none.appendChild(document.createTextNode("без уточнения"));
+      none.addEventListener("click", function () {
+        p.sub = null;
+        state.pickTheme = null;
+        touch();
+        render();
+      });
+      subs.appendChild(none);
+      box.appendChild(subs);
+    }
+
+    return box;
   }
 
   function grid() {
     var scroll = el("div", "conduit-scroll");
     var table = el("table", "conduit edit");
-    var problems = state.draft.problems;
+    var problems = state.series.problems;
 
     var thead = el("thead");
     var hr = el("tr");
@@ -825,22 +878,23 @@
     DATA.students.forEach(function (st) {
       var tr = el("tr", "crow");
       tr.appendChild(el("td", "pname", st.name));
-      var list = state.draft.solved[st.id] || [];
       problems.forEach(function (p) {
         var td = el("td", "cell");
-        var b = el("button", "mark" + (list.indexOf(p.id) !== -1 ? " on" : ""));
+        var b = el("button", "mark" +
+          ((state.series.solved[st.id] || []).indexOf(p.id) !== -1 ? " on" : ""));
         b.type = "button";
         b.setAttribute("aria-label", st.name + ", задача " + p.id);
         b.addEventListener("click", function () {
           toggleMark(st.id, p.id);
-          var on = (state.draft.solved[st.id] || []).indexOf(p.id) !== -1;
+          var on = (state.series.solved[st.id] || []).indexOf(p.id) !== -1;
           b.className = "mark" + (on ? " on" : "");
           updateCounters(table);
         });
         td.appendChild(b);
         tr.appendChild(td);
       });
-      tr.appendChild(el("td", "pcount rowcount", list.length));
+      tr.appendChild(el("td", "pcount rowcount",
+        (state.series.solved[st.id] || []).length));
       tbody.appendChild(tr);
     });
     table.appendChild(tbody);
@@ -864,38 +918,47 @@
     return scroll;
   }
 
-  function totalPluses() {
-    return DATA.students.reduce(function (a, s) {
-      return a + ((state.draft.solved[s.id] || []).length);
-    }, 0);
-  }
-
+  /* Пересчёт подписей без перерисовки таблицы: перерисовка сбивала бы прокрутку
+     на каждом касании. */
   function updateCounters(table) {
-    var problems = state.draft.problems;
     var rows = table.querySelectorAll("tbody tr");
     DATA.students.forEach(function (st, i) {
-      var c = rows[i].querySelector(".rowcount");
-      if (c) c.textContent = (state.draft.solved[st.id] || []).length;
+      var c = rows[i] && rows[i].querySelector(".rowcount");
+      if (c) c.textContent = (state.series.solved[st.id] || []).length;
     });
     var cols = table.querySelectorAll(".colcount");
     var ws = table.querySelectorAll(".colweight");
-    problems.forEach(function (p, i) {
+    state.series.problems.forEach(function (p, i) {
       var n = solvedCount(p.id);
       if (cols[i]) cols[i].textContent = n;
       if (ws[i]) ws[i].textContent = DATA.config.students_total - n;
     });
     var total = table.querySelector(".total");
     if (total) total.textContent = totalPluses();
+    refreshSaveCard();
+  }
+
+  function refreshSaveCard() {
+    var card = document.querySelector(".savecard");
+    if (!card) return;
+    var problem = validate();
+    card.querySelector(".savecard-title").textContent =
+      problem ? "Пока нельзя сохранить: " + problem
+        : (state.dirty ? "Есть несохранённые изменения" : "Изменений нет");
+    card.querySelector(".savecard-note").textContent =
+      "Серия " + state.series.n + " · " +
+      withNum(state.series.problems.length, "задача", "задачи", "задач") + " · " +
+      withNum(totalPluses(), "плюс", "плюса", "плюсов");
+    var b = card.querySelector(".primary-btn");
+    if (b) b.disabled = state.busy || !!problem || !state.dirty;
   }
 
   // ── вид: темы ───────────────────────────────────────────
 
   function viewThemes(host) {
-    var note = el("div", "section-note");
-    note.textContent = "Добавленный подраздел сразу появляется в выборе при разметке задач. " +
-      "На сайт он попадёт после отправки — во вкладке «Отправка». " +
-      "Уже записанные серии не изменятся.";
-    host.appendChild(note);
+    host.appendChild(el("div", "section-note",
+      "Правки видны в выборе темы сразу, а на сайт уходят по кнопке «Сохранить темы». " +
+      "Уже записанные серии не меняются."));
 
     var card = el("div", "card");
     types().forEach(function (t) {
@@ -913,20 +976,12 @@
       block.appendChild(head);
 
       (t.subs || []).forEach(function (s) {
-        var isNew = isNewSub(t.id, s.id);
         var key = t.id + "/" + s.id;
-
         var line = el("div", "subline");
-        var name = el("span", "subline-name");
-        name.appendChild(document.createTextNode(s.name));
-        if (isNew) {
-          name.appendChild(el("span", "badge",
-            typesWaiting() ? "ждём сайт" : "не отправлено"));
-        }
-        line.appendChild(name);
+        line.appendChild(el("span", "subline-name", s.name));
 
-        var used = subUsage(t.id, s.id);
         if (state.confirmSub === key) {
+          var used = subUsage(t.id, s.id);
           var box = el("span", "confirm");
           box.appendChild(el("span", "confirm-text",
             used ? "стоит у " + withNum(used, "задачи", "задач", "задач") + ". Удалить?"
@@ -936,7 +991,6 @@
             var cat = draft.filter(function (x) { return x.id === t.id; })[0];
             cat.subs = cat.subs.filter(function (x) { return x.id !== s.id; });
             state.confirmSub = null;
-            saveTypesDraft();
             render();
           }));
           box.appendChild(button("нет", "mini-btn", function () {
@@ -945,15 +999,11 @@
           }));
           line.appendChild(box);
         } else {
-          var right = el("span", "subline-right");
-          if (used) right.appendChild(el("span", "subline-val", used + " зад."));
-          right.appendChild(button("убрать", "mini-btn", function () {
+          line.appendChild(button("убрать", "mini-btn", function () {
             state.confirmSub = key;
             render();
           }));
-          line.appendChild(right);
         }
-
         block.appendChild(line);
       });
 
@@ -973,7 +1023,6 @@
         var cat = draft.filter(function (x) { return x.id === t.id; })[0];
         if (!cat.subs) cat.subs = [];
         cat.subs.push({ id: uniqueId(translit(name), taken), name: name });
-        saveTypesDraft();
         render();
       }));
       block.appendChild(add);
@@ -993,59 +1042,57 @@
     nameIn.placeholder = "название раздела";
     row.appendChild(nameIn);
 
-    var slotSel = el("select", "input short");
+    var slotSel = el("div", "chips");
     var used = types().map(function (t) { return t.slot; });
+    var chosen = { slot: 0 };
     for (var i = 1; i <= 8; i++) {
       if (used.indexOf(i) !== -1) continue;
-      var o = el("option", null, "цвет " + i);
-      o.value = i;
-      slotSel.appendChild(o);
+      if (!chosen.slot) chosen.slot = i;
+      (function (slot) {
+        var b = el("button", "chip color-chip");
+        b.type = "button";
+        b.setAttribute("aria-pressed", chosen.slot === slot ? "true" : "false");
+        b.appendChild(dot(slot));
+        b.addEventListener("click", function () {
+          chosen.slot = slot;
+          Array.prototype.forEach.call(slotSel.children, function (c, idx) {
+            c.setAttribute("aria-pressed", c === b ? "true" : "false");
+          });
+        });
+        slotSel.appendChild(b);
+      })(i);
     }
-    if (!slotSel.options.length) {
-      var o2 = el("option", null, "цвета кончились");
-      o2.value = "";
-      slotSel.appendChild(o2);
-      slotSel.disabled = true;
-    }
-    row.appendChild(slotSel);
-
     row.appendChild(button("добавить", "ghost-btn", function () {
       var name = String(nameIn.value).trim();
-      if (!name || !slotSel.value) return;
+      if (!name || !chosen.slot) return;
       var draft = editTypes();
-      var taken = draft.map(function (t) { return t.id; });
       draft.push({
-        id: uniqueId(translit(name), taken),
+        id: uniqueId(translit(name), draft.map(function (t) { return t.id; })),
         name: name,
-        slot: Number(slotSel.value),
+        slot: chosen.slot,
         subs: []
       });
-      saveTypesDraft();
       render();
     }));
     card2.appendChild(row);
-    card2.appendChild(el("div", "summary",
-      "Цветов всего восемь — они проверены на различимость, в том числе при дальтонизме."));
+    if (slotSel.children.length) {
+      card2.appendChild(field("Цвет", slotSel));
+    } else {
+      card2.appendChild(el("div", "summary", "Все восемь цветов заняты."));
+    }
     host.appendChild(card2);
 
-    if (typesPending()) {
-      var added = typesAdded();
-      var pending = el("div", "card");
-      pending.appendChild(el("div", "tblock-head", "Не отправлено"));
-      added.cats.forEach(function (n) {
-        pending.appendChild(el("div", "subline", "новый раздел: " + n));
-      });
-      added.subs.forEach(function (n) {
-        pending.appendChild(el("div", "subline", "новый подраздел: " + n));
-      });
-      var go = el("div", "frow gap");
-      go.appendChild(button("Перейти к отправке", "primary-btn", function () {
-        state.view = "send";
-        render();
-      }));
-      pending.appendChild(go);
-      host.appendChild(pending);
-    }
+    var save = el("div", "card savecard");
+    var left = el("div", "savecard-main");
+    left.appendChild(el("div", "savecard-title",
+      typesDirty() ? "Есть несохранённые изменения" : "Изменений нет"));
+    left.appendChild(el("div", "savecard-note",
+      "Файл тем: data/types.json"));
+    save.appendChild(left);
+    var b = button(state.busy ? "…" : "Сохранить темы", "primary-btn", saveTypes);
+    b.disabled = state.busy || !typesDirty();
+    save.appendChild(b);
+    host.appendChild(save);
   }
 
   // ── вид: доступ ─────────────────────────────────────────
@@ -1073,22 +1120,17 @@
       TOKEN = v;
       lsSet(LS_TOKEN, v);
       input.value = "";
-      state.note = "токен сохранён, проверяю доступ…";
-      render();
       check();
     }));
     row.appendChild(button("Проверить доступ", "ghost-btn", check));
     row.appendChild(button("Удалить", "ghost-btn", function () {
       TOKEN = null;
       lsDel(LS_TOKEN);
-      state.note = "токен удалён из этого браузера";
+      state.note = "Токен удалён из этого браузера.";
+      state.noteKind = "";
       render();
     }));
     card.appendChild(row);
-
-    var st = el("div", "summary", (!state.noteKind && state.note) || " ");
-    st.id = "access-status";
-    card.appendChild(st);
     host.appendChild(card);
 
     var help = el("div", "card");
@@ -1097,231 +1139,39 @@
       (r.owner || "?") + "/" + (r.name || "?") + ", ветка " + (r.branch || "main")));
     help.appendChild(el("div", "foot",
       "Токен нужен fine-grained, с доступом только к этому репозиторию и правом " +
-      "Contents: Read and write. Он хранится в памяти этого браузера и отправляется " +
-      "только на api.github.com. Если телефон потеряется — отзови токен в настройках " +
-      "GitHub, и он мгновенно перестанет работать."));
+      "Contents: Read and write. Он хранится в памяти этого браузера и уходит " +
+      "только на api.github.com. Если телефон потеряется — отзови токен в " +
+      "настройках GitHub, и он мгновенно перестанет работать."));
     host.appendChild(help);
-
-    if (Object.keys(DRAFTS).length) {
-      var sh2 = el("div", "section-head");
-      sh2.appendChild(el("span", "section-title", "Черновики"));
-      sh2.appendChild(el("span", "section-note", "хранятся только на этом телефоне"));
-      host.appendChild(sh2);
-
-      var dcard = el("div", "card");
-      Object.keys(DRAFTS).sort().forEach(function (key) {
-        var d = DRAFTS[key];
-        var line = el("div", "subline");
-        line.appendChild(el("span", "subline-name",
-          "Серия " + d.series.n + " · " + shortDate(d.series.date) + " · " +
-          withNum(d.series.problems.length, "задача", "задачи", "задач")));
-        var btns = el("span", "frow");
-        btns.appendChild(button("открыть", "mini-btn", function () {
-          state.view = "series";
-          openSeries(d.series.n);
-        }));
-        btns.appendChild(button("удалить", "mini-btn", function () {
-          dropDraft(d.series.n);
-          if (state.draft && state.draft.n === d.series.n) state.draft = null;
-          render();
-        }));
-        line.appendChild(btns);
-        dcard.appendChild(line);
-      });
-      host.appendChild(dcard);
-    }
   }
 
   function check() {
     if (!TOKEN) {
-      state.note = "токен не задан";
+      state.note = "Токен не задан.";
+      state.noteKind = "bad";
       return render();
     }
-    state.note = "проверяю…";
+    state.note = "Проверяю…";
+    state.noteKind = "";
     render();
     api("").then(function (j) {
-      var perm = j.permissions && j.permissions.push;
-      state.note = "доступ есть: " + j.full_name + (perm ? ", запись разрешена" : ", но запись не разрешена");
+      var can = j.permissions && j.permissions.push;
+      state.note = can
+        ? "Доступ есть: " + j.full_name + ", запись разрешена."
+        : "Репозиторий виден, но запись не разрешена — проверь права токена.";
+      state.noteKind = can ? "good" : "bad";
       render();
     }).catch(function (e) {
-      state.note = "не вышло: " + e.message;
+      state.note = "Не вышло: " + e.message;
+      state.noteKind = "bad";
       render();
     });
   }
 
   // ── каркас ──────────────────────────────────────────────
 
-  // ── вид: отправка ───────────────────────────────────────
-
-  function pendingItems() {
-    var items = [];
-    if (typesPending()) {
-      var added = typesAdded();
-      items.push({
-        key: "types",
-        title: "Темы",
-        note: added.cats.concat(added.subs).join(", ") || "правка списка тем",
-        problem: null
-      });
-    }
-    Object.keys(DRAFTS).sort().forEach(function (k) {
-      var d = DRAFTS[k].series;
-      var pluses = Object.keys(d.solved || {}).reduce(function (a, id) {
-        return a + (d.solved[id] || []).length;
-      }, 0);
-      items.push({
-        key: "series:" + d.n,
-        n: d.n,
-        title: "Серия " + d.n,
-        note: shortDate(d.date) + " · " +
-          withNum((d.problems || []).length, "задача", "задачи", "задач") + " · " +
-          withNum(pluses, "плюс", "плюса", "плюсов"),
-        problem: validate(d)
-      });
-    });
-    return items;
-  }
-
-  function viewSend(host) {
-    var items = pendingItems();
-
-    if (!TOKEN) {
-      var warn = el("div", "card");
-      warn.appendChild(el("div", "tblock-head", "Нужен токен"));
-      warn.appendChild(el("div", "summary",
-        "Без токена отправлять некуда. Черновики при этом в безопасности — " +
-        "они лежат в памяти этого браузера."));
-      var go = el("div", "frow gap");
-      go.appendChild(button("К настройке доступа", "primary-btn", function () {
-        state.view = "access";
-        render();
-      }));
-      warn.appendChild(go);
-      host.appendChild(warn);
-    }
-
-    if (!items.length) {
-      var ok = el("div", "card");
-      ok.appendChild(el("div", "tblock-head", "Всё отправлено"));
-      ok.appendChild(el("div", "summary",
-        "Неотправленных правок нет. Отмечай плюсы во вкладке «Серия» — " +
-        "они появятся здесь."));
-      host.appendChild(ok);
-    } else {
-      var head = el("div", "section-head");
-      head.appendChild(el("span", "section-title", "Не отправлено"));
-      head.appendChild(el("span", "section-note",
-        withNum(items.length, "правка", "правки", "правок")));
-      host.appendChild(head);
-
-      var card = el("div", "card");
-      items.forEach(function (it) {
-        var row = el("div", "sendrow");
-
-        var left = el("div", "sendrow-main");
-        var title = el("div", "sendrow-title");
-        title.appendChild(el("b", null, it.title));
-        if (it.problem) title.appendChild(el("span", "badge bad", it.problem));
-        left.appendChild(title);
-        left.appendChild(el("div", "sendrow-note", it.note));
-        if (state.sending[it.key]) {
-          left.appendChild(el("div", "sendrow-status " +
-            (/^ошибка/.test(state.sending[it.key]) ? "bad" : ""), state.sending[it.key]));
-        }
-        row.appendChild(left);
-
-        var btn = button(it.problem ? "нельзя" : "Отправить", "ghost-btn", function () {
-          runQueue([it]);
-        });
-        btn.disabled = state.busy || !!it.problem || !TOKEN;
-        row.appendChild(btn);
-
-        card.appendChild(row);
-      });
-      host.appendChild(card);
-
-      var all = el("div", "frow gap");
-      var allBtn = button(state.busy ? "Отправляю…" : "Отправить всё", "primary-btn", function () {
-        runQueue(items.filter(function (it) { return !it.problem; }));
-      });
-      allBtn.disabled = state.busy || !TOKEN ||
-        !items.some(function (it) { return !it.problem; });
-      all.appendChild(allBtn);
-      host.appendChild(all);
-
-      host.appendChild(el("div", "foot",
-        "Темы уходят первыми, потом серии — иначе задача с новым подразделом " +
-        "попала бы на сайт раньше самого подраздела. Если связи нет, ничего не " +
-        "теряется: черновики остаются, попробуй позже."));
-    }
-
-    var waiting = Object.keys(SENT).filter(function (k) {
-      return !seriesByNumber(Number(k));
-    });
-    if (waiting.length || typesWaiting()) {
-      var what = [];
-      if (typesWaiting()) what.push("правка тем");
-      if (waiting.length) {
-        what.push(plural(waiting.length, "серия", "серии", "серии") + " " +
-          waiting.map(Number).join(", "));
-      }
-      var w = el("div", "card");
-      w.appendChild(el("div", "tblock-head", "Отправлено, ждём сайт"));
-      w.appendChild(el("div", "summary",
-        what.join(" и ") + " — уже в репозитории. GitHub Pages выкладывает " +
-        "изменения примерно за минуту; после этого они появятся на сайте, " +
-        "а здесь эта плашка исчезнет сама."));
-      host.appendChild(w);
-    }
-  }
-
-  /* Последовательная очередь: темы первыми, серии по возрастанию номера. */
-  function runQueue(items) {
-    if (state.busy || !TOKEN) return;
-    var queue = items.slice().sort(function (a, b) {
-      if (a.key === "types") return -1;
-      if (b.key === "types") return 1;
-      return a.n - b.n;
-    });
-
-    state.busy = true;
-    state.note = "";
-    state.noteKind = "";
-    queue.forEach(function (it) { state.sending[it.key] = "в очереди…"; });
-    render();
-
-    var done = 0, failed = 0;
-
-    function step() {
-      if (!queue.length) {
-        state.busy = false;
-        if (failed) {
-          state.note = "Отправлено " + done + ", не удалось " + failed +
-            ". Неотправленное осталось в черновиках.";
-          state.noteKind = "bad";
-        } else {
-          state.note = "Отправлено: " + done + ". Сайт обновится за минуту.";
-          state.noteKind = "good";
-        }
-        return reload();
-      }
-      var it = queue.shift();
-      state.sending[it.key] = "отправляю…";
-      render();
-      var job = it.key === "types" ? sendTypes() : sendSeries(it.n);
-      return job.then(function () {
-        done += 1;
-        delete state.sending[it.key];
-        return step();
-      }, function (err) {
-        failed += 1;
-        state.sending[it.key] = "ошибка: " + err.message;
-        return step();
-      });
-    }
-
-    step();
-  }
+  var lastScene = null;
+  var enterTimer = null;
 
   function render() {
     var main = document.getElementById("main");
@@ -1331,8 +1181,16 @@
       t.setAttribute("aria-selected", t.dataset.view === state.view ? "true" : "false");
     });
 
-    if (state.note && state.noteKind) {
-      var banner = el("div", "banner " + state.noteKind);
+    var scene = state.view + "/" + (state.series ? state.series.n : "");
+    if (scene !== lastScene) {
+      lastScene = scene;
+      main.classList.add("view-enter");
+      clearTimeout(enterTimer);
+      enterTimer = setTimeout(function () { main.classList.remove("view-enter"); }, 450);
+    }
+
+    if (state.note) {
+      var banner = el("div", "banner " + (state.noteKind || ""));
       banner.appendChild(el("span", null, state.note));
       if (state.noteKind === "good") {
         var link = el("a", "banner-link", "открыть сайт");
@@ -1349,13 +1207,7 @@
 
     if (state.view === "series") viewSeries(main);
     else if (state.view === "themes") viewThemes(main);
-    else if (state.view === "send") viewSend(main);
     else if (state.view === "access") viewAccess(main);
-
-    var badge = document.getElementById("tab-badge");
-    var count = pendingItems().length;
-    badge.hidden = !count;
-    badge.textContent = count;
   }
 
   function setupChrome() {
@@ -1367,12 +1219,17 @@
       t.addEventListener("click", function () {
         state.view = t.dataset.view;
         state.note = "";
+        state.noteKind = "";
+        state.confirmSub = null;
         render();
       });
     });
 
     window.addEventListener("beforeunload", function (e) {
-      if (state.busy) { e.preventDefault(); e.returnValue = ""; }
+      if (state.busy || state.dirty || typesDirty()) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
     });
   }
 
@@ -1380,10 +1237,11 @@
 
   function loadFromFiles() {
     function get(path) {
-      return fetch("data/" + path, { cache: "no-store" }).then(function (r) {
-        if (!r.ok) throw new Error(path + ": " + r.status);
-        return r.json();
-      });
+      return fetch("data/" + path + "?t=" + Date.now(), { cache: "no-store" })
+        .then(function (r) {
+          if (!r.ok) throw new Error(path + ": " + r.status);
+          return r.json();
+        });
     }
     return Promise.all([
       get("config.json"), get("types.json"), get("students.json"), get("series/manifest.json")
@@ -1400,18 +1258,14 @@
     return loadFromFiles().then(function (d) {
       DATA = d;
       pruneSent();
-      if (state.draft && !DRAFTS[draftKey(state.draft.n)] && !seriesByNumber(state.draft.n)) {
-        state.draft = null;
-      }
+      if (state.typesEdit && !typesDirty()) state.typesEdit = null;
       render();
     }).catch(function () { render(); });
   }
 
   document.addEventListener("DOMContentLoaded", function () {
     TOKEN = lsGet(LS_TOKEN, null);
-    loadDrafts();
     loadSent();
-    loadTypesDraft();
     loadFromFiles().then(function (d) {
       DATA = d;
       pruneSent();
@@ -1423,7 +1277,7 @@
       box.appendChild(el("div", "section-title", "Не удалось загрузить данные"));
       box.appendChild(el("div", "summary", String(err.message || err)));
       box.appendChild(el("div", "foot",
-        "Редактор берёт данные с того же сайта. Открой его по ссылке вида " +
+        "Редактор берёт данные с того же сайта. Открой его по адресу вида " +
         "https://ник.github.io/репозиторий/edit.html — с диска он работать не будет."));
       main.appendChild(box);
     });
