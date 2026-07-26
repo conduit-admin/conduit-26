@@ -248,6 +248,42 @@
     return b;
   }
 
+  /* До первой серии считать нечего — показываем состав отряда, чтобы страница
+     не выглядела сломанной. */
+  function viewEmpty(host) {
+    var card = el("div", "card");
+    card.appendChild(el("div", "section-title", "Серий пока нет"));
+    card.appendChild(el("div", "summary",
+      "Как только первый кондуит попадёт в систему, здесь появится рейтинг: " +
+      "баллы, плюсы и пересчёт по любым темам и дням."));
+    host.appendChild(card);
+
+    var sh = el("div", "section-head");
+    sh.appendChild(el("span", "section-title", "Отряд"));
+    sh.appendChild(el("span", "section-note",
+      withNum(DATA.students.length, "человек", "человека", "человек")));
+    host.appendChild(sh);
+
+    var wrap = el("div", "table-wrap");
+    var table = el("table", "data");
+    var tbody = el("tbody");
+    DATA.students.slice().sort(function (a, b) {
+      return a.name.localeCompare(b.name, "ru");
+    }).forEach(function (s, i) {
+      var tr = el("tr");
+      tr.appendChild(el("td", "rank", i + 1));
+      tr.appendChild(el("td", "left name", s.name));
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    wrap.appendChild(table);
+    host.appendChild(wrap);
+
+    host.appendChild(el("div", "foot",
+      "Вес задачи считается от " + DATA.config.students_total +
+      " учеников — это число зафиксировано на смену."));
+  }
+
   function tile(label, value, note) {
     var t = el("div", "tile");
     t.appendChild(el("div", "tile-label", label));
@@ -367,6 +403,8 @@
   // ── вид: рейтинг ────────────────────────────────────────
 
   function viewRating(host) {
+    if (!DATA.series.length) return viewEmpty(host);
+
     var f = renderFilters(host);
     var active = filterActive();
 
@@ -396,7 +434,6 @@
       var tr = el("tr", "clickable");
       tr.addEventListener("click", function () {
         state.openStudent = r.id;
-        state.view = "students";
         render();
         window.scrollTo(0, 0);
       });
@@ -445,6 +482,16 @@
   // ── вид: кондуиты ───────────────────────────────────────
 
   function viewSeries(host) {
+    if (!DATA.series.length) {
+      var none = el("div", "card");
+      none.appendChild(el("div", "section-title", "Кондуитов пока нет"));
+      none.appendChild(el("div", "summary",
+        "Здесь будет по кондуиту на каждый день: сетка «ученики × задачи», " +
+        "сколько человек решило каждую задачу и сколько она стоит."));
+      host.appendChild(none);
+      return;
+    }
+
     var picker = el("div", "card");
     var head = el("div", "filter-head");
     head.appendChild(el("span", "filter-title", "День"));
@@ -551,45 +598,8 @@
 
   // ── вид: ученики ────────────────────────────────────────
 
-  function viewStudents(host) {
-    if (state.openStudent) return viewStudentCard(host, state.openStudent);
-
-    var f = renderFilters(host);
-    var wrap = el("div", "table-wrap");
-    var table = el("table", "data");
-    var thead = el("thead");
-    var hr = el("tr");
-    hr.appendChild(th("№", "rank"));
-    hr.appendChild(th("Ученик", "left"));
-    hr.appendChild(th("Баллы"));
-    hr.appendChild(th("Плюсы"));
-    thead.appendChild(hr);
-    table.appendChild(thead);
-
-    var tbody = el("tbody");
-    DATA.students.slice().sort(function (a, b) {
-      return a.name.localeCompare(b.name, "ru");
-    }).forEach(function (s) {
-      var row = f.rows.filter(function (r) { return r.id === s.id; })[0];
-      var tr = el("tr", "clickable");
-      tr.addEventListener("click", function () {
-        state.openStudent = s.id;
-        render();
-        window.scrollTo(0, 0);
-      });
-      tr.appendChild(el("td", "rank", row.rank));
-      tr.appendChild(el("td", "left name", s.name));
-      tr.appendChild(el("td", "score", num(row.score)));
-      tr.appendChild(el("td", "muted", row.pluses));
-      tbody.appendChild(tr);
-    });
-    table.appendChild(tbody);
-    wrap.appendChild(table);
-    host.appendChild(wrap);
-  }
-
   function viewStudentCard(host, id) {
-    var back = el("button", "back-btn", "← ко всем ученикам");
+    var back = el("button", "back-btn", "← к рейтингу");
     back.type = "button";
     back.addEventListener("click", function () { state.openStudent = null; render(); });
     host.appendChild(back);
@@ -714,6 +724,16 @@
   // ── вид: темы ───────────────────────────────────────────
 
   function viewTypes(host) {
+    if (!UNITS.length) {
+      var none = el("div", "card");
+      none.appendChild(el("div", "section-title", "Задач пока нет"));
+      none.appendChild(el("div", "summary",
+        "Темы уже заданы: " + DATA.types.map(function (t) { return t.name; }).join(", ") +
+        ". Решаемость по ним появится, когда будут размечены первые задачи."));
+      host.appendChild(none);
+      return;
+    }
+
     var note = el("div", "section-note");
     note.textContent = "По сериям, выбранным в фильтре на вкладке «Рейтинг». " +
       "Решаемость — какая доля учеников в среднем берёт задачу этой темы.";
@@ -776,6 +796,9 @@
 
   // ── каркас ──────────────────────────────────────────────
 
+  var lastScene = null;
+  var enterTimer = null;
+
   function render() {
     hideTip();
     var main = document.getElementById("main");
@@ -785,9 +808,19 @@
       t.setAttribute("aria-selected", t.dataset.view === state.view ? "true" : "false");
     });
 
-    if (state.view === "rating") viewRating(main);
-    else if (state.view === "series") viewSeries(main);
-    else if (state.view === "students") viewStudents(main);
+    // анимируем только смену раздела или открытие ученика, но не пересчёт фильтра
+    var scene = state.view + "/" + (state.openStudent || "");
+    if (scene !== lastScene) {
+      lastScene = scene;
+      main.classList.add("view-enter");
+      clearTimeout(enterTimer);
+      enterTimer = setTimeout(function () { main.classList.remove("view-enter"); }, 450);
+    }
+
+    if (state.view === "rating") {
+      if (state.openStudent) viewStudentCard(main, state.openStudent);
+      else viewRating(main);
+    } else if (state.view === "series") viewSeries(main);
     else if (state.view === "types") viewTypes(main);
   }
 
@@ -804,7 +837,7 @@
     Array.prototype.forEach.call(document.querySelectorAll(".tab"), function (t) {
       t.addEventListener("click", function () {
         state.view = t.dataset.view;
-        if (state.view !== "students") state.openStudent = null;
+        state.openStudent = null;
         render();
       });
     });

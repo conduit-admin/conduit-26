@@ -1,7 +1,7 @@
 {
   "title": "Кондуит",
   "subtitle": "Летняя математическая смена · 2026",
-  "students_total": 30,
+  "students_total": 24,
   "noindex": true,
   "scoring": {
     "formula": "students_total - solvers",

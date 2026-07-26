@@ -3,7 +3,7 @@
    светлая и тёмная темы заданы отдельными шагами, а не автоматической инверсией. */
 
 :root {
-  color-scheme: light;
+  color-scheme: light only;
 
   --surface: #fcfcfb;
   --plane: #f9f9f7;
@@ -34,67 +34,14 @@
   --tap: 44px;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    color-scheme: dark;
+/* Тема только светлая. Системная тёмная в браузерах телефонов местами
+   подкрашивает элементы сама, и цвета тем начинают врать, поэтому
+   color-scheme: light выше — это запрет, а не предпочтение. */
 
-    --surface: #1a1a19;
-    --plane: #0d0d0d;
-    --ink: #ffffff;
-    --ink-2: #c3c2b7;
-    --ink-muted: #898781;
-    --grid: #2c2c2a;
-    --axis: #383835;
-    --border: rgba(255, 255, 255, 0.1);
-    --border-strong: rgba(255, 255, 255, 0.2);
-    --wash: rgba(255, 255, 255, 0.06);
-    --good: #0ca30c;
-    --bad: #e66767;
-
-    --s1: #3987e5;
-    --s2: #d95926;
-    --s3: #199e70;
-    --s4: #c98500;
-    --s5: #d55181;
-    --s6: #008300;
-    --s7: #9085e9;
-    --s8: #e66767;
-
-    --cell-on: #e8e7e2;
-    --cell-off: #262624;
-  }
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
 }
-
-:root[data-theme="dark"] {
-  color-scheme: dark;
-
-  --surface: #1a1a19;
-  --plane: #0d0d0d;
-  --ink: #ffffff;
-  --ink-2: #c3c2b7;
-  --ink-muted: #898781;
-  --grid: #2c2c2a;
-  --axis: #383835;
-  --border: rgba(255, 255, 255, 0.1);
-  --border-strong: rgba(255, 255, 255, 0.2);
-  --wash: rgba(255, 255, 255, 0.06);
-  --good: #0ca30c;
-  --bad: #e66767;
-
-  --s1: #3987e5;
-  --s2: #d95926;
-  --s3: #199e70;
-  --s4: #c98500;
-  --s5: #d55181;
-  --s6: #008300;
-  --s7: #9085e9;
-  --s8: #e66767;
-
-  --cell-on: #e8e7e2;
-  --cell-off: #262624;
-}
-
-* { box-sizing: border-box; }
 
 html, body {
   margin: 0;
@@ -165,6 +112,9 @@ body {
 
 .tabs::-webkit-scrollbar { display: none; }
 
+/* Вес шрифта у выбранной вкладки не меняется: от смены веса меняется ширина,
+   и соседние вкладки съезжают при каждом переключении. Выбранная опознаётся
+   цветом и подчёркиванием, ширина остаётся той же. */
 .tab {
   appearance: none;
   background: none;
@@ -173,17 +123,25 @@ body {
   color: var(--ink-muted);
   font: inherit;
   font-size: 14px;
+  font-weight: 500;
   padding: 9px 12px;
   margin-bottom: -1px;
   cursor: pointer;
   white-space: nowrap;
+  transition: color .16s ease, border-bottom-color .16s ease;
 }
 
 .tab:hover { color: var(--ink-2); }
+.tab:focus { outline: none; }
+
+.tab:focus-visible {
+  outline: 2px solid var(--s1);
+  outline-offset: -2px;
+  border-radius: 6px;
+}
 
 .tab[aria-selected="true"] {
   color: var(--ink);
-  font-weight: 560;
   border-bottom-color: var(--ink);
 }
 
@@ -675,6 +633,18 @@ table.conduit tfoot tr.weights td { color: var(--ink-2); font-weight: 560; }
 .subline-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .subline-val { font-variant-numeric: tabular-nums; white-space: nowrap; }
 
+.subline-right { display: inline-flex; align-items: center; gap: 10px; white-space: nowrap; }
+
+.confirm {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.confirm-text { color: var(--ink); font-size: 12.5px; }
+.mini-btn.danger { color: var(--bad); font-weight: 560; }
+
 /* вкладка «Темы» — карточками, а не широкой таблицей */
 .tcards {
   display: grid;
@@ -757,6 +727,50 @@ table.conduit tfoot tr.weights td { color: var(--ink-2); font-weight: 560; }
   border-top: 1px solid var(--grid);
   color: var(--ink-muted);
   font-size: 12.5px;
+}
+
+/* ── движение ───────────────────────────────────────────
+   Анимируется только смена раздела и отклик на касание. Перерисовка от
+   фильтра ничего не анимирует: таблица мигала бы на каждый чип. */
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(7px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.view-enter > * { animation: rise .24s cubic-bezier(.2, .7, .3, 1) both; }
+.view-enter > *:nth-child(2) { animation-delay: .04s; }
+.view-enter > *:nth-child(3) { animation-delay: .07s; }
+.view-enter > *:nth-child(n+4) { animation-delay: .09s; }
+
+.banner { animation: rise .2s ease-out both; }
+
+.chip, .ghost-btn, .primary-btn, .icon-btn, .mini-btn {
+  transition: background-color .14s ease, color .14s ease,
+              border-color .14s ease, transform .1s ease, opacity .14s ease;
+}
+
+.chip:active, .ghost-btn:active, .primary-btn:active, .icon-btn:active {
+  transform: scale(.97);
+}
+
+table.data tbody tr { transition: background-color .12s ease; }
+.mark { transition: background-color .14s ease; }
+.track > i, .bar { transition: width .25s cubic-bezier(.2, .7, .3, 1); }
+
+.tip { animation: fade .12s ease-out both; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: .01ms !important;
+  }
 }
 
 /* ── редактор ───────────────────────────────────────────── */

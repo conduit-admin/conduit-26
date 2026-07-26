@@ -24,7 +24,8 @@
     busy: false,
     note: "",           // сообщение вверху страницы
     noteKind: "",       // good | bad | ""
-    sending: {}         // что сейчас в очереди отправки: ключ -> состояние
+    sending: {},        // что сейчас в очереди отправки: ключ -> состояние
+    confirmSub: null    // подраздел, удаление которого ждёт подтверждения
   };
 
   var LS_TOKEN = "conduit-token";
@@ -257,6 +258,24 @@
       });
     });
     return { cats: cats, subs: subs };
+  }
+
+  /* Сколько задач уже помечено этим подразделом — и на сайте, и в черновиках.
+     Удалять его можно, но тогда у этих задач останется метка, которой больше
+     нет в списке тем: сайт покажет её кодом, пока задачи не переразметить. */
+  function subUsage(catId, subId) {
+    var n = 0;
+    DATA.series.forEach(function (s) {
+      (s.problems || []).forEach(function (p) {
+        if (p.type === catId && (p.sub || null) === subId) n += 1;
+      });
+    });
+    Object.keys(DRAFTS).forEach(function (k) {
+      (DRAFTS[k].series.problems || []).forEach(function (p) {
+        if (p.type === catId && (p.sub || null) === subId) n += 1;
+      });
+    });
+    return n;
   }
 
   function isNewSub(catId, subId) {
@@ -895,6 +914,8 @@
 
       (t.subs || []).forEach(function (s) {
         var isNew = isNewSub(t.id, s.id);
+        var key = t.id + "/" + s.id;
+
         var line = el("div", "subline");
         var name = el("span", "subline-name");
         name.appendChild(document.createTextNode(s.name));
@@ -903,17 +924,36 @@
             typesWaiting() ? "ждём сайт" : "не отправлено"));
         }
         line.appendChild(name);
-        if (isNew) {
-          line.appendChild(button("убрать", "mini-btn", function () {
+
+        var used = subUsage(t.id, s.id);
+        if (state.confirmSub === key) {
+          var box = el("span", "confirm");
+          box.appendChild(el("span", "confirm-text",
+            used ? "стоит у " + withNum(used, "задачи", "задач", "задач") + ". Удалить?"
+              : "удалить?"));
+          box.appendChild(button("да", "mini-btn danger", function () {
             var draft = editTypes();
             var cat = draft.filter(function (x) { return x.id === t.id; })[0];
             cat.subs = cat.subs.filter(function (x) { return x.id !== s.id; });
+            state.confirmSub = null;
             saveTypesDraft();
             render();
           }));
+          box.appendChild(button("нет", "mini-btn", function () {
+            state.confirmSub = null;
+            render();
+          }));
+          line.appendChild(box);
         } else {
-          line.appendChild(el("span", "subline-val", s.id));
+          var right = el("span", "subline-right");
+          if (used) right.appendChild(el("span", "subline-val", used + " зад."));
+          right.appendChild(button("убрать", "mini-btn", function () {
+            state.confirmSub = key;
+            render();
+          }));
+          line.appendChild(right);
         }
+
         block.appendChild(line);
       });
 

@@ -1,122 +1,26 @@
 [
-  {
-    "id": "abramova-sonya",
-    "name": "Абрамова Соня"
-  },
-  {
-    "id": "baranov-kirill",
-    "name": "Баранов Кирилл"
-  },
-  {
-    "id": "belkina-nastya",
-    "name": "Белкина Настя"
-  },
-  {
-    "id": "vereschagin-gosha",
-    "name": "Верещагин Гоша"
-  },
-  {
-    "id": "gavrilov-timur",
-    "name": "Гаврилов Тимур"
-  },
-  {
-    "id": "gordeeva-liza",
-    "name": "Гордеева Лиза"
-  },
-  {
-    "id": "dementev-matvey",
-    "name": "Дементьев Матвей"
-  },
-  {
-    "id": "erohina-dasha",
-    "name": "Ерохина Даша"
-  },
-  {
-    "id": "zhukovskiy-mark",
-    "name": "Жуковский Марк"
-  },
-  {
-    "id": "zayceva-polina",
-    "name": "Зайцева Полина"
-  },
-  {
-    "id": "ilin-serezha",
-    "name": "Ильин Серёжа"
-  },
-  {
-    "id": "karpova-anya",
-    "name": "Карпова Аня"
-  },
-  {
-    "id": "kovalev-dima",
-    "name": "Ковалёв Дима"
-  },
-  {
-    "id": "lebedeva-masha",
-    "name": "Лебедева Маша"
-  },
-  {
-    "id": "lozinskiy-artem",
-    "name": "Лозинский Артём"
-  },
-  {
-    "id": "mescheryakova-vera",
-    "name": "Мещерякова Вера"
-  },
-  {
-    "id": "nikitin-egor",
-    "name": "Никитин Егор"
-  },
-  {
-    "id": "orlova-ksyusha",
-    "name": "Орлова Ксюша"
-  },
-  {
-    "id": "pankratov-lesha",
-    "name": "Панкратов Лёша"
-  },
-  {
-    "id": "prohorova-yulya",
-    "name": "Прохорова Юля"
-  },
-  {
-    "id": "romanov-vanya",
-    "name": "Романов Ваня"
-  },
-  {
-    "id": "saveleva-katya",
-    "name": "Савельева Катя"
-  },
-  {
-    "id": "sizov-misha",
-    "name": "Сизов Миша"
-  },
-  {
-    "id": "tarasova-olya",
-    "name": "Тарасова Оля"
-  },
-  {
-    "id": "ustinov-pasha",
-    "name": "Устинов Паша"
-  },
-  {
-    "id": "fomina-rita",
-    "name": "Фомина Рита"
-  },
-  {
-    "id": "hrustalev-kostya",
-    "name": "Хрусталёв Костя"
-  },
-  {
-    "id": "chernova-zhenya",
-    "name": "Чернова Женя"
-  },
-  {
-    "id": "shapovalov-roma",
-    "name": "Шаповалов Рома"
-  },
-  {
-    "id": "yakovleva-nina",
-    "name": "Яковлева Нина"
-  }
+  { "id": "aksenova-elizaveta", "name": "Аксенова Елизавета" },
+  { "id": "afanasev-igor", "name": "Афанасьев Игорь" },
+  { "id": "budyanskiy-mihail", "name": "Будянский Михаил" },
+  { "id": "velichko-platon", "name": "Величко Платон" },
+  { "id": "boyko-gleb", "name": "Бойко Глеб" },
+  { "id": "gulev-maksim", "name": "Гулев Максим" },
+  { "id": "zarechnyuk-georgiy", "name": "Заречнюк Георгий" },
+  { "id": "karonov-mihail", "name": "Каронов Михаил" },
+  { "id": "karev-denis", "name": "Карьев Денис" },
+  { "id": "kovalev-artem", "name": "Ковалёв Артём" },
+  { "id": "kostylev-konstantin", "name": "Костылев Константин" },
+  { "id": "larionova-natalya", "name": "Ларионова Наталья" },
+  { "id": "lyubimov-slaven", "name": "Любимов Славен" },
+  { "id": "mahrov-aleksandr", "name": "Махров Александр" },
+  { "id": "novoselov-maksim", "name": "Новосёлов Максим" },
+  { "id": "osipova-viktoriya", "name": "Осипова Виктория" },
+  { "id": "pogorelov-denis", "name": "Погорелов Денис" },
+  { "id": "rudakova-vasilisa", "name": "Рудакова Василиса" },
+  { "id": "strelkov-sergey", "name": "Стрелков Сергей" },
+  { "id": "titov-viktor", "name": "Титов Виктор" },
+  { "id": "titov-dmitriy", "name": "Титов Дмитрий" },
+  { "id": "celikov-aleksandr", "name": "Целиков Александр" },
+  { "id": "shipilov-andrey", "name": "Шипилов Андрей" },
+  { "id": "shirtanova-valeriya", "name": "Ширтанова Валерия" }
 ]
