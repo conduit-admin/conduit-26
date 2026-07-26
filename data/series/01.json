@@ -1,0 +1,132 @@
+{
+  "n": 1,
+  "date": "2026-07-27",
+  "title": "Серия 1",
+  "problems": [
+    {
+      "id": "1",
+      "type": "algebra",
+      "sub": "inequalities"
+    },
+    {
+      "id": "2",
+      "type": "comb",
+      "sub": "games"
+    },
+    {
+      "id": "3",
+      "type": "numbers",
+      "sub": null
+    },
+    {
+      "id": "4а",
+      "type": "numbers",
+      "sub": null
+    },
+    {
+      "id": "4б",
+      "type": "numbers",
+      "sub": null
+    },
+    {
+      "id": "5",
+      "type": "geometry",
+      "sub": "planimetry"
+    },
+    {
+      "id": "6",
+      "type": "algebra",
+      "sub": "inequalities"
+    },
+    {
+      "id": "7",
+      "type": "algebra",
+      "sub": "inequalities"
+    }
+  ],
+  "solved": {
+    "aksenova-elizaveta": [
+      "4б"
+    ],
+    "afanasev-igor": [
+      "2",
+      "5"
+    ],
+    "budyanskiy-mihail": [
+      "4а"
+    ],
+    "velichko-platon": [
+      "3"
+    ],
+    "boyko-gleb": [
+      "5",
+      "6"
+    ],
+    "gulev-maksim": [
+      "4а"
+    ],
+    "zarechnyuk-georgiy": [
+      "1",
+      "4б"
+    ],
+    "karonov-mihail": [],
+    "karev-denis": [
+      "3",
+      "4а",
+      "5"
+    ],
+    "kovalev-artem": [
+      "2"
+    ],
+    "kostylev-konstantin": [
+      "4б"
+    ],
+    "larionova-natalya": [
+      "5"
+    ],
+    "lyubimov-slaven": [],
+    "mahrov-aleksandr": [
+      "2",
+      "4б",
+      "6"
+    ],
+    "novoselov-maksim": [
+      "4а"
+    ],
+    "osipova-viktoriya": [
+      "3",
+      "4а"
+    ],
+    "pogorelov-denis": [
+      "3",
+      "5"
+    ],
+    "rudakova-vasilisa": [
+      "4а"
+    ],
+    "strelkov-sergey": [
+      "3",
+      "5"
+    ],
+    "titov-viktor": [
+      "2"
+    ],
+    "titov-dmitriy": [
+      "4б"
+    ],
+    "celikov-aleksandr": [
+      "1",
+      "4а",
+      "7"
+    ],
+    "shipilov-andrey": [
+      "2",
+      "3",
+      "4б",
+      "5"
+    ],
+    "shirtanova-valeriya": [
+      "3"
+    ]
+  }
+}
