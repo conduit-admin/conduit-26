@@ -553,7 +553,11 @@ td.cell {
   text-align: center;
 }
 
+/* Клетка кондуита. Плюс — не просто залитый квадрат: сам знак читается
+   заметно лучше на телефоне и на солнце, а форма работает второй подсказкой
+   помимо контраста. */
 .mark {
+  position: relative;
   width: 20px;
   height: 20px;
   border-radius: 5px;
@@ -562,6 +566,30 @@ td.cell {
 }
 
 .mark.on { background: var(--cell-on); }
+
+.mark.on::before,
+.mark.on::after {
+  content: "";
+  position: absolute;
+  background: var(--surface);
+  border-radius: 1px;
+}
+
+.mark.on::before {
+  left: 50%;
+  top: 22%;
+  width: 2px;
+  height: 56%;
+  transform: translateX(-50%);
+}
+
+.mark.on::after {
+  top: 50%;
+  left: 22%;
+  height: 2px;
+  width: 56%;
+  transform: translateY(-50%);
+}
 
 tr.crow:hover td { background: var(--wash); }
 tr.crow:hover td.pname { background: var(--wash); }
@@ -849,6 +877,8 @@ table.conduit.edit .mark {
   margin: 0 auto;
 }
 
+table.conduit.edit .mark.on::before { width: 3px; }
+table.conduit.edit .mark.on::after { height: 3px; }
 table.conduit.edit .mark:active { transform: scale(.92); }
 
 table.conduit .pcount {
@@ -863,27 +893,62 @@ table.conduit .pcount {
 table.conduit tbody .pcount { font-size: 12px; }
 table.conduit .pcount.total { color: var(--ink); font-weight: 600; }
 
-.savebar {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 30;
+/* строка «что не отправлено» */
+.sendrow {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
-  background: var(--surface);
-  border-top: 1px solid var(--border-strong);
-  box-shadow: 0 -6px 18px rgba(0, 0, 0, .07);
+  padding: 10px 0;
+  border-bottom: 1px solid var(--grid);
 }
 
-.savebar-info {
-  flex: 1;
-  min-width: 0;
-  font-size: 12.5px;
-  color: var(--ink-2);
+.sendrow:last-child { border-bottom: 0; }
+
+.sendrow-main { flex: 1; min-width: 0; }
+
+.sendrow-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 14px;
 }
+
+.sendrow-note { font-size: 12.5px; color: var(--ink-muted); margin-top: 2px; }
+.sendrow-status { font-size: 12.5px; color: var(--ink-2); margin-top: 3px; }
+.sendrow-status.bad { color: var(--bad); }
+
+.draft-status { margin-top: 12px; }
+
+.badge {
+  display: inline-block;
+  font-size: 11px;
+  line-height: 1.5;
+  padding: 1px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  color: var(--ink-muted);
+  margin-left: 8px;
+  white-space: nowrap;
+}
+
+.badge.bad { color: var(--bad); border-color: var(--bad); }
+
+.tab-badge {
+  display: inline-block;
+  min-width: 17px;
+  margin-left: 6px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--s2);
+  color: #fff;
+  font-size: 11px;
+  line-height: 17px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.tab-badge[hidden] { display: none; }
 
 .banner {
   display: flex;
@@ -919,10 +984,6 @@ table.conduit .pcount.total { color: var(--ink); font-weight: 600; }
   color: var(--ink-muted);
 }
 
-.savebar[hidden] { display: none; }
-
-.savebar-info.bad { color: var(--bad); }
-.savebar-info.good { color: var(--good); }
 
 /* на телефоне строка задачи в два ряда: номер и раздел, под ним подраздел —
    иначе названия тем обрезаются */

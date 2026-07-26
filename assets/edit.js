@@ -15,19 +15,23 @@
   var TOKEN = null;
   var DRAFTS = {};      // "07" -> {series, savedAt}
   var SENT = {};        // "19" -> когда отправлено; ждём, пока Pages выложит сайт
+  var TYPES_DRAFT = null; // правки тем живут здесь, пока их не отправили
 
   var state = {
     view: "series",
     draft: null,        // редактируемая серия
     isNew: false,
     busy: false,
-    note: "",           // сообщение вверху страницы и в панели отправки
-    noteKind: ""        // good | bad | ""
+    note: "",           // сообщение вверху страницы
+    noteKind: "",       // good | bad | ""
+    sending: {}         // что сейчас в очереди отправки: ключ -> состояние
   };
 
   var LS_TOKEN = "conduit-token";
   var LS_DRAFTS = "conduit-drafts";
   var LS_SENT = "conduit-sent";
+  var LS_TYPES = "conduit-types-draft";
+  var LS_TYPES_SENT = "conduit-types-sent";
   var LETTERS = "абвгде";
   var MONTHS_SHORT = ["янв", "фев", "мар", "апр", "мая", "июн",
     "июл", "авг", "сен", "окт", "ноя", "дек"];
@@ -183,6 +187,84 @@
     try { SENT = JSON.parse(lsGet(LS_SENT, "{}")) || {}; } catch (e) { SENT = {}; }
   }
 
+  /* Темы правятся так же, как серии: сначала локально, отправка — отдельным
+     действием. Пока правка не уехала, редактор показывает её везде, чтобы новым
+     подразделом можно было размечать задачи сразу. */
+  function loadTypesDraft() {
+    try {
+      var raw = lsGet(LS_TYPES, null);
+      TYPES_DRAFT = raw ? JSON.parse(raw) : null;
+    } catch (e) { TYPES_DRAFT = null; }
+  }
+
+  function saveTypesDraft() {
+    if (TYPES_DRAFT) lsSet(LS_TYPES, JSON.stringify(TYPES_DRAFT));
+    else lsDel(LS_TYPES);
+  }
+
+  function types() { return TYPES_DRAFT || (DATA ? DATA.types : []); }
+
+  function typesDirty() {
+    return !!TYPES_DRAFT && JSON.stringify(TYPES_DRAFT) !== JSON.stringify(DATA.types);
+  }
+
+  /* Правка тем проходит те же три состояния, что и серия: не отправлена →
+     отправлена, но сайт ещё не обновился → сайт догнал, копия не нужна.
+     Снимок отправленного нужен, чтобы правка после отправки снова считалась
+     неотправленной. */
+  function typesSentSnapshot() {
+    try { return JSON.parse(lsGet(LS_TYPES_SENT, "null")); } catch (e) { return null; }
+  }
+
+  function markTypesSent() {
+    lsSet(LS_TYPES_SENT, JSON.stringify({
+      at: new Date().toISOString(),
+      snapshot: JSON.stringify(TYPES_DRAFT)
+    }));
+  }
+
+  function typesWaiting() {
+    var sent = typesSentSnapshot();
+    return typesDirty() && !!sent && sent.snapshot === JSON.stringify(TYPES_DRAFT);
+  }
+
+  function typesPending() {
+    return typesDirty() && !typesWaiting();
+  }
+
+  function editTypes() {
+    if (!TYPES_DRAFT) TYPES_DRAFT = JSON.parse(JSON.stringify(DATA.types));
+    return TYPES_DRAFT;
+  }
+
+  function typeById(id) {
+    return types().filter(function (t) { return t.id === id; })[0] || null;
+  }
+
+  /* Что нового в правке тем по сравнению с тем, что уже на сайте. */
+  function typesAdded() {
+    if (!TYPES_DRAFT) return { cats: [], subs: [] };
+    var cats = [], subs = [];
+    var old = {};
+    DATA.types.forEach(function (t) {
+      old[t.id] = {};
+      (t.subs || []).forEach(function (s) { old[t.id][s.id] = true; });
+    });
+    TYPES_DRAFT.forEach(function (t) {
+      if (!old[t.id]) { cats.push(t.name); return; }
+      (t.subs || []).forEach(function (s) {
+        if (!old[t.id][s.id]) subs.push(t.name + " · " + s.name);
+      });
+    });
+    return { cats: cats, subs: subs };
+  }
+
+  function isNewSub(catId, subId) {
+    var cat = DATA.types.filter(function (t) { return t.id === catId; })[0];
+    if (!cat) return true;
+    return !(cat.subs || []).some(function (s) { return s.id === subId; });
+  }
+
   function markSent(n) {
     SENT[draftKey(n)] = new Date().toISOString();
     lsSet(LS_SENT, JSON.stringify(SENT));
@@ -197,6 +279,13 @@
       if (seriesByNumber(Number(key))) { delete SENT[key]; changed = true; }
     });
     if (changed) lsSet(LS_SENT, JSON.stringify(SENT));
+
+    // темы догнали сайт — локальная копия больше не нужна
+    if (TYPES_DRAFT && JSON.stringify(TYPES_DRAFT) === JSON.stringify(DATA.types)) {
+      TYPES_DRAFT = null;
+      saveTypesDraft();
+      lsDel(LS_TYPES_SENT);
+    }
   }
 
   // ── работа с сериями ────────────────────────────────────
@@ -292,7 +381,7 @@
       var n = numPrefix(p.id);
       if (n > max) max = n;
     });
-    var first = DATA.types[0];
+    var first = types()[0];
     state.draft.problems.push({
       id: String(max + 1),
       type: first.id,
@@ -324,8 +413,7 @@
     state.draft.problems.splice(i === -1 ? state.draft.problems.length : i + 1, 0, item);
   }
 
-  function validate() {
-    var d = state.draft;
+  function validate(d) {
     if (!d) return "нечего отправлять";
     if (!/^\d{4}-\d{2}-\d{2}$/.test(d.date)) return "не указана дата";
     if (!d.problems.length) return "не добавлено ни одной задачи";
@@ -343,22 +431,15 @@
 
   // ── отправка ────────────────────────────────────────────
 
-  function send() {
-    if (state.busy) return;
-    if (!TOKEN) {
-      state.view = "access";
-      state.note = "Сначала нужен токен — вставь его здесь.";
-      state.noteKind = "bad";
-      return render();
-    }
-    var problem = validate();
-    if (problem) {
-      state.note = "Не отправлено: " + problem;
-      state.noteKind = "bad";
-      return render();
-    }
+  /* Отправка одной серии. Возвращает обещание, чтобы «отправить всё» могло
+     выстроить очередь: темы первыми, потом серии. */
+  function sendSeries(n) {
+    var entry = DRAFTS[draftKey(n)];
+    if (!entry) return Promise.reject(new Error("черновик серии " + n + " не найден"));
+    var d = entry.series;
+    var problem = validate(d);
+    if (problem) return Promise.reject(new Error(problem));
 
-    var d = state.draft;
     var file = "data/series/" + pad2(d.n) + ".json";
     var payload = {
       n: d.n,
@@ -373,15 +454,11 @@
       payload.solved[s.id] = (d.solved[s.id] || []).slice().sort(cmpIds);
     });
 
-    state.busy = true;
-    state.note = "отправляю…";
-    renderSavebar();
-
     var pluses = Object.keys(payload.solved).reduce(function (a, k) {
       return a + payload.solved[k].length;
     }, 0);
 
-    getFile(file)
+    return getFile(file)
       .then(function (cur) {
         return putFile(file, JSON.stringify(payload, null, 2) + "\n",
           "Серия " + d.n + " (" + shortDate(d.date) + "): " +
@@ -393,18 +470,21 @@
       .then(function () {
         dropDraft(d.n);
         markSent(d.n);
-        state.busy = false;
-        state.draft = null;
-        state.note = "Серия " + d.n + " отправлена. Публичный сайт обновится за минуту.";
-        state.noteKind = "good";
-        return reload();
-      })
-      .catch(function (err) {
-        state.busy = false;
-        state.note = "Не отправилось: " + err.message + ". Черновик на месте, можно повторить.";
-        state.noteKind = "bad";
-        render();
+        if (state.draft && state.draft.n === d.n) state.draft = null;
       });
+  }
+
+  function sendTypes() {
+    if (!TYPES_DRAFT) return Promise.resolve();
+    var added = typesAdded();
+    var what = added.cats.concat(added.subs);
+    var path = "data/types.json";
+    var payload = TYPES_DRAFT;
+    return getFile(path).then(function (cur) {
+      return putFile(path, JSON.stringify(payload, null, 2) + "\n",
+        "Темы: " + (what.length ? "добавлено — " + what.join(", ") : "правка"),
+        cur && cur.sha);
+    }).then(function () { markTypesSent(); });
   }
 
   function ensureManifest(name) {
@@ -428,35 +508,6 @@
   }
 
   // ── темы ────────────────────────────────────────────────
-
-  function sendTypes(types, message) {
-    if (!TOKEN) {
-      state.view = "access";
-      state.note = "Сначала нужен токен — вставь его здесь.";
-      state.noteKind = "bad";
-      return render();
-    }
-    state.busy = true;
-    state.note = "отправляю…";
-    render();
-    var path = "data/types.json";
-    getFile(path)
-      .then(function (cur) {
-        return putFile(path, JSON.stringify(types, null, 2) + "\n", message, cur && cur.sha);
-      })
-      .then(function () {
-        state.busy = false;
-        state.note = "Темы обновлены. Список подхватится, когда сайт переразвернётся — через минуту.";
-        state.noteKind = "good";
-        return reload();
-      })
-      .catch(function (err) {
-        state.busy = false;
-        state.note = "Не отправилось: " + err.message;
-        state.noteKind = "bad";
-        render();
-      });
-  }
 
   function translit(name) {
     var table = {
@@ -635,6 +686,28 @@
     host.appendChild(sh2);
 
     host.appendChild(grid());
+
+    var problem = validate(state.draft);
+    var status = el("div", "card draft-status");
+    var line = el("div", "sendrow");
+    var left = el("div", "sendrow-main");
+    left.appendChild(el("div", "sendrow-title",
+      problem ? "Пока нельзя отправить: " + problem : "Черновик сохранён"));
+    left.appendChild(el("div", "sendrow-note",
+      "Серия " + state.draft.n + " · " +
+      withNum(state.draft.problems.length, "задача", "задачи", "задач") + " · " +
+      withNum(totalPluses(), "плюс", "плюса", "плюсов") +
+      ". Хранится в памяти телефона, пока не отправишь."));
+    line.appendChild(left);
+    var go = button("К отправке", "primary-btn", function () {
+      state.view = "send";
+      render();
+      window.scrollTo(0, 0);
+    });
+    go.disabled = !!problem;
+    line.appendChild(go);
+    status.appendChild(line);
+    host.appendChild(status);
   }
 
   function problemRow(p) {
@@ -653,7 +726,7 @@
     row.appendChild(idIn);
 
     var catSel = el("select", "input");
-    DATA.types.forEach(function (t) {
+    types().forEach(function (t) {
       var o = el("option", null, t.name);
       o.value = t.id;
       if (t.id === p.type) o.selected = true;
@@ -661,14 +734,14 @@
     });
     catSel.addEventListener("change", function () {
       p.type = catSel.value;
-      var t = DATA.types.filter(function (x) { return x.id === p.type; })[0];
+      var t = typeById(p.type);
       p.sub = t && t.subs && t.subs.length ? t.subs[0].id : null;
       touchDraft();
       render();
     });
     row.appendChild(catSel);
 
-    var t = DATA.types.filter(function (x) { return x.id === p.type; })[0];
+    var t = typeById(p.type);
     var subSel = el("select", "input");
     if (t && t.subs && t.subs.length) {
       t.subs.forEach(function (s) {
@@ -715,7 +788,7 @@
     var hr = el("tr");
     hr.appendChild(el("th", "pname", "Ученик"));
     problems.forEach(function (p) {
-      var t = DATA.types.filter(function (x) { return x.id === p.type; })[0];
+      var t = typeById(p.type);
       var cell = el("th");
       var box = el("div", "phead");
       box.appendChild(el("div", "phead-id", p.id));
@@ -800,14 +873,13 @@
 
   function viewThemes(host) {
     var note = el("div", "section-note");
-    note.textContent = "Раздел и подраздел задачи. Добавленный подраздел сразу " +
-      "появится в выборе при разметке задач; уже записанные серии не изменятся.";
+    note.textContent = "Добавленный подраздел сразу появляется в выборе при разметке задач. " +
+      "На сайт он попадёт после отправки — во вкладке «Отправка». " +
+      "Уже записанные серии не изменятся.";
     host.appendChild(note);
 
-    var types = JSON.parse(JSON.stringify(DATA.types));
-
     var card = el("div", "card");
-    types.forEach(function (t) {
+    types().forEach(function (t) {
       var block = el("div", "tblock");
 
       var head = el("div", "tblock-head");
@@ -816,14 +888,32 @@
       nameBox.appendChild(el("b", null, t.name));
       head.appendChild(nameBox);
       head.appendChild(el("span", "type-val",
-        t.subs.length ? withNum(t.subs.length, "подраздел", "подраздела", "подразделов")
+        (t.subs || []).length
+          ? withNum(t.subs.length, "подраздел", "подраздела", "подразделов")
           : "без подразбиения"));
       block.appendChild(head);
 
-      t.subs.forEach(function (s) {
+      (t.subs || []).forEach(function (s) {
+        var isNew = isNewSub(t.id, s.id);
         var line = el("div", "subline");
-        line.appendChild(el("span", "subline-name", s.name));
-        line.appendChild(el("span", "subline-val", s.id));
+        var name = el("span", "subline-name");
+        name.appendChild(document.createTextNode(s.name));
+        if (isNew) {
+          name.appendChild(el("span", "badge",
+            typesWaiting() ? "ждём сайт" : "не отправлено"));
+        }
+        line.appendChild(name);
+        if (isNew) {
+          line.appendChild(button("убрать", "mini-btn", function () {
+            var draft = editTypes();
+            var cat = draft.filter(function (x) { return x.id === t.id; })[0];
+            cat.subs = cat.subs.filter(function (x) { return x.id !== s.id; });
+            saveTypesDraft();
+            render();
+          }));
+        } else {
+          line.appendChild(el("span", "subline-val", s.id));
+        }
         block.appendChild(line);
       });
 
@@ -835,12 +925,16 @@
       add.appendChild(button("добавить", "ghost-btn", function () {
         var name = String(input.value).trim();
         if (!name) return;
+        var draft = editTypes();
         var taken = [];
-        types.forEach(function (x) {
-          x.subs.forEach(function (s) { taken.push(s.id); });
+        draft.forEach(function (x) {
+          (x.subs || []).forEach(function (s) { taken.push(s.id); });
         });
-        t.subs.push({ id: uniqueId(translit(name), taken), name: name });
-        sendTypes(types, "Темы: в раздел «" + t.name + "» добавлен подраздел «" + name + "»");
+        var cat = draft.filter(function (x) { return x.id === t.id; })[0];
+        if (!cat.subs) cat.subs = [];
+        cat.subs.push({ id: uniqueId(translit(name), taken), name: name });
+        saveTypesDraft();
+        render();
       }));
       block.appendChild(add);
 
@@ -860,7 +954,7 @@
     row.appendChild(nameIn);
 
     var slotSel = el("select", "input short");
-    var used = types.map(function (t) { return t.slot; });
+    var used = types().map(function (t) { return t.slot; });
     for (var i = 1; i <= 8; i++) {
       if (used.indexOf(i) !== -1) continue;
       var o = el("option", null, "цвет " + i);
@@ -878,19 +972,40 @@
     row.appendChild(button("добавить", "ghost-btn", function () {
       var name = String(nameIn.value).trim();
       if (!name || !slotSel.value) return;
-      var taken = types.map(function (t) { return t.id; });
-      types.push({
+      var draft = editTypes();
+      var taken = draft.map(function (t) { return t.id; });
+      draft.push({
         id: uniqueId(translit(name), taken),
         name: name,
         slot: Number(slotSel.value),
         subs: []
       });
-      sendTypes(types, "Темы: добавлен раздел «" + name + "»");
+      saveTypesDraft();
+      render();
     }));
     card2.appendChild(row);
     card2.appendChild(el("div", "summary",
       "Цветов всего восемь — они проверены на различимость, в том числе при дальтонизме."));
     host.appendChild(card2);
+
+    if (typesPending()) {
+      var added = typesAdded();
+      var pending = el("div", "card");
+      pending.appendChild(el("div", "tblock-head", "Не отправлено"));
+      added.cats.forEach(function (n) {
+        pending.appendChild(el("div", "subline", "новый раздел: " + n));
+      });
+      added.subs.forEach(function (n) {
+        pending.appendChild(el("div", "subline", "новый подраздел: " + n));
+      });
+      var go = el("div", "frow gap");
+      go.appendChild(button("Перейти к отправке", "primary-btn", function () {
+        state.view = "send";
+        render();
+      }));
+      pending.appendChild(go);
+      host.appendChild(pending);
+    }
   }
 
   // ── вид: доступ ─────────────────────────────────────────
@@ -996,24 +1111,176 @@
 
   // ── каркас ──────────────────────────────────────────────
 
-  function renderSavebar() {
-    var bar = document.getElementById("savebar");
-    var info = document.getElementById("savebar-info");
-    var btn = document.getElementById("send");
-    if (state.view !== "series" || !state.draft) {
-      bar.hidden = true;
-      return;
+  // ── вид: отправка ───────────────────────────────────────
+
+  function pendingItems() {
+    var items = [];
+    if (typesPending()) {
+      var added = typesAdded();
+      items.push({
+        key: "types",
+        title: "Темы",
+        note: added.cats.concat(added.subs).join(", ") || "правка списка тем",
+        problem: null
+      });
     }
-    bar.hidden = false;
-    var d = state.draft;
-    var problem = validate();
-    info.textContent = "Серия " + d.n + " · " +
-      withNum(d.problems.length, "задача", "задачи", "задач") + " · " +
-      withNum(totalPluses(), "плюс", "плюса", "плюсов") +
-      (problem ? " · " + problem : " · черновик сохранён");
-    info.className = "savebar-info" + (problem ? " bad" : "");
-    btn.disabled = state.busy || !!problem;
-    btn.textContent = state.busy ? "…" : "Отправить";
+    Object.keys(DRAFTS).sort().forEach(function (k) {
+      var d = DRAFTS[k].series;
+      var pluses = Object.keys(d.solved || {}).reduce(function (a, id) {
+        return a + (d.solved[id] || []).length;
+      }, 0);
+      items.push({
+        key: "series:" + d.n,
+        n: d.n,
+        title: "Серия " + d.n,
+        note: shortDate(d.date) + " · " +
+          withNum((d.problems || []).length, "задача", "задачи", "задач") + " · " +
+          withNum(pluses, "плюс", "плюса", "плюсов"),
+        problem: validate(d)
+      });
+    });
+    return items;
+  }
+
+  function viewSend(host) {
+    var items = pendingItems();
+
+    if (!TOKEN) {
+      var warn = el("div", "card");
+      warn.appendChild(el("div", "tblock-head", "Нужен токен"));
+      warn.appendChild(el("div", "summary",
+        "Без токена отправлять некуда. Черновики при этом в безопасности — " +
+        "они лежат в памяти этого браузера."));
+      var go = el("div", "frow gap");
+      go.appendChild(button("К настройке доступа", "primary-btn", function () {
+        state.view = "access";
+        render();
+      }));
+      warn.appendChild(go);
+      host.appendChild(warn);
+    }
+
+    if (!items.length) {
+      var ok = el("div", "card");
+      ok.appendChild(el("div", "tblock-head", "Всё отправлено"));
+      ok.appendChild(el("div", "summary",
+        "Неотправленных правок нет. Отмечай плюсы во вкладке «Серия» — " +
+        "они появятся здесь."));
+      host.appendChild(ok);
+    } else {
+      var head = el("div", "section-head");
+      head.appendChild(el("span", "section-title", "Не отправлено"));
+      head.appendChild(el("span", "section-note",
+        withNum(items.length, "правка", "правки", "правок")));
+      host.appendChild(head);
+
+      var card = el("div", "card");
+      items.forEach(function (it) {
+        var row = el("div", "sendrow");
+
+        var left = el("div", "sendrow-main");
+        var title = el("div", "sendrow-title");
+        title.appendChild(el("b", null, it.title));
+        if (it.problem) title.appendChild(el("span", "badge bad", it.problem));
+        left.appendChild(title);
+        left.appendChild(el("div", "sendrow-note", it.note));
+        if (state.sending[it.key]) {
+          left.appendChild(el("div", "sendrow-status " +
+            (/^ошибка/.test(state.sending[it.key]) ? "bad" : ""), state.sending[it.key]));
+        }
+        row.appendChild(left);
+
+        var btn = button(it.problem ? "нельзя" : "Отправить", "ghost-btn", function () {
+          runQueue([it]);
+        });
+        btn.disabled = state.busy || !!it.problem || !TOKEN;
+        row.appendChild(btn);
+
+        card.appendChild(row);
+      });
+      host.appendChild(card);
+
+      var all = el("div", "frow gap");
+      var allBtn = button(state.busy ? "Отправляю…" : "Отправить всё", "primary-btn", function () {
+        runQueue(items.filter(function (it) { return !it.problem; }));
+      });
+      allBtn.disabled = state.busy || !TOKEN ||
+        !items.some(function (it) { return !it.problem; });
+      all.appendChild(allBtn);
+      host.appendChild(all);
+
+      host.appendChild(el("div", "foot",
+        "Темы уходят первыми, потом серии — иначе задача с новым подразделом " +
+        "попала бы на сайт раньше самого подраздела. Если связи нет, ничего не " +
+        "теряется: черновики остаются, попробуй позже."));
+    }
+
+    var waiting = Object.keys(SENT).filter(function (k) {
+      return !seriesByNumber(Number(k));
+    });
+    if (waiting.length || typesWaiting()) {
+      var what = [];
+      if (typesWaiting()) what.push("правка тем");
+      if (waiting.length) {
+        what.push(plural(waiting.length, "серия", "серии", "серии") + " " +
+          waiting.map(Number).join(", "));
+      }
+      var w = el("div", "card");
+      w.appendChild(el("div", "tblock-head", "Отправлено, ждём сайт"));
+      w.appendChild(el("div", "summary",
+        what.join(" и ") + " — уже в репозитории. GitHub Pages выкладывает " +
+        "изменения примерно за минуту; после этого они появятся на сайте, " +
+        "а здесь эта плашка исчезнет сама."));
+      host.appendChild(w);
+    }
+  }
+
+  /* Последовательная очередь: темы первыми, серии по возрастанию номера. */
+  function runQueue(items) {
+    if (state.busy || !TOKEN) return;
+    var queue = items.slice().sort(function (a, b) {
+      if (a.key === "types") return -1;
+      if (b.key === "types") return 1;
+      return a.n - b.n;
+    });
+
+    state.busy = true;
+    state.note = "";
+    state.noteKind = "";
+    queue.forEach(function (it) { state.sending[it.key] = "в очереди…"; });
+    render();
+
+    var done = 0, failed = 0;
+
+    function step() {
+      if (!queue.length) {
+        state.busy = false;
+        if (failed) {
+          state.note = "Отправлено " + done + ", не удалось " + failed +
+            ". Неотправленное осталось в черновиках.";
+          state.noteKind = "bad";
+        } else {
+          state.note = "Отправлено: " + done + ". Сайт обновится за минуту.";
+          state.noteKind = "good";
+        }
+        return reload();
+      }
+      var it = queue.shift();
+      state.sending[it.key] = "отправляю…";
+      render();
+      var job = it.key === "types" ? sendTypes() : sendSeries(it.n);
+      return job.then(function () {
+        done += 1;
+        delete state.sending[it.key];
+        return step();
+      }, function (err) {
+        failed += 1;
+        state.sending[it.key] = "ошибка: " + err.message;
+        return step();
+      });
+    }
+
+    step();
   }
 
   function render() {
@@ -1042,9 +1309,13 @@
 
     if (state.view === "series") viewSeries(main);
     else if (state.view === "themes") viewThemes(main);
+    else if (state.view === "send") viewSend(main);
     else if (state.view === "access") viewAccess(main);
 
-    renderSavebar();
+    var badge = document.getElementById("tab-badge");
+    var count = pendingItems().length;
+    badge.hidden = !count;
+    badge.textContent = count;
   }
 
   function setupChrome() {
@@ -1058,18 +1329,6 @@
         state.note = "";
         render();
       });
-    });
-
-    document.getElementById("send").addEventListener("click", send);
-
-    var saved = lsGet("conduit-theme", null);
-    if (saved) document.documentElement.setAttribute("data-theme", saved);
-    document.getElementById("theme").addEventListener("click", function () {
-      var cur = document.documentElement.getAttribute("data-theme");
-      var next = cur ? (cur === "dark" ? "light" : "dark")
-        : (window.matchMedia("(prefers-color-scheme: dark)").matches ? "light" : "dark");
-      document.documentElement.setAttribute("data-theme", next);
-      lsSet("conduit-theme", next);
     });
 
     window.addEventListener("beforeunload", function (e) {
@@ -1112,6 +1371,7 @@
     TOKEN = lsGet(LS_TOKEN, null);
     loadDrafts();
     loadSent();
+    loadTypesDraft();
     loadFromFiles().then(function (d) {
       DATA = d;
       pruneSent();

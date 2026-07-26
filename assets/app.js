@@ -96,6 +96,17 @@
       }
     });
 
+    /* Подраздел мог появиться в данных раньше, чем в types.json (например,
+       файл серии уехал, а список тем — ещё нет). Заводим лист по факту данных,
+       иначе такие задачи молча выпали бы из рейтинга. */
+    Object.keys(seen).forEach(function (key) {
+      if (LEAF[key]) return;
+      var parts = key.split("/");
+      var cat = CAT[parts[0]] || { id: parts[0], name: parts[0], slot: 8 };
+      var subId = parts[1] || null;
+      add(cat, subId, subId, cat.name + (subId ? " · " + subId : ""));
+    });
+
     function add(t, subId, subName, label) {
       var leaf = {
         key: leafKey(t.id, subId),
@@ -796,19 +807,6 @@
         if (state.view !== "students") state.openStudent = null;
         render();
       });
-    });
-
-    var saved = null;
-    try { saved = localStorage.getItem("conduit-theme"); } catch (e) { /* приватный режим */ }
-    if (saved) document.documentElement.setAttribute("data-theme", saved);
-
-    document.getElementById("theme").addEventListener("click", function () {
-      var cur = document.documentElement.getAttribute("data-theme");
-      var next;
-      if (cur) next = cur === "dark" ? "light" : "dark";
-      else next = window.matchMedia("(prefers-color-scheme: dark)").matches ? "light" : "dark";
-      document.documentElement.setAttribute("data-theme", next);
-      try { localStorage.setItem("conduit-theme", next); } catch (e) { /* пусто */ }
     });
 
     window.addEventListener("scroll", hideTip, { passive: true });
