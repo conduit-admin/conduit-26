@@ -4,7 +4,10 @@
     "name": "Алгебра",
     "slot": 1,
     "subs": [
-      { "id": "inequalities", "name": "Неравенства" }
+      {
+        "id": "inequalities",
+        "name": "Неравенства"
+      }
     ]
   },
   {
@@ -12,8 +15,18 @@
     "name": "Геометрия",
     "slot": 2,
     "subs": [
-      { "id": "planimetry", "name": "Планиметрия" },
-      { "id": "stereometry", "name": "Стереометрия" }
+      {
+        "id": "planimetry",
+        "name": "Планиметрия"
+      },
+      {
+        "id": "stereometry",
+        "name": "Стереометрия"
+      },
+      {
+        "id": "klassika",
+        "name": "Классика"
+      }
     ]
   },
   {
@@ -21,9 +34,18 @@
     "name": "Комбинаторика",
     "slot": 3,
     "subs": [
-      { "id": "games", "name": "Игры" },
-      { "id": "graphs", "name": "Графы" },
-      { "id": "cells", "name": "Клетчатые задачи" }
+      {
+        "id": "games",
+        "name": "Игры"
+      },
+      {
+        "id": "graphs",
+        "name": "Графы"
+      },
+      {
+        "id": "cells",
+        "name": "Клетчатые задачи"
+      }
     ]
   },
   {
