@@ -731,6 +731,217 @@ table.conduit tfoot tr.weights td { color: var(--ink-2); font-weight: 560; }
   font-size: 12.5px;
 }
 
+/* ── редактор ───────────────────────────────────────────── */
+
+.field { display: flex; flex-direction: column; gap: 4px; }
+
+.field-label {
+  font-size: 11.5px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.input {
+  appearance: none;
+  font: inherit;
+  font-size: 15px;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  padding: 8px 10px;
+  min-height: 40px;
+  min-width: 0;
+}
+
+.input:focus { outline: 2px solid var(--s1); outline-offset: -1px; }
+.input.short { max-width: 120px; }
+.input.tiny { width: 62px; text-align: center; font-variant-numeric: tabular-nums; }
+select.input { padding-right: 6px; }
+
+.frow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.frow.gap { margin-top: 10px; align-items: center; }
+
+.primary-btn {
+  appearance: none;
+  border: 1px solid var(--ink);
+  background: var(--ink);
+  color: var(--surface);
+  border-radius: 999px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 560;
+  padding: 9px 18px;
+  min-height: 40px;
+  cursor: pointer;
+}
+
+.primary-btn:disabled { opacity: .45; cursor: default; }
+
+.icon-btn {
+  appearance: none;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--ink-muted);
+  border-radius: 8px;
+  font: inherit;
+  font-size: 17px;
+  line-height: 1;
+  width: 34px;
+  min-height: 34px;
+  cursor: pointer;
+}
+
+.icon-btn:hover { color: var(--bad); border-color: var(--bad); }
+
+.prow {
+  display: grid;
+  grid-template-columns: 62px minmax(0, 1fr) minmax(0, 1fr) 34px 12px;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--grid);
+}
+
+.prow-dot { display: inline-flex; }
+
+.chip.day.has-draft { position: relative; }
+
+.chip.day.has-draft::after {
+  content: "";
+  position: absolute;
+  top: 4px;
+  right: 5px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--s2);
+}
+
+.chip.day.new { border-style: dashed; }
+.chip.day.new b { font-size: 15px; }
+
+/* сетка ввода: клетка — кнопка, палец крупнее курсора.
+   min-width обязателен: без него браузер сжимает столбцы, когда таблица шире
+   экрана, и клетка становится меньше пальца. */
+table.conduit.edit td.cell,
+table.conduit.edit thead th:not(.pname):not(.pcount) {
+  width: 38px;
+  min-width: 38px;
+  height: 38px;
+}
+
+table.conduit.edit .mark {
+  appearance: none;
+  border: 0;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  cursor: pointer;
+  display: block;
+  margin: 0 auto;
+}
+
+table.conduit.edit .mark:active { transform: scale(.92); }
+
+table.conduit .pcount {
+  text-align: center;
+  font-size: 11px;
+  color: var(--ink-muted);
+  padding: 0 8px;
+  border-left: 1px solid var(--grid);
+  font-variant-numeric: tabular-nums;
+}
+
+table.conduit tbody .pcount { font-size: 12px; }
+table.conduit .pcount.total { color: var(--ink); font-weight: 600; }
+
+.savebar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+  background: var(--surface);
+  border-top: 1px solid var(--border-strong);
+  box-shadow: 0 -6px 18px rgba(0, 0, 0, .07);
+}
+
+.savebar-info {
+  flex: 1;
+  min-width: 0;
+  font-size: 12.5px;
+  color: var(--ink-2);
+}
+
+.banner {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 11px 14px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  font-size: 13.5px;
+  margin-bottom: 14px;
+}
+
+.banner.good { border-color: var(--good); color: var(--ink); }
+.banner.bad { border-color: var(--bad); color: var(--ink); }
+.banner > span { flex: 1; min-width: 0; }
+.banner-link { color: var(--s1); font-size: 13px; white-space: nowrap; }
+
+.banner-close {
+  appearance: none;
+  border: 0;
+  background: none;
+  color: var(--ink-muted);
+  font: inherit;
+  font-size: 16px;
+  line-height: 1;
+  padding: 0 2px;
+  cursor: pointer;
+}
+
+.chip.day.pending {
+  border-style: dotted;
+  color: var(--ink-muted);
+}
+
+.savebar[hidden] { display: none; }
+
+.savebar-info.bad { color: var(--bad); }
+.savebar-info.good { color: var(--good); }
+
+/* на телефоне строка задачи в два ряда: номер и раздел, под ним подраздел —
+   иначе названия тем обрезаются */
+@media (max-width: 560px) {
+  .prow {
+    grid-template-columns: 48px minmax(0, 1fr) 32px 10px;
+    column-gap: 8px;
+    row-gap: 6px;
+    padding: 9px 0;
+  }
+  .input.tiny { width: 48px; }
+  .prow .input { font-size: 13.5px; }
+  .prow > .input.tiny { grid-row: 1 / 3; align-self: center; }
+  .prow > select.input:nth-child(2) { grid-column: 2; grid-row: 1; }
+  .prow > select.input:nth-child(3) { grid-column: 2; grid-row: 2; }
+  .prow > .icon-btn { grid-column: 3; grid-row: 1 / 3; height: 100%; }
+  .prow > .prow-dot { grid-column: 4; grid-row: 1 / 3; align-self: center; }
+}
+
 @media (max-width: 560px) {
   .wrap { padding: 0 12px 48px; }
   .brand { font-size: 19px; }

@@ -6,5 +6,10 @@
   "scoring": {
     "formula": "students_total - solvers",
     "note": "Вес задачи = число учеников на смене минус число решивших."
+  },
+  "repo": {
+    "owner": "conduit-admin",
+    "name": "conduit-26",
+    "branch": "main"
   }
 }
