@@ -6,54 +6,77 @@
     {
       "id": "1",
       "type": "algebra",
-      "sub": "inequalities"
+      "sub": "inequalities",
+      "exercise": false
     },
     {
       "id": "2",
       "type": "comb",
-      "sub": "graphs"
+      "sub": "graphs",
+      "exercise": false
     },
     {
       "id": "3",
       "type": "numbers",
-      "sub": null
+      "sub": null,
+      "exercise": false
     },
     {
       "id": "4а",
       "type": "numbers",
-      "sub": null
+      "sub": null,
+      "exercise": false
     },
     {
       "id": "4б",
       "type": "numbers",
-      "sub": null
+      "sub": null,
+      "exercise": false
     },
     {
       "id": "5",
       "type": "geometry",
-      "sub": "planimetry"
+      "sub": "planimetry",
+      "exercise": false
     },
     {
       "id": "6",
       "type": "algebra",
-      "sub": "inequalities"
+      "sub": "inequalities",
+      "exercise": false
     },
     {
       "id": "7",
       "type": "algebra",
-      "sub": "inequalities"
+      "sub": "inequalities",
+      "exercise": false
     }
   ],
   "solved": {
     "aksenova-elizaveta": [
-      "4б"
+      "1",
+      "2",
+      "3",
+      "4а",
+      "4б",
+      "5",
+      "6",
+      "7"
     ],
     "afanasev-igor": [
+      "1",
       "2",
-      "5"
+      "3",
+      "5",
+      "6",
+      "7"
     ],
     "budyanskiy-mihail": [
-      "4а"
+      "1",
+      "2",
+      "4а",
+      "4б",
+      "5"
     ],
     "velichko-platon": [
       "3"
@@ -106,10 +129,12 @@
     ],
     "strelkov-sergey": [
       "3",
+      "4а",
       "5"
     ],
     "titov-viktor": [
-      "2"
+      "2",
+      "4а"
     ],
     "titov-dmitriy": [
       "4б"
