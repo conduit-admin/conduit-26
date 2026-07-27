@@ -25,7 +25,9 @@
       "Г2",
       "Г3"
     ],
-    "budyanskiy-mihail": [],
+    "budyanskiy-mihail": [
+      "Г2"
+    ],
     "velichko-platon": [
       "Г1",
       "Г3"
@@ -62,9 +64,12 @@
     "strelkov-sergey": [
       "Г3"
     ],
-    "titov-viktor": [],
+    "titov-viktor": [
+      "Г2"
+    ],
     "titov-dmitriy": [
-      "Г1"
+      "Г1",
+      "Г3"
     ],
     "celikov-aleksandr": [
       "Г2"
@@ -73,6 +78,7 @@
       "Г1"
     ],
     "shirtanova-valeriya": [
+      "Г2",
       "Г3"
     ]
   }
