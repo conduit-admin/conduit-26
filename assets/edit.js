@@ -532,6 +532,19 @@
 
   function cmpGraves(a, b) { return graveNum(a) - graveNum(b); }
 
+  function sortGraves() {
+    ensureGraves().problems.sort(function (a, b) { return cmpGraves(a.id, b.id); });
+  }
+
+  function renameGrave(oldId, newId) {
+    var g = ensureGraves();
+    g.problems.forEach(function (p) { if (p.id === oldId) p.id = newId; });
+    Object.keys(g.solved).forEach(function (sid) {
+      var i = g.solved[sid].indexOf(oldId);
+      if (i !== -1) g.solved[sid][i] = newId;
+    });
+  }
+
   function gravesPayload(g) {
     var solved = {};
     DATA.students.forEach(function (s) {
@@ -569,6 +582,7 @@
       type: first.id,
       sub: first.subs && first.subs.length ? first.subs[0].id : null
     });
+    sortGraves();
     touchGraves();
   }
 
@@ -656,9 +670,33 @@
 
   function graveRow(p) {
     var wrap = el("div", "prow-wrap");
-    var row = el("div", "prow");
+    var row = el("div", "prow grave");
 
-    row.appendChild(el("span", "grave-id", p.id));
+    /* Правится только число: буква Г стоит рядом как подпись, чтобы не искать
+       кириллицу на телефонной клавиатуре. */
+    var idBox = el("div", "grave-id");
+    idBox.appendChild(el("span", "grave-pre", "Г"));
+
+    var numIn = el("input");
+    numIn.className = "input tiny";
+    numIn.type = "number";
+    numIn.inputMode = "numeric";
+    numIn.min = "1";
+    numIn.value = graveNum(p.id);
+    numIn.addEventListener("change", function () {
+      var v = parseInt(numIn.value, 10);
+      var id = "Г" + v;
+      var taken = ensureGraves().problems.some(function (x) {
+        return x !== p && x.id === id;
+      });
+      if (!v || v < 1 || taken) { numIn.value = graveNum(p.id); return; }
+      renameGrave(p.id, id);
+      sortGraves();
+      touchGraves();
+      render();
+    });
+    idBox.appendChild(numIn);
+    row.appendChild(idBox);
 
     var t = typeById(p.type);
     var sub = t && (t.subs || []).filter(function (s) { return s.id === p.sub; })[0];

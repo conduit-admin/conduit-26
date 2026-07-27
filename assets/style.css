@@ -84,7 +84,7 @@
     --cell-ink: #16150f;
 
     --admin: #f08fb8;
-    --leader: #e3b23c;
+    --leader: #ffd24a;
   }
 }
 
@@ -800,15 +800,25 @@ table.conduit tfoot tr.weights td { color: var(--ink-2); font-weight: 560; }
 
 .tsubs { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--grid); }
 
-.track {
-  height: 8px;
-  border-radius: 4px;
-  background: var(--cell-off);
-  overflow: hidden;
+/* Шкала решаемости — ряд мелких блоков вместо одной широкой заливки: крупную
+   плоскую заливку принудительная тёмная тема телефона гасит, мелкую оставляет.
+   Незакрашенные блоки заодно показывают, из чего доля считается. */
+.meter {
+  display: flex;
+  gap: 2px;
+  align-items: stretch;
 }
 
-.track > i { display: block; height: 100%; border-radius: 4px; }
-.track.thin { height: 6px; }
+.meter > i {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 13px;
+  height: 9px;
+  border-radius: 2px;
+  background: var(--cell-off);
+}
+
+.meter.thin > i { height: 7px; max-width: 11px; }
 
 .type-val {
   font-variant-numeric: tabular-nums;
@@ -922,7 +932,8 @@ table.conduit tfoot tr.weights td { color: var(--ink-2); font-weight: 560; }
 
 table.data tbody tr { transition: background-color .12s ease; }
 .mark { transition: background-color .14s ease; }
-.track > i, .bar { transition: width .25s cubic-bezier(.2, .7, .3, 1); }
+.bar { transition: width .25s cubic-bezier(.2, .7, .3, 1); }
+.meter > i { transition: background-color .16s ease; }
 
 .tip { animation: fade .12s ease-out both; }
 
@@ -1034,15 +1045,19 @@ select.input { padding-right: 6px; }
   background: var(--s2);
 }
 
-/* номер гроба не правится: он всегда «Гn» и выдаётся следующим свободным */
+/* у гроба правится только число, буква Г — подпись слева от поля */
+.prow.grave { grid-template-columns: 80px minmax(0, 1fr) 34px; }
+
 .grave-id {
   display: flex;
   align-items: center;
-  justify-content: center;
-  min-height: 34px;
+  gap: 4px;
+}
+
+.grave-pre {
   font-size: 15px;
   font-weight: 560;
-  font-variant-numeric: tabular-nums;
+  color: var(--ink-2);
 }
 
 .chip.day.new { border-style: dashed; }
@@ -1279,6 +1294,7 @@ body.is-editor .brand::after {
 
 @media (max-width: 560px) {
   .prow { grid-template-columns: 48px minmax(0, 1fr) 32px; column-gap: 8px; }
+  .prow.grave { grid-template-columns: 66px minmax(0, 1fr) 32px; }
   .input.tiny { width: 48px; }
   .datefield { min-width: 0; }
 }

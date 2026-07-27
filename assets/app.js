@@ -739,7 +739,8 @@
         catStat.got + " / " + catStat.total + " · " + num(catStat.score)));
       block.appendChild(head);
 
-      block.appendChild(trackBar(catStat.total ? catStat.got / catStat.total : 0, t.slot));
+      block.appendChild(meter(catStat.total ? catStat.got / catStat.total : 0,
+        t.slot, 20, false));
 
       if (leaves.length > 1 || leaves[0].subName) {
         leaves.forEach(function (l) {
@@ -795,13 +796,21 @@
     };
   }
 
-  function trackBar(share, slot) {
-    var track = el("div", "track");
-    var fill = el("i");
-    fill.style.width = Math.round(share * 100) + "%";
-    fill.style.background = "var(--s" + slot + ")";
-    track.appendChild(fill);
-    return track;
+  /* Шкала набрана мелкими блоками, а не одной заливкой. Причина внешняя: в
+     Samsung Internet крупная плоская заливка гаснет, а мелкая — нет; кружок
+     темы 9×9 и полоска в кондуите 20×3 приходят нетронутыми, широкая полоса
+     решаемости — приглушённой. Побочная польза: долю теперь видно по числу
+     закрашенных блоков, а не только по цвету. */
+  function meter(share, slot, steps, thin) {
+    var box = el("div", "meter" + (thin ? " thin" : ""));
+    var on = Math.round(share * steps);
+    if (share > 0 && on === 0) on = 1;   // ненулевую долю показываем всегда
+    for (var i = 0; i < steps; i++) {
+      var seg = el("i");
+      if (i < on) seg.style.background = "var(--s" + slot + ")";
+      box.appendChild(seg);
+    }
+    return box;
   }
 
   function bestProblem(id) {
@@ -859,9 +868,7 @@
           var ls = statFor([l.key], null);
           var line = el("div", "subline");
           line.appendChild(el("span", "subline-name", l.subName || t.name));
-          var bar = trackBar(ls.rate, t.slot);
-          bar.className = "track thin";
-          line.appendChild(bar);
+          line.appendChild(meter(ls.rate, t.slot, 10, true));
           line.appendChild(el("span", "subline-val",
             ls.total + " " + plural(ls.total, "задача", "задачи", "задач") + " · " + pct(ls.rate)));
           subs.appendChild(line);
