@@ -496,6 +496,88 @@
       "Вес задачи = " + DATA.config.students_total + " − число решивших."));
   }
 
+  /* Кондуит собран из двух таблиц: слева фамилии, справа прокручиваемые клетки.
+     Раньше столбец фамилий залипал внутри одной таблицы, и на телефоне клетки
+     при прокрутке налезали на имена — залипание конфликтует со слоями, которые
+     браузер заводит под анимации. Две таблицы такого конфликта не создают.
+     Высоты строк заданы жёстко, поэтому половинки идут вровень. */
+  function conduitTables(problems, rows, cellFor, footFor) {
+    var split = el("div", "conduit-split");
+
+    var names = el("table", "conduit names");
+    var nHead = el("thead");
+    var nhr = el("tr");
+    nhr.appendChild(el("th", "pname", "Ученик"));
+    nHead.appendChild(nhr);
+    names.appendChild(nHead);
+
+    var nBody = el("tbody");
+    rows.forEach(function (r) {
+      var tr = el("tr", "crow");
+      tr.appendChild(nameCell("td", "pname", r));
+      nBody.appendChild(tr);
+    });
+    names.appendChild(nBody);
+
+    var nFoot = el("tfoot");
+    var nf1 = el("tr");
+    nf1.appendChild(el("td", "pname", "решили"));
+    nFoot.appendChild(nf1);
+    var nf2 = el("tr", "weights");
+    nf2.appendChild(el("td", "pname", "вес"));
+    nFoot.appendChild(nf2);
+    names.appendChild(nFoot);
+    split.appendChild(names);
+
+    var scroll = el("div", "conduit-scroll");
+    var cells = el("table", "conduit cells");
+
+    var thead = el("thead");
+    var hr = el("tr");
+    problems.forEach(function (p) {
+      var leaf = LEAF[leafKey(p.type, p.sub)];
+      var slot = leaf ? leaf.slot : (CAT[p.type] ? CAT[p.type].slot : 1);
+      var cell = el("th");
+      var box = el("div", "phead");
+      box.appendChild(el("div", "phead-id" + (p.exercise ? " ex" : ""), p.id));
+      var rule = el("div", "phead-rule");
+      rule.style.background = "var(--s" + slot + ")";
+      box.appendChild(rule);
+      cell.appendChild(box);
+      hr.appendChild(cell);
+    });
+    thead.appendChild(hr);
+    cells.appendChild(thead);
+
+    var tbody = el("tbody");
+    rows.forEach(function (r) {
+      var tr = el("tr", "crow");
+      problems.forEach(function (p) {
+        var td = el("td", "cell");
+        td.appendChild(cellFor(p, r));
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    });
+    cells.appendChild(tbody);
+
+    var tfoot = el("tfoot");
+    var f1 = el("tr");
+    var f2 = el("tr", "weights");
+    problems.forEach(function (p) {
+      var pair = footFor(p);
+      f1.appendChild(el("td", null, pair[0]));
+      f2.appendChild(el("td", null, pair[1]));
+    });
+    tfoot.appendChild(f1);
+    tfoot.appendChild(f2);
+    cells.appendChild(tfoot);
+
+    scroll.appendChild(cells);
+    split.appendChild(scroll);
+    return split;
+  }
+
   // ── вид: кондуиты ───────────────────────────────────────
 
   function viewSeries(host) {
@@ -541,58 +623,14 @@
         "плюс", "плюса", "плюсов")));
     host.appendChild(sh);
 
-    var scroll = el("div", "conduit-scroll");
-    var table = el("table", "conduit");
-
-    var thead = el("thead");
-    var hr = el("tr");
-    hr.appendChild(el("th", "pname", "Ученик"));
-    s.problems.forEach(function (p) {
-      var leaf = LEAF[leafKey(p.type, p.sub)];
-      var slot = leaf ? leaf.slot : (CAT[p.type] ? CAT[p.type].slot : 1);
-      var cell = el("th");
-      var box = el("div", "phead");
-      box.appendChild(el("div", "phead-id" + (p.exercise ? " ex" : ""), p.id));
-      var rule = el("div", "phead-rule");
-      rule.style.background = "var(--s" + slot + ")";
-      box.appendChild(rule);
-      cell.appendChild(box);
-      hr.appendChild(cell);
-    });
-    thead.appendChild(hr);
-    table.appendChild(thead);
-
     // строки — в порядке результата этой серии
     var order = computeRating(new Set([s.n]), allLeaves(), ALL_KINDS).rows;
 
-    var tbody = el("tbody");
-    order.forEach(function (r) {
-      var tr = el("tr", "crow");
-      tr.appendChild(nameCell("td", "pname", r));
-      s.problems.forEach(function (p) {
-        var u = byId[p.id];
-        var on = u.solverSet.has(r.id);
-        var td = el("td", "cell");
-        td.appendChild(el("div", "mark" + (on ? " on" : ""), on ? "+" : ""));
-        tr.appendChild(td);
-      });
-      tbody.appendChild(tr);
-    });
-    table.appendChild(tbody);
-
-    var tfoot = el("tfoot");
-    var f1 = el("tr");
-    f1.appendChild(el("td", "pname", "решили"));
-    s.problems.forEach(function (p) { f1.appendChild(el("td", null, byId[p.id].solvers.length)); });
-    tfoot.appendChild(f1);
-    var f2 = el("tr", "weights");
-    f2.appendChild(el("td", "pname", "вес"));
-    s.problems.forEach(function (p) { f2.appendChild(el("td", null, byId[p.id].weight)); });
-    tfoot.appendChild(f2);
-    table.appendChild(tfoot);
-
-    scroll.appendChild(table);
-    host.appendChild(scroll);
+    host.appendChild(conduitTables(s.problems, order, function (p, r) {
+      return byId[p.id].solverSet.has(r.id) ? el("div", "mark on", "+") : el("div", "mark");
+    }, function (p) {
+      return [byId[p.id].solvers.length, byId[p.id].weight];
+    }));
 
     // легенда — только темы, встретившиеся в этой серии
     var used = {};
@@ -856,7 +894,21 @@
     });
   }
 
+  /* Если страница пришла из кэша, а данные уже новее — перезагружаемся по
+     адресу с новой меткой: тот же кэш по нему промахнётся и отдаст свежий HTML.
+     Метка в адресе заодно защищает от петли: второй раз условие не сработает. */
+  function checkStale(config) {
+    var meta = document.querySelector('meta[name="build"]');
+    var page = meta ? meta.content : null;
+    var fresh = config.build;
+    if (!page || !fresh || page === fresh) return false;
+    if (new URLSearchParams(location.search).get("b") === fresh) return false;
+    location.replace(location.pathname + "?b=" + fresh);
+    return true;
+  }
+
   function boot(data) {
+    if (checkStale(data.config)) return;
     DATA = data;
     DATA.series.sort(function (a, b) { return a.n - b.n; });
     buildIndex();

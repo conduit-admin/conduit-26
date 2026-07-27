@@ -12,5 +12,6 @@
     "owner": "conduit-admin",
     "name": "conduit-26",
     "branch": "main"
-  }
+  },
+  "build": "202607271259"
 }

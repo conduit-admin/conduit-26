@@ -985,14 +985,45 @@
     return box;
   }
 
+  /* Как и на сайте: фамилии — отдельной таблицей слева, клетки прокручиваются
+     справа. Залипающий столбец на телефоне налезал на имена. */
   function grid() {
-    var scroll = el("div", "conduit-scroll");
-    var table = el("table", "conduit edit");
     var problems = state.series.problems;
+    var leader = leaderId();
+    var split = el("div", "conduit-split");
+
+    var names = el("table", "conduit names");
+    var nHead = el("thead");
+    var nhr = el("tr");
+    nhr.appendChild(el("th", "pname", "Ученик"));
+    nHead.appendChild(nhr);
+    names.appendChild(nHead);
+
+    var nBody = el("tbody");
+    DATA.students.forEach(function (st) {
+      var tr = el("tr", "crow");
+      tr.appendChild(el("td", "pname" +
+        (DATA.config.admin === st.id ? " admin" : "") +
+        (leader === st.id ? " leader" : ""), st.name));
+      nBody.appendChild(tr);
+    });
+    names.appendChild(nBody);
+
+    var nFoot = el("tfoot");
+    var nf1 = el("tr");
+    nf1.appendChild(el("td", "pname", "решили"));
+    nFoot.appendChild(nf1);
+    var nf2 = el("tr", "weights");
+    nf2.appendChild(el("td", "pname", "вес"));
+    nFoot.appendChild(nf2);
+    names.appendChild(nFoot);
+    split.appendChild(names);
+
+    var scroll = el("div", "conduit-scroll");
+    var table = el("table", "conduit cells edit");
 
     var thead = el("thead");
     var hr = el("tr");
-    hr.appendChild(el("th", "pname", "Ученик"));
     problems.forEach(function (p) {
       var t = typeById(p.type);
       var cell = el("th");
@@ -1011,8 +1042,6 @@
     var tbody = el("tbody");
     DATA.students.forEach(function (st) {
       var tr = el("tr", "crow");
-      tr.appendChild(el("td", "pname" +
-        (DATA.config.admin === st.id ? " admin" : ""), st.name));
       problems.forEach(function (p) {
         var td = el("td", "cell");
         var isOn = (state.series.solved[st.id] || []).indexOf(p.id) !== -1;
@@ -1039,12 +1068,10 @@
 
     var tfoot = el("tfoot");
     var f1 = el("tr");
-    f1.appendChild(el("td", "pname", "решили"));
     problems.forEach(function (p) { f1.appendChild(el("td", "colcount", solvedCount(p.id))); });
     f1.appendChild(el("td", "pcount total", totalPluses()));
     tfoot.appendChild(f1);
     var f2 = el("tr", "weights");
-    f2.appendChild(el("td", "pname", "вес"));
     problems.forEach(function (p) {
       f2.appendChild(el("td", "colweight", DATA.config.students_total - solvedCount(p.id)));
     });
@@ -1053,7 +1080,31 @@
     table.appendChild(tfoot);
 
     scroll.appendChild(table);
-    return scroll;
+    split.appendChild(scroll);
+    return split;
+  }
+
+  /* Лидер смены — по всем сериям, которые уже на сайте, так же как на публичной
+     странице. Открытая правка сюда не входит: иначе метка прыгала бы на каждый
+     поставленный плюс. */
+  function leaderId() {
+    var score = {};
+    DATA.students.forEach(function (s) { score[s.id] = 0; });
+    DATA.series.forEach(function (s) {
+      (s.problems || []).forEach(function (p) {
+        var solvers = DATA.students.filter(function (st) {
+          var list = s.solved[st.id];
+          return list && list.indexOf(p.id) !== -1;
+        });
+        var weight = DATA.config.students_total - solvers.length;
+        solvers.forEach(function (st) { score[st.id] += weight; });
+      });
+    });
+    var best = null;
+    Object.keys(score).forEach(function (id) {
+      if (score[id] > 0 && (!best || score[id] > score[best])) best = id;
+    });
+    return best;
   }
 
   /* Пересчёт подписей без перерисовки таблицы: перерисовка сбивала бы прокрутку
@@ -1064,6 +1115,7 @@
       var c = rows[i] && rows[i].querySelector(".rowcount");
       if (c) c.textContent = (state.series.solved[st.id] || []).length;
     });
+
     var cols = table.querySelectorAll(".colcount");
     var ws = table.querySelectorAll(".colweight");
     state.series.problems.forEach(function (p, i) {
@@ -1401,6 +1453,14 @@
     TOKEN = lsGet(LS_TOKEN, null);
     loadSent();
     loadFromFiles().then(function (d) {
+      // страница могла прийти из кэша Pages — тогда уходим на свежую
+      var meta = document.querySelector('meta[name="build"]');
+      var fresh = d.config.build;
+      if (meta && fresh && meta.content !== fresh &&
+          new URLSearchParams(location.search).get("b") !== fresh) {
+        location.replace(location.pathname + "?b=" + fresh);
+        return;
+      }
       DATA = d;
       pruneSent();
       setupChrome();

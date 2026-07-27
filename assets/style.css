@@ -512,12 +512,31 @@ table.data tr.clickable { cursor: pointer; }
 
 /* ── кондуит ───────────────────────────────────────────── */
 
-.conduit-scroll {
-  overflow-x: auto;
+/* Кондуит — две таблицы бок о бок: фамилии не прокручиваются, клетки
+   прокручиваются. Высоты строк заданы жёстко, иначе половинки разъедутся. */
+.conduit-split {
+  display: flex;
+  align-items: stretch;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
+  overflow: hidden;
 }
+
+table.conduit.names {
+  flex: none;
+  border-right: 1px solid var(--grid);
+}
+
+.conduit-scroll {
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+}
+
+table.conduit thead th { height: 40px; }
+table.conduit tbody td { height: 38px; }
+table.conduit tfoot td { height: 26px; }
 
 table.conduit {
   border-collapse: separate;
@@ -531,20 +550,16 @@ table.conduit th, table.conduit td {
   font-weight: 400;
 }
 
-/* Столбец фамилий должен перекрывать клетки при боковой прокрутке. Клетка с
-   анимацией нажатия создаёт свой слой, поэтому запас по z-index здесь большой,
-   а сами клетки прижаты к нулевому слою. */
 table.conduit th.pname, table.conduit td.pname {
-  position: sticky;
-  left: 0;
-  z-index: 6;
   background: var(--surface);
   text-align: left;
   padding: 0 12px 0 14px;
   white-space: nowrap;
-  border-right: 1px solid var(--grid);
   font-size: 15px;
   min-width: 176px;
+  max-width: 176px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* столбец фамилий оформлен как в рейтинге: тот же кегль, вес и отбивка */
@@ -579,18 +594,11 @@ table.conduit tfoot td.pname {
 table.conduit tbody td.pname.leader { color: var(--leader); font-weight: 600; }
 
 table.conduit thead th {
-  position: sticky;
-  top: 0;
-  z-index: 2;
   background: var(--surface);
   border-bottom: 1px solid var(--grid);
   height: 40px;
   vertical-align: bottom;
 }
-
-table.conduit thead th.pname { z-index: 7; }
-
-table.conduit td.cell { position: relative; z-index: 0; }
 
 .phead {
   display: flex;
