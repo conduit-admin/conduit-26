@@ -5,9 +5,9 @@
   "problems": [
     {
       "id": "1",
-      "type": "numbers",
-      "sub": null,
-      "exercise": false
+      "type": "geometry",
+      "sub": "stereometry",
+      "exercise": true
     },
     {
       "id": "2",
@@ -28,30 +28,6 @@
       "exercise": false
     },
     {
-      "id": "4",
-      "type": "algebra",
-      "sub": "inequalities",
-      "exercise": false
-    },
-    {
-      "id": "5",
-      "type": "comb",
-      "sub": "games",
-      "exercise": false
-    },
-    {
-      "id": "6",
-      "type": "numbers",
-      "sub": null,
-      "exercise": false
-    },
-    {
-      "id": "7",
-      "type": "geometry",
-      "sub": "planimetry",
-      "exercise": false
-    },
-    {
       "id": "8",
       "type": "geometry",
       "sub": "klassika",
@@ -69,38 +45,27 @@
       "1",
       "2",
       "3а",
-      "4",
-      "5",
-      "6",
       "8"
     ],
     "afanasev-igor": [],
     "budyanskiy-mihail": [
       "2",
       "3а",
-      "5",
-      "6",
       "9"
     ],
     "velichko-platon": [
       "2",
-      "4",
-      "5",
       "8",
       "9"
     ],
     "boyko-gleb": [
       "1",
-      "2",
-      "4",
-      "5",
-      "7"
+      "2"
     ],
     "gulev-maksim": [
       "1",
       "2",
       "3а",
-      "5",
       "9"
     ],
     "zarechnyuk-georgiy": [],
@@ -111,36 +76,25 @@
     "karev-denis": [
       "2",
       "3а",
-      "4",
-      "5",
       "9"
     ],
     "kovalev-artem": [
-      "1",
-      "5",
-      "7"
+      "1"
     ],
     "kostylev-konstantin": [
-      "1",
-      "5"
+      "1"
     ],
     "larionova-natalya": [
       "2",
-      "5",
       "9"
     ],
     "lyubimov-slaven": [
       "2",
-      "4",
-      "5",
       "8",
       "9"
     ],
     "mahrov-aleksandr": [
       "3б",
-      "4",
-      "5",
-      "7",
       "8",
       "9"
     ],
@@ -149,27 +103,22 @@
     ],
     "osipova-viktoriya": [
       "3б",
-      "5",
       "9"
     ],
     "pogorelov-denis": [
       "2",
       "3а",
       "3б",
-      "5",
       "9"
     ],
     "rudakova-vasilisa": [
       "1",
       "3а",
       "3б",
-      "5",
       "8"
     ],
     "strelkov-sergey": [
       "3а",
-      "4",
-      "7",
       "8"
     ],
     "titov-viktor": [
@@ -177,23 +126,19 @@
       "3б"
     ],
     "titov-dmitriy": [
-      "2",
-      "5"
+      "2"
     ],
     "celikov-aleksandr": [
       "1",
-      "3а",
-      "5"
+      "3а"
     ],
     "shipilov-andrey": [
       "1",
-      "3б",
-      "7"
+      "3б"
     ],
     "shirtanova-valeriya": [
       "3а",
-      "3б",
-      "4"
+      "3б"
     ]
   }
 }
