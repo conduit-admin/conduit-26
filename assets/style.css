@@ -37,9 +37,13 @@
   --cell-on: #c4c0ab;
   --cell-off: #fbfaf6;
   --cell-ink: #0b0b0b;
+  /* пустой квадрат шкалы — свой цвет, а не цвет пустой клетки кондуита:
+     в кондуите он почти сливается с подложкой намеренно, в шкале должен
+     быть виден, иначе не поймёшь, из чего доля */
+  --meter-off: #c9c6b7;
 
   --admin: #a1245e;
-  --leader: #8a6400;
+  --leader: #4f6b00;
 
   --radius: 10px;
   --tap: 44px;
@@ -82,9 +86,10 @@
     --cell-on: #ccc6a9;
     --cell-off: #454440;
     --cell-ink: #16150f;
+    --meter-off: #454440;
 
     --admin: #f08fb8;
-    --leader: #ffd24a;
+    --leader: #c9f24f;
   }
 }
 
@@ -240,18 +245,26 @@ body {
   color: var(--ink-muted);
 }
 
+/* Не голубая ссылка, а маленькая кнопка: голубой в этом интерфейсе занят под
+   цвет темы «Алгебра», и надпись читалась как ещё один ярлык темы. */
 .mini-btn {
   appearance: none;
-  border: 0;
-  background: none;
-  color: var(--s1);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--ink-2);
+  border-radius: 999px;
   font: inherit;
-  font-size: 12.5px;
-  padding: 2px 4px;
+  font-size: 12px;
+  line-height: 1;
+  padding: 6px 11px;
   cursor: pointer;
 }
 
-.mini-btn:hover { text-decoration: underline; }
+.mini-btn:hover {
+  background: var(--wash);
+  border-color: var(--border-strong);
+  color: var(--ink);
+}
 
 .chips {
   display: flex;
@@ -312,6 +325,10 @@ body {
   padding: 4px 8px;
   font-variant-numeric: tabular-nums;
 }
+
+/* гробарий — одиночная кнопка, дата ему не нужна */
+.chip.day.wide { flex-direction: row; padding: 8px 16px; }
+.chip.day.wide b { font-size: 13.5px; }
 
 .chip.day b { font-size: 13px; font-weight: 620; line-height: 1.2; }
 .chip.day small { font-size: 9.5px; line-height: 1.15; opacity: .72; letter-spacing: -0.02em; }
@@ -596,9 +613,9 @@ table.conduit tfoot td.pname {
 /* Админ кондуита помечен знаком, а не цветом: цвет отдан первому месту,
    иначе две разные вещи спорили бы за одно средство. */
 .admin::after {
-  content: "★";
+  content: "◆";
   margin-left: 6px;
-  font-size: 0.85em;
+  font-size: 0.8em;
   color: var(--admin);
 }
 
@@ -775,7 +792,7 @@ table.conduit tfoot tr.weights td { color: var(--ink-2); font-weight: 560; }
 }
 
 .confirm-text { color: var(--ink); font-size: 12.5px; }
-.mini-btn.danger { color: var(--bad); font-weight: 560; }
+.mini-btn.danger { color: var(--bad); border-color: var(--bad); }
 
 /* вкладка «Темы» — карточками, а не широкой таблицей */
 .tcards {
@@ -806,19 +823,18 @@ table.conduit tfoot tr.weights td { color: var(--ink-2); font-weight: 560; }
 .meter {
   display: flex;
   gap: 2px;
-  align-items: stretch;
+  align-items: center;
 }
 
+/* Размер квадрата задан жёстко, а не долей ширины: шкалы должны быть одной
+   длины во всех строках, иначе их не сравнить взглядом. */
 .meter > i {
-  flex: 1 1 0;
-  min-width: 0;
-  max-width: 13px;
+  flex: none;
+  width: 9px;
   height: 9px;
   border-radius: 2px;
-  background: var(--cell-off);
+  background: var(--meter-off);
 }
-
-.meter.thin > i { height: 7px; max-width: 11px; }
 
 .type-val {
   font-variant-numeric: tabular-nums;
@@ -1100,11 +1116,11 @@ table.conduit .pcount {
 table.conduit tbody .pcount { font-size: 12px; }
 table.conduit .pcount.total { color: var(--ink); font-weight: 600; }
 
-/* Режим редактора помечен знаком у заголовка — тем же цветом и той же
-   звёздочкой, которой помечен админ. */
+/* Режим редактора помечен у заголовка тем же знаком и цветом, что и админ. */
 body.is-editor .brand::after {
-  content: "★";
+  content: "◆";
   margin-left: 8px;
+  font-size: 0.8em;
   color: var(--admin);
 }
 

@@ -30,6 +30,11 @@
     pickDate: false
   };
 
+  /* Что уже отправлено. Нужен потому, что сайт переразворачивается не сразу:
+     сравнивать правку с данными сайта нельзя — минуту после сохранения они
+     ещё старые, и всё выглядело бы несохранённым. */
+  var SAVED = { types: null, graves: null };
+
   var LS_TOKEN = "conduit-token";
   var LS_SENT = "conduit-sent";
   var LETTERS = "абвгде";
@@ -367,16 +372,10 @@
     return numPrefix(a) - numPrefix(b) || String(a).localeCompare(String(b), "ru");
   }
 
-  function saveSeries() {
-    if (state.busy) return;
-    if (!TOKEN) return needToken();
-    var problem = validate();
-    if (problem) {
-      state.note = "Не сохранено: " + problem;
-      state.noteKind = "bad";
-      return render();
-    }
-
+  /* Отправка одного файла. Ничего не рисует и не переключает состояние занятости
+     — этим ведает saveAll: за одно нажатие может уехать и серия, и гробарий, и
+     темы. */
+  function putSeriesFile() {
     var d = state.series;
     var file = "data/series/" + pad2(d.n) + ".json";
     var payload = {
@@ -398,12 +397,7 @@
     });
     var pluses = totalPluses();
 
-    state.busy = true;
-    state.note = "";
-    state.noteKind = "";
-    render();
-
-    getFile(file)
+    return getFile(file)
       .then(function (cur) {
         return putFile(file, JSON.stringify(payload, null, 2) + "\n",
           "Серия " + d.n + " (" + shortDate(d.date) + "): " +
@@ -414,8 +408,32 @@
       .then(function () { return ensureManifest(pad2(d.n) + ".json"); })
       .then(function () {
         markSent(d.n);
-        state.busy = false;
         state.dirty = false;
+      });
+  }
+
+  /* Одна кнопка на всё несохранённое. Порядок важен: темы уходят первыми,
+     иначе задача с новым подразделом попадёт на сайт раньше подраздела. */
+  function saveAll() {
+    if (state.busy) return;
+    if (!TOKEN) return needToken();
+
+    var jobs = [];
+    if (typesDirty()) jobs.push(putTypesFile);
+    if (state.dirty) jobs.push(putSeriesFile);
+    if (gravesDirty()) jobs.push(putGravesFile);
+    if (!jobs.length) return;
+
+    state.busy = true;
+    state.note = "";
+    state.noteKind = "";
+    render();
+
+    jobs.reduce(function (chain, job) {
+      return chain.then(job);
+    }, Promise.resolve())
+      .then(function () {
+        state.busy = false;
         state.note = "Сохранено";
         state.noteKind = "good";
         return reload();
@@ -503,7 +521,7 @@
   }
 
   function needToken() {
-    state.view = "access";
+    state.view = "save";
     state.note = "Нужен токен";
     state.noteKind = "bad";
     render();
@@ -559,9 +577,9 @@
   }
 
   function gravesDirty() {
-    return !!state.graves &&
-      JSON.stringify(gravesPayload(state.graves)) !==
-      JSON.stringify(gravesPayload(DATA.graves));
+    if (!state.graves) return false;
+    return JSON.stringify(gravesPayload(state.graves)) !==
+      (SAVED.graves || JSON.stringify(gravesPayload(DATA.graves)));
   }
 
   function touchGraves() {
@@ -602,38 +620,16 @@
     }, 0);
   }
 
-  function saveGraves() {
-    if (state.busy) return;
-    if (!TOKEN) return needToken();
-    if (!gravesDirty()) return;
-
+  function putGravesFile() {
     var payload = gravesPayload(state.graves);
     var pluses = graveSolvers();
 
-    state.busy = true;
-    state.note = "";
-    state.noteKind = "";
-    render();
-
-    getFile("data/graves.json")
-      .then(function (cur) {
-        return putFile("data/graves.json", JSON.stringify(payload, null, 2) + "\n",
-          "Гробарий: " + withNum(payload.problems.length, "гроб", "гроба", "гробов") +
-          ", " + withNum(pluses, "плюс", "плюса", "плюсов"),
-          cur && cur.sha);
-      })
-      .then(function () {
-        state.busy = false;
-        state.note = "Сохранено";
-        state.noteKind = "good";
-        return reload();
-      })
-      .catch(function (err) {
-        state.busy = false;
-        state.note = "Не сохранилось: " + err.message;
-        state.noteKind = "bad";
-        render();
-      });
+    return getFile("data/graves.json").then(function (cur) {
+      return putFile("data/graves.json", JSON.stringify(payload, null, 2) + "\n",
+        "Гробарий: " + withNum(payload.problems.length, "гроб", "гроба", "гробов") +
+        ", " + withNum(pluses, "плюс", "плюса", "плюсов"),
+        cur && cur.sha);
+    }).then(function () { SAVED.graves = JSON.stringify(payload); });
   }
 
   function viewGraves(host) {
@@ -654,18 +650,8 @@
       var sh = el("div", "section-head");
       sh.appendChild(el("span", "section-title", "Кто решил"));
       host.appendChild(sh);
-      host.appendChild(conduitGrid(g.problems, g.solved, function () {
-        touchGraves();
-        refreshSaveCard();
-      }));
+      host.appendChild(conduitGrid(g.problems, g.solved, touchGraves));
     }
-
-    var save = el("div", "card savecard");
-    save.appendChild(el("div", "savecard-main"));
-    var b = button(state.busy ? "…" : "Сохранить", "primary-btn", saveGraves);
-    b.disabled = state.busy || !gravesDirty();
-    save.appendChild(b);
-    host.appendChild(save);
   }
 
   function graveRow(p) {
@@ -740,8 +726,9 @@
   }
 
   function typesDirty() {
-    return !!state.typesEdit &&
-      JSON.stringify(state.typesEdit) !== JSON.stringify(DATA.types);
+    if (!state.typesEdit) return false;
+    return JSON.stringify(state.typesEdit) !==
+      (SAVED.types || JSON.stringify(DATA.types));
   }
 
   function subUsage(catId, subId) {
@@ -759,34 +746,12 @@
     return n;
   }
 
-  function saveTypes() {
-    if (state.busy) return;
-    if (!TOKEN) return needToken();
-    if (!typesDirty()) return;
-
-    state.busy = true;
-    state.note = "";
-    state.noteKind = "";
-    render();
-
+  function putTypesFile() {
     var payload = state.typesEdit;
-    getFile("data/types.json")
-      .then(function (cur) {
-        return putFile("data/types.json", JSON.stringify(payload, null, 2) + "\n",
-          "Темы обновлены", cur && cur.sha);
-      })
-      .then(function () {
-        state.busy = false;
-        state.note = "Сохранено";
-        state.noteKind = "good";
-        return reload();
-      })
-      .catch(function (err) {
-        state.busy = false;
-        state.note = "Не сохранилось: " + err.message;
-        state.noteKind = "bad";
-        render();
-      });
+    return getFile("data/types.json").then(function (cur) {
+      return putFile("data/types.json", JSON.stringify(payload, null, 2) + "\n",
+        "Темы обновлены", cur && cur.sha);
+    }).then(function () { SAVED.types = JSON.stringify(payload); });
   }
 
   function translit(name) {
@@ -1004,14 +969,9 @@
       var sh2 = el("div", "section-head");
       sh2.appendChild(el("span", "section-title", "Кондуит"));
       host.appendChild(sh2);
-      host.appendChild(conduitGrid(state.series.problems, state.series.solved,
-        function () {
-          touch();
-          refreshSaveCard();
-        }));
+      host.appendChild(conduitGrid(state.series.problems, state.series.solved, touch));
     }
 
-    host.appendChild(saveBar());
     if (!state.isNew) host.appendChild(deleteBar());
   }
 
@@ -1031,23 +991,6 @@
       openSeries(open);
     });
     return b;
-  }
-
-  /* Из карточки убрано всё, кроме кнопки: состояние видно по самой кнопке.
-     Остаётся только то, что мешает сохранить — иначе кнопка гаснет молча. */
-  function saveBar() {
-    var problem = validate();
-    var card = el("div", "card savecard");
-
-    var left = el("div", "savecard-main");
-    if (problem) left.appendChild(el("div", "savecard-title", problem));
-    card.appendChild(left);
-
-    var b = button(state.busy ? "…" : "Сохранить", "primary-btn", saveSeries);
-    b.disabled = state.busy || !!problem || !state.dirty;
-    card.appendChild(b);
-
-    return card;
   }
 
   function deleteBar() {
@@ -1359,27 +1302,6 @@
     return best;
   }
 
-  /* Кнопку сохранения обновляем на месте: перерисовать экран нельзя, иначе на
-     каждом касании сбивалась бы прокрутка кондуита. */
-  function refreshSaveCard() {
-    var card = document.querySelector(".savecard");
-    if (!card) return;
-    var b = card.querySelector(".primary-btn");
-
-    if (state.view === "graves") {
-      if (b) b.disabled = state.busy || !gravesDirty();
-      return;
-    }
-
-    var problem = validate();
-    var left = card.querySelector(".savecard-main");
-    if (left) {
-      clear(left);
-      if (problem) left.appendChild(el("div", "savecard-title", problem));
-    }
-    if (b) b.disabled = state.busy || !!problem || !state.dirty;
-  }
-
   // ── вид: темы ───────────────────────────────────────────
 
   function viewThemes(host) {
@@ -1504,33 +1426,52 @@
       card2.appendChild(el("div", "summary", "Все восемь цветов заняты."));
     }
     host.appendChild(card2);
-
-    var save = el("div", "card savecard");
-    save.appendChild(el("div", "savecard-main"));
-    var b = button(state.busy ? "…" : "Сохранить темы", "primary-btn", saveTypes);
-    b.disabled = state.busy || !typesDirty();
-    save.appendChild(b);
-    host.appendChild(save);
   }
 
-  // ── вид: доступ ─────────────────────────────────────────
+  // ── вид: сохранение ─────────────────────────────────────
 
-  function viewAccess(host) {
-    var card = el("div", "card");
-    var sh = el("div", "tblock-head");
-    sh.appendChild(el("span", "type-name", "Токен GitHub"));
-    sh.appendChild(el("span", "type-val", TOKEN ? "сохранён" : "не задан"));
-    card.appendChild(sh);
+  /* Единственное место, откуда что-либо уезжает в репозиторий. Правки во всех
+     вкладках живут в памяти страницы, здесь видно, что накопилось, и одна
+     кнопка отправляет всё разом. */
+  function viewSave(host) {
+    var items = [];
+    if (typesDirty()) items.push("Темы");
+    if (state.dirty) items.push("Серия " + state.series.n);
+    if (gravesDirty()) items.push("Гробарий");
+    var problem = state.dirty ? validate() : null;
+
+    var card = el("div", "card savecard");
+    var left = el("div", "savecard-main");
+    left.appendChild(el("div", "savecard-title",
+      items.length ? items.join(" · ") : "Изменений нет"));
+    if (problem) left.appendChild(el("div", "savecard-note", problem));
+    card.appendChild(left);
+
+    var save = button(state.busy ? "…" : "Сохранить", "primary-btn", saveAll);
+    save.disabled = state.busy || !items.length || !!problem;
+    card.appendChild(save);
+    host.appendChild(card);
+
+    var sh = el("div", "section-head");
+    sh.appendChild(el("span", "section-title", "Доступ"));
+    host.appendChild(sh);
+
+    var token = el("div", "card");
+    var head = el("div", "tblock-head");
+    head.appendChild(el("span", "type-name", "Токен GitHub"));
+    head.appendChild(el("span", "type-val", TOKEN ? "сохранён" : "не задан"));
+    token.appendChild(head);
 
     var input = el("input");
     input.className = "input";
     input.type = "password";
     input.autocomplete = "off";
     input.placeholder = TOKEN ? "••••••••  (введите, чтобы заменить)" : "github_pat_…";
-    card.appendChild(field("Токен", input));
+    token.appendChild(field("Токен", input));
 
     var row = el("div", "frow gap");
-    row.appendChild(button("Сохранить", "primary-btn", function () {
+    // не «Сохранить»: эта кнопка ничего не отправляет, а запоминает токен здесь
+    row.appendChild(button("Запомнить", "ghost-btn", function () {
       var v = String(input.value).trim();
       if (!v) return;
       TOKEN = v;
@@ -1546,8 +1487,8 @@
       state.noteKind = "";
       render();
     }));
-    card.appendChild(row);
-    host.appendChild(card);
+    token.appendChild(row);
+    host.appendChild(token);
   }
 
   function check() {
@@ -1613,7 +1554,7 @@
     if (state.view === "series") viewSeries(main);
     else if (state.view === "graves") viewGraves(main);
     else if (state.view === "themes") viewThemes(main);
-    else if (state.view === "access") viewAccess(main);
+    else if (state.view === "save") viewSave(main);
   }
 
   function setupChrome() {
@@ -1670,8 +1611,19 @@
     return loadFromFiles().then(function (d) {
       DATA = d;
       pruneSent();
-      if (state.typesEdit && !typesDirty()) state.typesEdit = null;
-      if (state.graves && !gravesDirty()) state.graves = null;
+      /* Правку держим в памяти, пока сайт не догонит: иначе сразу после
+         сохранения экран показал бы старые данные, будто правка потерялась. */
+      if (state.typesEdit &&
+          JSON.stringify(state.typesEdit) === JSON.stringify(DATA.types)) {
+        state.typesEdit = null;
+        SAVED.types = null;
+      }
+      if (state.graves &&
+          JSON.stringify(gravesPayload(state.graves)) ===
+          JSON.stringify(gravesPayload(DATA.graves))) {
+        state.graves = null;
+        SAVED.graves = null;
+      }
       render();
     }).catch(function () { render(); });
   }

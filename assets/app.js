@@ -591,9 +591,11 @@
     }
 
     var picker = el("div", "card");
+
+    var r1 = el("div", "filter-row");
     var head = el("div", "filter-head");
     head.appendChild(el("span", "filter-title", "День"));
-    picker.appendChild(head);
+    r1.appendChild(head);
     var chips = el("div", "chips");
     DATA.series.forEach(function (s) {
       chips.appendChild(dayChip(s, s.n === state.openSeries, "pick", function () {
@@ -601,20 +603,22 @@
         render();
       }));
     });
+    r1.appendChild(chips);
+    picker.appendChild(r1);
 
-    // гробарий стоит в том же ряду, что и дни: это такой же кондуит, только без даты
-    var gb = el("button", "chip day pick");
+    // гробарий — не день смены, поэтому стоит отдельной строкой, а не в их ряду
+    var r2 = el("div", "filter-row");
+    var gb = el("button", "chip day wide");
     gb.type = "button";
     gb.setAttribute("aria-pressed", state.openSeries === GRAVES ? "true" : "false");
-    gb.appendChild(el("b", null, "Г"));
-    gb.appendChild(el("small", null, "гробы"));
+    gb.appendChild(el("b", null, "Гробарий"));
     gb.addEventListener("click", function () {
       state.openSeries = GRAVES;
       render();
     });
-    chips.appendChild(gb);
+    r2.appendChild(gb);
+    picker.appendChild(r2);
 
-    picker.appendChild(chips);
     host.appendChild(picker);
 
     if (state.openSeries === GRAVES) return viewGraveConduit(host);
@@ -739,8 +743,7 @@
         catStat.got + " / " + catStat.total + " · " + num(catStat.score)));
       block.appendChild(head);
 
-      block.appendChild(meter(catStat.total ? catStat.got / catStat.total : 0,
-        t.slot, 20, false));
+      block.appendChild(meter(catStat.total ? catStat.got / catStat.total : 0, t.slot));
 
       if (leaves.length > 1 || leaves[0].subName) {
         leaves.forEach(function (l) {
@@ -801,11 +804,13 @@
      темы 9×9 и полоска в кондуите 20×3 приходят нетронутыми, широкая полоса
      решаемости — приглушённой. Побочная польза: долю теперь видно по числу
      закрашенных блоков, а не только по цвету. */
-  function meter(share, slot, steps, thin) {
-    var box = el("div", "meter" + (thin ? " thin" : ""));
-    var on = Math.round(share * steps);
+  var METER_STEPS = 10;   // одна шкала на весь сайт: 10 квадратов — это 100%
+
+  function meter(share, slot) {
+    var box = el("div", "meter");
+    var on = Math.round(share * METER_STEPS);
     if (share > 0 && on === 0) on = 1;   // ненулевую долю показываем всегда
-    for (var i = 0; i < steps; i++) {
+    for (var i = 0; i < METER_STEPS; i++) {
       var seg = el("i");
       if (i < on) seg.style.background = "var(--s" + slot + ")";
       box.appendChild(seg);
@@ -868,7 +873,7 @@
           var ls = statFor([l.key], null);
           var line = el("div", "subline");
           line.appendChild(el("span", "subline-name", l.subName || t.name));
-          line.appendChild(meter(ls.rate, t.slot, 10, true));
+          line.appendChild(meter(ls.rate, t.slot));
           line.appendChild(el("span", "subline-val",
             ls.total + " " + plural(ls.total, "задача", "задачи", "задач") + " · " + pct(ls.rate)));
           subs.appendChild(line);
