@@ -17,7 +17,6 @@
   var CAT = {};       // id раздела -> раздел
   var LEAVES = [];    // [{key, catId, catName, subId, subName, slot, label}]
   var LEAF = {};      // key -> лист
-  var FULL = null;    // рейтинг без фильтров — для сравнения мест
 
   var state = {
     view: "rating",
@@ -152,7 +151,6 @@
     state.leaves = new Set(LEAVES.map(function (l) { return l.key; }));
     state.series = new Set(DATA.series.map(function (s) { return s.n; }));
     state.openSeries = DATA.series.length ? DATA.series[DATA.series.length - 1].n : 1;
-    FULL = computeRating(state.series, state.leaves, ALL_KINDS);
   }
 
   var ALL_KINDS = new Set(["problem", "exercise"]);
@@ -419,18 +417,16 @@
     if (!DATA.series.length) return viewEmpty(host);
 
     var f = renderFilters(host);
-    var active = filterActive();
 
     var wrap = el("div", "table-wrap");
     var table = el("table", "data");
     var thead = el("thead");
     var hr = el("tr");
     hr.appendChild(th("№", "rank"));
-    if (active) hr.appendChild(th("сдвиг"));
     hr.appendChild(th("Ученик", "left"));
     hr.appendChild(th("Баллы"));
     hr.appendChild(th("Плюсы"));
-    hr.appendChild(th("Доля", "left"));
+    hr.appendChild(th("%", "left"));
     thead.appendChild(hr);
     table.appendChild(thead);
 
@@ -444,17 +440,6 @@
       });
 
       tr.appendChild(el("td", "rank" + (r.rank <= 3 ? " rank-top" : ""), r.rank));
-
-      if (active) {
-        var was = FULL.place[r.id];
-        var d = was - r.rank;
-        var cell = el("td");
-        var span = el("span", "delta " + (d > 0 ? "up" : d < 0 ? "down" : "same"));
-        span.textContent = d > 0 ? "▲ " + d : d < 0 ? "▼ " + (-d) : "—";
-        cell.appendChild(span);
-        tr.appendChild(cell);
-      }
-
       tr.appendChild(nameCell("td", "left name" + (r.rank === 1 ? " leader" : ""), r));
       tr.appendChild(el("td", "score", num(r.score)));
       tr.appendChild(el("td", "muted", r.pluses));
@@ -614,10 +599,6 @@
 
     var sh = el("div", "section-head");
     sh.appendChild(nameCell("span", "section-title", student));
-    if (filterActive()) {
-      sh.appendChild(el("span", "section-note",
-        "без фильтра " + FULL.place[id] + " место"));
-    }
     host.appendChild(sh);
 
     var tiles = el("div", "tiles");

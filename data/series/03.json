@@ -1,0 +1,146 @@
+{
+  "n": 3,
+  "date": "2026-07-29",
+  "title": "Серия 3",
+  "problems": [
+    {
+      "id": "0",
+      "type": "comb",
+      "sub": "graphs",
+      "exercise": true
+    },
+    {
+      "id": "1",
+      "type": "geometry",
+      "sub": "klassika",
+      "exercise": false
+    },
+    {
+      "id": "2",
+      "type": "numbers",
+      "sub": null,
+      "exercise": false
+    },
+    {
+      "id": "3",
+      "type": "comb",
+      "sub": "graphs",
+      "exercise": false
+    },
+    {
+      "id": "4",
+      "type": "comb",
+      "sub": "graphs",
+      "exercise": false
+    },
+    {
+      "id": "5",
+      "type": "geometry",
+      "sub": "planimetry",
+      "exercise": false
+    },
+    {
+      "id": "6",
+      "type": "geometry",
+      "sub": "planimetry",
+      "exercise": false
+    }
+  ],
+  "solved": {
+    "aksenova-elizaveta": [
+      "2",
+      "3",
+      "5",
+      "6"
+    ],
+    "afanasev-igor": [
+      "0",
+      "4"
+    ],
+    "budyanskiy-mihail": [
+      "5",
+      "6"
+    ],
+    "velichko-platon": [
+      "1",
+      "4",
+      "5",
+      "6"
+    ],
+    "boyko-gleb": [
+      "0",
+      "4",
+      "5",
+      "6"
+    ],
+    "gulev-maksim": [
+      "6"
+    ],
+    "zarechnyuk-georgiy": [
+      "2"
+    ],
+    "karonov-mihail": [
+      "1",
+      "5",
+      "6"
+    ],
+    "karev-denis": [
+      "2",
+      "6"
+    ],
+    "kovalev-artem": [
+      "0",
+      "5",
+      "6"
+    ],
+    "kostylev-konstantin": [],
+    "larionova-natalya": [
+      "5",
+      "6"
+    ],
+    "lyubimov-slaven": [
+      "4",
+      "6"
+    ],
+    "mahrov-aleksandr": [
+      "2",
+      "4"
+    ],
+    "novoselov-maksim": [],
+    "osipova-viktoriya": [
+      "4",
+      "5"
+    ],
+    "pogorelov-denis": [
+      "6"
+    ],
+    "rudakova-vasilisa": [
+      "0",
+      "1",
+      "2",
+      "3",
+      "4",
+      "5"
+    ],
+    "strelkov-sergey": [
+      "0",
+      "4",
+      "6"
+    ],
+    "titov-viktor": [
+      "6"
+    ],
+    "titov-dmitriy": [
+      "1"
+    ],
+    "celikov-aleksandr": [
+      "0",
+      "6"
+    ],
+    "shipilov-andrey": [],
+    "shirtanova-valeriya": [
+      "5",
+      "6"
+    ]
+  }
+}

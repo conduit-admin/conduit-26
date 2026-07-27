@@ -289,17 +289,18 @@ body {
   color: var(--ink);
 }
 
-/* кнопка серии: номер и дата */
+/* кнопка серии: номер и дата. Серий за смену два десятка, поэтому кнопка
+   плотная — иначе выбор дня занимает пол-экрана. */
 .chip.day {
   flex-direction: column;
-  gap: 1px;
-  min-width: 52px;
-  padding: 5px 10px;
+  gap: 0;
+  min-width: 44px;
+  padding: 4px 8px;
   font-variant-numeric: tabular-nums;
 }
 
-.chip.day b { font-size: 14px; font-weight: 620; line-height: 1.15; }
-.chip.day small { font-size: 10px; line-height: 1.1; opacity: .72; letter-spacing: -0.01em; }
+.chip.day b { font-size: 13px; font-weight: 620; line-height: 1.2; }
+.chip.day small { font-size: 9.5px; line-height: 1.15; opacity: .72; letter-spacing: -0.02em; }
 
 .chip[aria-pressed="true"].day {
   background: var(--ink);
@@ -551,9 +552,9 @@ table.conduit tfoot td.pname {
 /* Админ кондуита помечен знаком, а не цветом: цвет отдан первому месту,
    иначе две разные вещи спорили бы за одно средство. */
 .admin::after {
-  content: "✎";
+  content: "★";
   margin-left: 6px;
-  font-size: 0.9em;
+  font-size: 0.85em;
   color: var(--admin);
 }
 
@@ -941,6 +942,9 @@ select.input { padding-right: 6px; }
 
 .primary-btn:disabled { opacity: .45; cursor: default; }
 
+.primary-btn.danger { background: var(--bad); border-color: var(--bad); color: #fff; }
+.ghost-btn.danger { color: var(--bad); border-color: var(--bad); }
+
 .icon-btn {
   appearance: none;
   border: 1px solid var(--border);
@@ -1026,18 +1030,10 @@ table.conduit .pcount {
 table.conduit tbody .pcount { font-size: 12px; }
 table.conduit .pcount.total { color: var(--ink); font-weight: 600; }
 
-/* Режим редактора помечен двумя вещами: полосой сверху и карандашом
-   у заголовка — тем же цветом, которым помечен админ. */
-.editor-flag {
-  position: sticky;
-  top: 0;
-  z-index: 40;
-  height: 5px;
-  background: var(--admin);
-}
-
+/* Режим редактора помечен знаком у заголовка — тем же цветом и той же
+   звёздочкой, которой помечен админ. */
 body.is-editor .brand::after {
-  content: "✎";
+  content: "★";
   margin-left: 8px;
   color: var(--admin);
 }

@@ -24,6 +24,7 @@
     note: "",
     noteKind: "",       // good | bad | ""
     confirmSub: null,
+    confirmDelete: false,
     pickTheme: null,    // id задачи, у которой открыт выбор темы
     pickDate: false
   };
@@ -231,6 +232,7 @@
     state.noteKind = "";
     state.pickTheme = null;
     state.pickDate = false;
+    state.confirmDelete = false;
     render();
   }
 
@@ -436,6 +438,67 @@
         state.noteKind = "bad";
         render();
       });
+  }
+
+  /* Удаление серии: файл и строка в списке серий. Пока сайт не переразвернулся,
+     удалённая серия ещё видна в данных — поэтому помним её номер, как и при
+     сохранении, чтобы список дней не врал. */
+  function deleteSeries() {
+    if (state.busy || !state.series) return;
+    if (!TOKEN) return needToken();
+
+    var n = state.series.n;
+    var name = pad2(n) + ".json";
+    var file = "data/series/" + name;
+
+    state.busy = true;
+    state.note = "Удаляю…";
+    state.noteKind = "";
+    render();
+
+    getFile(file)
+      .then(function (cur) {
+        if (!cur) return null;
+        return api("/contents/" + file, {
+          method: "DELETE",
+          body: JSON.stringify({
+            message: "Серия " + n + " удалена",
+            sha: cur.sha,
+            branch: repo().branch || "main"
+          })
+        });
+      })
+      .then(function () { return dropFromManifest(name); })
+      .then(function () {
+        delete SENT[pad2(n)];
+        lsSet(LS_SENT, JSON.stringify(SENT));
+        state.busy = false;
+        state.series = null;
+        state.dirty = false;
+        state.confirmDelete = false;
+        state.note = "Серия " + n + " удалена. Сайт обновится примерно за минуту.";
+        state.noteKind = "good";
+        return reload();
+      })
+      .catch(function (err) {
+        state.busy = false;
+        state.note = "Не удалилось: " + err.message;
+        state.noteKind = "bad";
+        render();
+      });
+  }
+
+  function dropFromManifest(name) {
+    var path = "data/series/manifest.json";
+    return getFile(path).then(function (cur) {
+      if (!cur) return null;
+      var list = [];
+      try { list = (JSON.parse(cur.text).series || []).slice(); } catch (e) { list = []; }
+      var next = list.filter(function (f) { return f !== name; });
+      if (next.length === list.length) return null;
+      return putFile(path, JSON.stringify({ series: next }, null, 2) + "\n",
+        "Список серий: убрана " + name, cur.sha);
+    });
   }
 
   function ensureManifest(name) {
@@ -734,6 +797,7 @@
     }
 
     host.appendChild(saveBar());
+    if (!state.isNew) host.appendChild(deleteBar());
   }
 
   function dayChip(n, label, waiting, open) {
@@ -772,6 +836,34 @@
     b.disabled = state.busy || !!problem || !state.dirty;
     card.appendChild(b);
 
+    return card;
+  }
+
+  function deleteBar() {
+    var card = el("div", "card savecard");
+    var left = el("div", "savecard-main");
+
+    if (state.confirmDelete) {
+      left.appendChild(el("div", "savecard-title",
+        "Удалить серию " + state.series.n + " вместе со всеми плюсами?"));
+      left.appendChild(el("div", "savecard-note", "Отменить это будет нельзя."));
+      card.appendChild(left);
+      var yes = button(state.busy ? "…" : "Удалить", "primary-btn danger", deleteSeries);
+      yes.disabled = state.busy;
+      card.appendChild(yes);
+      card.appendChild(button("Отмена", "ghost-btn", function () {
+        state.confirmDelete = false;
+        render();
+      }));
+    } else {
+      left.appendChild(el("div", "savecard-note",
+        "Серия уже на сайте: " + pad2(state.series.n) + ".json"));
+      card.appendChild(left);
+      card.appendChild(button("Удалить серию", "ghost-btn danger", function () {
+        state.confirmDelete = true;
+        render();
+      }));
+    }
     return card;
   }
 
