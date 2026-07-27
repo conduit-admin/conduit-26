@@ -5,9 +5,9 @@
 
    Темы двухуровневые: раздел (Алгебра, Геометрия, Комбинаторика, Теория чисел)
    и необязательный подраздел. Единица фильтрации — «лист»: раздел без
-   подразбиения или пара раздел+подраздел. Задача без указанного подраздела
-   попадает в лист «прочее» своего раздела — так новые подразделы можно
-   добавлять по ходу смены, ничего не ломая. */
+   подразбиения или пара раздел+подраздел. Задаче разбитого раздела подраздел
+   ставят всегда; если он всё же пуст или незнаком, лист заводится по факту
+   данных — иначе такая задача молча выпала бы из рейтинга. */
 
 (function () {
   "use strict";
@@ -103,11 +103,8 @@
       subs.forEach(function (sub) {
         add(t, sub.id, sub.name, t.name + " · " + sub.name);
       });
-      /* «Прочее» — задачи раздела без подраздела. Заводится всегда, даже когда
-         таких задач ещё нет: иначе чип появлялся бы и пропадал сам по себе, и
-         набор фильтров менялся бы под руками. */
-      if (subs.length) add(t, null, "прочее", t.name + " · прочее");
-      else add(t, null, null, t.name);
+      // раздел без подразбиения — один лист на весь раздел
+      if (!subs.length) add(t, null, null, t.name);
     });
 
     /* Подраздел мог появиться в данных раньше, чем в types.json (например,
@@ -957,15 +954,25 @@
     });
   }
 
-  /* Пустой обработчик касания. Safari на iPhone не применяет :active, пока на
-     странице нет ни одного слушателя касаний, — без этой строки отклик на
-     нажатие там просто не сработает. */
-  function enableTouchFeedback() {
-    document.addEventListener("touchstart", function () {}, { passive: true });
+  /* Отклик на касание сделан классом и анимацией, а не :active. На телефоне
+     :active почти не виден: браузер придерживает его, пока не поймёт, что
+     касание — не начало прокрутки, и на быстром тапе состояние успевает
+     появиться и исчезнуть за несколько миллисекунд. Анимация же, раз начавшись,
+     доигрывает до конца независимо от того, как долго держали палец. */
+  var TAPPABLE = "button:not(.mark), .chip, a.ghost-btn, tr.clickable, .smini";
+
+  function enableTapFeedback() {
+    document.addEventListener("pointerdown", function (e) {
+      var node = e.target.closest && e.target.closest(TAPPABLE);
+      if (!node || node.disabled) return;
+      node.classList.remove("tap");
+      void node.offsetWidth;      // перезапуск анимации на повторном касании
+      node.classList.add("tap");
+    }, { passive: true });
   }
 
   document.addEventListener("DOMContentLoaded", function () {
-    enableTouchFeedback();
+    enableTapFeedback();
     if (window.__CONDUIT__) { boot(window.__CONDUIT__); return; }
     loadFromFiles().then(boot).catch(function (err) {
       var main = document.getElementById("main");

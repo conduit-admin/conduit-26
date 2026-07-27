@@ -1123,18 +1123,6 @@
         });
         subs.appendChild(b);
       });
-      var none = el("button", "chip sub pick");
-      none.type = "button";
-      none.style.setProperty("--accent", "var(--s" + t.slot + ")");
-      none.setAttribute("aria-pressed", p.sub ? "false" : "true");
-      none.appendChild(document.createTextNode("прочее"));
-      none.addEventListener("click", function () {
-        p.sub = null;
-        state.pickTheme = null;
-        touch();
-        render();
-      });
-      subs.appendChild(none);
       box.appendChild(subs);
     }
 
@@ -1228,9 +1216,11 @@
           if (i === -1) list.push(p.id); else list.splice(i, 1);
 
           var on = i === -1;
-          b.className = "mark" + (on ? " on pop" : "");
+          b.className = "mark" + (on ? " on pop" : " drop");
           b.textContent = on ? "+" : "";
-          if (on) setTimeout(function () { b.classList.remove("pop"); }, 240);
+          setTimeout(function () {
+            b.classList.remove(on ? "pop" : "drop");
+          }, 260);
           refresh();
         });
         td.appendChild(b);
@@ -1628,9 +1618,20 @@
     }).catch(function () { render(); });
   }
 
+  /* Как на сайте: отклик на касание — классом и анимацией, а не :active,
+     который на телефоне для быстрого тапа не успевает примениться. Клетки
+     кондуита исключены — у них своя анимация плюса. */
+  var TAPPABLE = "button:not(.mark), .chip, a.ghost-btn, .smini";
+
   document.addEventListener("DOMContentLoaded", function () {
-    // без слушателя касаний Safari на iPhone не применяет :active
-    document.addEventListener("touchstart", function () {}, { passive: true });
+    document.addEventListener("pointerdown", function (e) {
+      var node = e.target.closest && e.target.closest(TAPPABLE);
+      if (!node || node.disabled) return;
+      node.classList.remove("tap");
+      void node.offsetWidth;
+      node.classList.add("tap");
+    }, { passive: true });
+
     TOKEN = lsGet(LS_TOKEN, null);
     loadSent();
     loadFromFiles().then(function (d) {

@@ -34,9 +34,14 @@
   /* Разрыв между «решено» и «нет» намеренно большой: часть браузеров на
      телефонах затемняет крупные заливки по-своему, и слабую разницу такое
      затемнение стирает совсем. */
-  --cell-on: #c4c0ab;
-  --cell-off: #fbfaf6;
-  --cell-ink: #0b0b0b;
+  /* Клетка кондуита. Пустая — заметная заливка с обводкой, решённая — плотная
+     заливка обратной яркости со знаком поверх. В каждой теме пара «пустая /
+     решённая» строится одинаково, только в разные стороны: в светлой решённая
+     темнее фона, в тёмной — светлее. */
+  --cell-on: #3d3b33;
+  --cell-off: #e6e3d4;
+  --cell-edge: #cbc7b3;
+  --cell-ink: #fcfcfb;
   /* пустой квадрат шкалы — свой цвет, а не цвет пустой клетки кондуита:
      в кондуите он почти сливается с подложкой намеренно, в шкале должен
      быть виден, иначе не поймёшь, из чего доля */
@@ -79,12 +84,9 @@
     --s7: #c48cff;
     --s8: #ff8585;
 
-    /* В тёмной теме клетки светлее подложки — зеркально светлой теме, где они
-       темнее. Прежние #1c1c1a на подложке #1a1a19 давали контраст 1.05:1, то
-       есть пустой бокс не было видно вовсе. Знак на заполненном боксе тёмный:
-       бокс яркий, и белый знак на нём потерялся бы. */
     --cell-on: #ccc6a9;
-    --cell-off: #454440;
+    --cell-off: #45443f;
+    --cell-edge: #605e55;
     --cell-ink: #16150f;
     --meter-off: #454440;
 
@@ -174,6 +176,47 @@ body {
 }
 
 .ghost-btn:hover { background: var(--wash); }
+
+/* «К сайту» в шапке редактора: заметнее обычной ghost-кнопки, со стрелкой,
+   которая отъезжает при наведении и нажатии — маленький намёк на переход */
+.topbar .ghost-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 15px;
+  min-height: 36px;
+  font-size: 13px;
+  font-weight: 560;
+  color: var(--ink);
+  border-color: var(--border-strong);
+  text-decoration: none;
+}
+
+.topbar .ghost-btn::after {
+  content: "→";
+  font-size: 14px;
+  line-height: 1;
+  color: var(--ink-muted);
+  transition: transform .18s cubic-bezier(.2, .8, .3, 1), color .18s ease;
+}
+
+.topbar .ghost-btn:hover {
+  border-color: var(--ink);
+  background: var(--wash);
+}
+
+.topbar .ghost-btn:hover::after {
+  transform: translateX(3px);
+  color: var(--ink);
+}
+
+.topbar .ghost-btn.tap::after { animation: nudge .32s cubic-bezier(.2, .8, .3, 1); }
+
+@keyframes nudge {
+  0% { transform: translateX(0); }
+  45% { transform: translateX(5px); }
+  100% { transform: translateX(0); }
+}
 
 .tabs {
   display: flex;
@@ -673,25 +716,30 @@ td.cell {
 /* Клетка кондуита. Плюс — настоящий знак, а не белая полоска поверх тёмного
    квадрата: браузеры с принудительной тёмной темой инвертируют цвета сами, и
    конструкция «фон плюс накладка» под инверсией теряет контраст. Текст же
-   инвертируется вместе с фоном, поэтому знак виден в любой теме. */
+   инвертируется вместе с фоном, поэтому знак виден в любой теме.
+
+   Обводка пустой клетки задана внутренней тенью, а не рамкой: рамка меняет
+   размер коробки, и клетка дёргалась бы при простановке плюса. */
 .mark {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 30px;
   height: 30px;
-  border-radius: 7px;
+  border-radius: 8px;
   margin: 0 auto;
   font-size: 19px;
   font-weight: 700;
   line-height: 1;
   color: transparent;
   background: var(--cell-off);
+  box-shadow: inset 0 0 0 1px var(--cell-edge);
 }
 
 .mark.on {
   background: var(--cell-on);
   color: var(--cell-ink);
+  box-shadow: none;
 }
 
 /* Кондуит смотрят, а не трогают: имена не выделяются и не отзываются нигде,
@@ -977,30 +1025,34 @@ td .date { margin-left: 8px; font-size: 12px; }
 .chip, .ghost-btn, .primary-btn, .icon-btn, .mini-btn, .back-btn,
 .tab, .cal-day, .cal-nav, .banner-close, .picker-btn {
   transition: background-color .14s ease, color .14s ease,
-              border-color .14s ease, transform .12s ease, opacity .14s ease;
+              border-color .14s ease, opacity .14s ease;
 }
 
-.chip:active, .ghost-btn:active, .primary-btn:active, .icon-btn:active {
-  transform: scale(.96);
+/* Класс ставится на нажатие из скрипта, анимация доигрывает сама. Через
+   :active на телефоне это не работает: браузер придерживает состояние, пока
+   не убедится, что палец не поехал прокручивать. */
+@keyframes tap {
+  0% { transform: scale(.92); }
+  100% { transform: scale(1); }
 }
 
-/* мелкие кнопки сжимаются заметнее — на их размере .96 не разглядеть */
-.mini-btn:active, .back-btn:active, .banner-close:active { transform: scale(.92); }
+@keyframes tapRow {
+  0% { background: var(--wash); }
+  100% { background: transparent; }
+}
 
-.tab:active { transform: scale(.94); }
-.cal-day:active, .cal-nav:active { transform: scale(.9); }
-.picker-btn:active { transform: scale(.99); }
+/* Класс продублирован нарочно: иначе первые полсекунды после смены раздела
+   отклик глушился бы анимацией входа, у которой вес селектора выше. */
+.tap.tap { animation: tap .19s cubic-bezier(.2, .8, .3, 1); }
 
-/* строка рейтинга — тоже кнопка: по ней открывается карточка ученика */
-table.data tr.clickable:active td { background: var(--wash); }
-table.data tr.clickable:active td.name { transform: translateX(2px); }
+/* строку рейтинга не сжимаем — по ширине экрана это выглядит рывком; вместо
+   этого она отзывается подсветкой */
+tr.clickable.tap.tap { animation: none; }
+tr.clickable.tap td { animation: tapRow .4s ease-out; }
 
-/* клетка кондуита в редакторе: и сжатие, и вспышка кольцом при постановке */
-table.conduit.edit .mark { transition: background-color .14s ease, transform .1s ease; }
-table.conduit.edit .mark:active { transform: scale(.88); filter: brightness(.92); }
+table.conduit.edit .mark { transition: background-color .14s ease; }
 
-.smini { transition: transform .12s ease, background-color .14s ease, border-color .14s ease; }
-.smini:active { transform: scale(.96); }
+.smini { transition: background-color .14s ease, border-color .14s ease; }
 
 table.data tbody tr { transition: background-color .12s ease; }
 .mark { transition: background-color .14s ease; }
@@ -1149,13 +1201,21 @@ table.conduit.edit .mark {
   cursor: pointer;
 }
 
-@keyframes pop {
-  0% { box-shadow: 0 0 0 0 var(--cell-on); }
-  60% { box-shadow: 0 0 0 6px rgba(0, 0, 0, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(0, 0, 0, 0); }
+/* Простановка плюса: короткое сжатие с лёгким перелётом обратно. Одна
+   величина, одно свойство — этого хватает, чтобы касание чувствовалось. */
+@keyframes markOn {
+  0% { transform: scale(.7); }
+  55% { transform: scale(1.08); }
+  100% { transform: scale(1); }
 }
 
-table.conduit.edit .mark.pop { animation: pop .3s ease-out; }
+@keyframes markOff {
+  0% { transform: scale(.86); }
+  100% { transform: scale(1); }
+}
+
+table.conduit.edit .mark.pop { animation: markOn .22s cubic-bezier(.2, .8, .3, 1); }
+table.conduit.edit .mark.drop { animation: markOff .16s ease-out; }
 
 table.conduit .pcount {
   text-align: center;
