@@ -19,6 +19,11 @@
       "id": "Г4",
       "type": "geometry",
       "sub": "klassika"
+    },
+    {
+      "id": "Г5",
+      "type": "numbers",
+      "sub": null
     }
   ],
   "solved": {
@@ -31,14 +36,16 @@
       "Г2"
     ],
     "budyanskiy-mihail": [
-      "Г2"
+      "Г2",
+      "Г5"
     ],
     "velichko-platon": [
       "Г1"
     ],
     "boyko-gleb": [
       "Г1",
-      "Г4"
+      "Г4",
+      "Г5"
     ],
     "gulev-maksim": [
       "Г2",
