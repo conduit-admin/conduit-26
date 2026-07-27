@@ -69,6 +69,12 @@
 
   function pct(x) { return Math.round(x * 100) + "%"; }
 
+  function isAdmin(id) { return DATA.config.admin && id === DATA.config.admin; }
+
+  function nameCell(tag, cls, student) {
+    return el(tag, cls + (isAdmin(student.id) ? " admin" : ""), student.name);
+  }
+
   // ── подготовка данных ───────────────────────────────────
 
   function leafKey(catId, subId) { return catId + "/" + (subId || ""); }
@@ -287,7 +293,7 @@
     }).forEach(function (s, i) {
       var tr = el("tr");
       tr.appendChild(el("td", "rank", i + 1));
-      tr.appendChild(el("td", "left name", s.name));
+      tr.appendChild(nameCell("td", "left name", s));
       tbody.appendChild(tr);
     });
     table.appendChild(tbody);
@@ -340,9 +346,6 @@
       cat.setAttribute("aria-pressed", on ? "true" : "false");
       cat.appendChild(dot(t.slot));
       cat.appendChild(document.createTextNode(t.name));
-      if (leaves.length > 1) {
-        cat.appendChild(el("span", "chip-count", on + "/" + leaves.length));
-      }
       cat.addEventListener("click", function () {
         var all = on === leaves.length;
         leaves.forEach(function (l) {
@@ -386,8 +389,6 @@
         var b = el("button", "chip", pair[1]);
         b.type = "button";
         b.setAttribute("aria-pressed", on ? "true" : "false");
-        var count = UNITS.filter(function (u) { return u.kind === pair[0]; }).length;
-        b.appendChild(el("span", "chip-count", count));
         b.addEventListener("click", function () {
           if (on) state.kinds.delete(pair[0]); else state.kinds.add(pair[0]);
           render();
@@ -429,11 +430,12 @@
 
     var f = filtered();
     var sum = el("div", "summary");
-    sum.innerHTML =
-      "Учтено <b>" + state.series.size + "</b> из " + DATA.series.length + " " +
-      plural(DATA.series.length, "серии", "серий", "серий") +
-      " · <b>" + f.available + "</b> из " + UNITS.length + " задач" +
-      " · потолок <b>" + num(f.ceiling) + "</b> " + plural(f.ceiling, "балл", "балла", "баллов");
+    sum.textContent = filterActive()
+      ? state.series.size + " из " + DATA.series.length + " " +
+        plural(DATA.series.length, "серии", "серий", "серий") + " · " +
+        f.available + " из " + UNITS.length + " задач"
+      : withNum(DATA.series.length, "серия", "серии", "серий") + " · " +
+        withNum(UNITS.length, "задача", "задачи", "задач");
     card.appendChild(sum);
 
     host.appendChild(card);
@@ -447,14 +449,6 @@
 
     var f = renderFilters(host);
     var active = filterActive();
-
-    var tiles = el("div", "tiles");
-    tiles.appendChild(tile("Учеников", num(DATA.config.students_total),
-      "число зафиксировано в начале смены"));
-    tiles.appendChild(tile("Серий в фильтре", state.series.size + " / " + DATA.series.length, null));
-    tiles.appendChild(tile("Задач в фильтре", f.available + " / " + UNITS.length, null));
-    tiles.appendChild(tile("Потолок баллов", num(f.ceiling), "если решить всё учтённое"));
-    host.appendChild(tiles);
 
     var wrap = el("div", "table-wrap");
     var table = el("table", "data");
@@ -491,7 +485,7 @@
         tr.appendChild(cell);
       }
 
-      tr.appendChild(el("td", "left name", r.name));
+      tr.appendChild(nameCell("td", "left name", r));
       tr.appendChild(el("td", "score", num(r.score)));
       tr.appendChild(el("td", "muted", r.pluses));
 
@@ -511,12 +505,8 @@
     wrap.appendChild(table);
     host.appendChild(wrap);
 
-    var note = el("div", "foot");
-    note.textContent = "Вес задачи = " + DATA.config.students_total +
-      " − число решивших. Задача, которую сдали трое, стоит " +
-      (DATA.config.students_total - 3) + " баллов; задача, которую сдали все, — 0. " +
-      "Вес не зависит от выбранного фильтра, поэтому рейтинги сопоставимы между собой.";
-    host.appendChild(note);
+    host.appendChild(el("div", "foot",
+      "Вес задачи = " + DATA.config.students_total + " − число решивших."));
   }
 
   // ── вид: кондуиты ───────────────────────────────────────
@@ -595,7 +585,7 @@
     var tbody = el("tbody");
     order.forEach(function (r) {
       var tr = el("tr", "crow");
-      tr.appendChild(el("td", "pname", r.name));
+      tr.appendChild(nameCell("td", "pname", r));
       s.problems.forEach(function (p) {
         var u = byId[p.id];
         var on = u.solverSet.has(r.id);
@@ -659,10 +649,10 @@
     var row = f.rows.filter(function (r) { return r.id === id; })[0];
 
     var sh = el("div", "section-head");
-    sh.appendChild(el("span", "section-title", student.name));
+    sh.appendChild(nameCell("span", "section-title", student));
     if (filterActive()) {
       sh.appendChild(el("span", "section-note",
-        "по текущему фильтру · без фильтра " + FULL.place[id] + " место"));
+        "без фильтра " + FULL.place[id] + " место"));
     }
     host.appendChild(sh);
 
@@ -677,7 +667,6 @@
 
     var sh2 = el("div", "section-head");
     sh2.appendChild(el("span", "section-title", "По темам"));
-    sh2.appendChild(el("span", "section-note", "по выбранным сериям, темы показаны все"));
     host.appendChild(sh2);
 
     var card = el("div", "card");
@@ -784,11 +773,6 @@
       return;
     }
 
-    var note = el("div", "section-note");
-    note.textContent = "По сериям, выбранным в фильтре на вкладке «Рейтинг». " +
-      "Решаемость — какая доля учеников в среднем берёт задачу этой темы.";
-    host.appendChild(note);
-
     var grid = el("div", "tcards");
 
     DATA.types.forEach(function (t) {
@@ -809,10 +793,14 @@
 
       var facts = el("div", "tfacts");
       facts.appendChild(fact("решаемость", pct(st.rate)));
-      facts.appendChild(fact("средний вес", st.avgWeight.toFixed(1)));
       var top = computeRating(state.series,
         new Set(leaves.map(function (l) { return l.key; })), state.kinds).rows[0];
-      facts.appendChild(fact("лучший", top ? top.name : "—"));
+      var best = el("div", "tfact");
+      best.appendChild(el("span", "tfact-label", "лучший"));
+      best.appendChild(top
+        ? nameCell("span", "tfact-value", top)
+        : el("span", "tfact-value", "—"));
+      facts.appendChild(best);
       card.appendChild(facts);
 
       if (leaves.length > 1 || leaves[0].subName) {

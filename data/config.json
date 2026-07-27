@@ -2,6 +2,7 @@
   "title": "Кондуит",
   "subtitle": "Летняя математическая смена · 2026",
   "students_total": 24,
+  "admin": "afanasev-igor",
   "noindex": true,
   "scoring": {
     "formula": "students_total - solvers",

@@ -3,9 +3,7 @@
    светлая и тёмная темы заданы отдельными шагами, а не автоматической инверсией. */
 
 :root {
-  /* «only light» — именно эта форма служит отказом от автозатемнения в
-     мобильных браузерах, а не просто предпочтением светлой темы. */
-  color-scheme: only light;
+  color-scheme: light dark;
 
   --surface: #fcfcfb;
   --plane: #f9f9f7;
@@ -32,20 +30,52 @@
   --cell-on: #d9d6c9;
   --cell-off: #f4f3ee;
 
+  --admin: #a1245e;
+
   --radius: 10px;
   --tap: 44px;
 }
 
-/* Тема только светлая. Системная тёмная в браузерах телефонов местами
-   подкрашивает элементы сама, и цвета тем начинают врать, поэтому
-   color-scheme: light выше — это запрет, а не предпочтение. */
+/* Тёмная тема — свой набор шагов под тёмную подложку, а не инверсия светлой.
+   Пока страница объявляла «только светлая», браузер затемнял её сам и портил
+   цвета; со своим набором мы решаем это сами. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --surface: #1a1a19;
+    --plane: #0d0d0d;
+    --ink: #ffffff;
+    --ink-2: #c3c2b7;
+    --ink-muted: #898781;
+    --grid: #2c2c2a;
+    --axis: #383835;
+    --border: rgba(255, 255, 255, 0.12);
+    --border-strong: rgba(255, 255, 255, 0.24);
+    --wash: rgba(255, 255, 255, 0.07);
+    --good: #0ca30c;
+    --bad: #e66767;
+
+    --s1: #3987e5;
+    --s2: #d95926;
+    --s3: #199e70;
+    --s4: #c98500;
+    --s5: #d55181;
+    --s6: #008300;
+    --s7: #9085e9;
+    --s8: #e66767;
+
+    --cell-on: #46443d;
+    --cell-off: #232320;
+
+    --admin: #f08fb8;
+  }
+}
 
 * {
   box-sizing: border-box;
   -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
 }
 
-html { color-scheme: only light; -webkit-tap-highlight-color: rgba(0, 0, 0, 0); }
+html { -webkit-tap-highlight-color: rgba(0, 0, 0, 0); }
 
 /* Синий прямоугольник при касании складывается из двух вещей: подсветки самого
    касания и выделения текста внутри кнопки. Гасим обе, но оставляем видимую
@@ -497,8 +527,26 @@ table.conduit th.pname, table.conduit td.pname {
   min-width: 176px;
 }
 
+/* столбец фамилий оформлен как в рейтинге: тот же кегль, вес и отбивка */
+table.conduit tbody td.pname {
+  height: 32px;
+  font-weight: 500;
+  color: var(--ink);
+  padding: 0 14px;
+}
+
 table.conduit thead th.pname,
-table.conduit tfoot td.pname { font-size: 12px; }
+table.conduit tfoot td.pname {
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+/* админ кондуита выделен цветом всюду, где встречается его имя */
+.admin { color: var(--admin); }
+td.pname.admin, .name.admin { font-weight: 600; }
 
 table.conduit thead th {
   position: sticky;
@@ -966,6 +1014,29 @@ table.conduit .pcount {
 
 table.conduit tbody .pcount { font-size: 12px; }
 table.conduit .pcount.total { color: var(--ink); font-weight: 600; }
+
+/* Режим редактора видно с первого взгляда: яркая полоса сверху и цветная
+   кромка страницы — чтобы не спутать редактор с публичным сайтом. */
+.editor-flag {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background: #d1560f;
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-align: center;
+  padding: 7px 12px calc(7px + env(safe-area-inset-top, 0px));
+}
+
+body.is-editor {
+  min-height: 100vh;
+  border-left: 3px solid #d1560f;
+  border-right: 3px solid #d1560f;
+}
+body.is-editor .brand::after { content: " ✎"; color: #d1560f; }
 
 /* карточка сохранения */
 .savecard {

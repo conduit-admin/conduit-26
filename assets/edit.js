@@ -682,15 +682,7 @@
     picker.appendChild(chips);
     host.appendChild(picker);
 
-    if (!state.series) {
-      var hint = el("div", "card");
-      hint.appendChild(el("div", "summary",
-        DATA.series.length
-          ? "Выбери день, чтобы поправить его кондуит, или заведи новую серию."
-          : "Серий ещё нет. Кнопка «+» заведёт первую."));
-      host.appendChild(hint);
-      return;
-    }
+    if (!state.series) return;
 
     // шапка серии
     var meta = el("div", "card");
@@ -714,9 +706,6 @@
     mrow.appendChild(field("Дата", dateField()));
     meta.appendChild(mrow);
 
-    meta.appendChild(el("div", "summary",
-      (state.isNew ? "Новая серия → " : "Правим существующую → ") +
-      "data/series/" + pad2(state.series.n) + ".json"));
     host.appendChild(meta);
 
     // задачи
@@ -775,7 +764,6 @@
       problem ? "Пока нельзя сохранить: " + problem
         : (state.dirty ? "Есть несохранённые изменения" : "Изменений нет")));
     left.appendChild(el("div", "savecard-note",
-      "Серия " + state.series.n + " · " +
       withNum(state.series.problems.length, "задача", "задачи", "задач") + " · " +
       withNum(totalPluses(), "плюс", "плюса", "плюсов")));
     card.appendChild(left);
@@ -931,7 +919,8 @@
     var tbody = el("tbody");
     DATA.students.forEach(function (st) {
       var tr = el("tr", "crow");
-      tr.appendChild(el("td", "pname", st.name));
+      tr.appendChild(el("td", "pname" +
+        (DATA.config.admin === st.id ? " admin" : ""), st.name));
       problems.forEach(function (p) {
         var td = el("td", "cell");
         var isOn = (state.series.solved[st.id] || []).indexOf(p.id) !== -1;
@@ -1003,7 +992,6 @@
       problem ? "Пока нельзя сохранить: " + problem
         : (state.dirty ? "Есть несохранённые изменения" : "Изменений нет");
     card.querySelector(".savecard-note").textContent =
-      "Серия " + state.series.n + " · " +
       withNum(state.series.problems.length, "задача", "задачи", "задач") + " · " +
       withNum(totalPluses(), "плюс", "плюса", "плюсов");
     var b = card.querySelector(".primary-btn");
@@ -1014,8 +1002,7 @@
 
   function viewThemes(host) {
     host.appendChild(el("div", "section-note",
-      "Правки видны в выборе темы сразу, а на сайт уходят по кнопке «Сохранить темы». " +
-      "Уже записанные серии не меняются."));
+      "Правки уходят на сайт по кнопке внизу. Записанные серии не меняются."));
 
     var card = el("div", "card");
     types().forEach(function (t) {
@@ -1195,10 +1182,8 @@
     help.appendChild(el("div", "summary",
       (r.owner || "?") + "/" + (r.name || "?") + ", ветка " + (r.branch || "main")));
     help.appendChild(el("div", "foot",
-      "Токен нужен fine-grained, с доступом только к этому репозиторию и правом " +
-      "Contents: Read and write. Он хранится в памяти этого браузера и уходит " +
-      "только на api.github.com. Если телефон потеряется — отзови токен в " +
-      "настройках GitHub, и он мгновенно перестанет работать."));
+      "Токен хранится только в этом браузере. Потерялся телефон — отзови токен " +
+      "в настройках GitHub."));
     host.appendChild(help);
   }
 
