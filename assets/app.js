@@ -17,6 +17,7 @@
   var CAT = {};       // id раздела -> раздел
   var LEAVES = [];    // [{key, catId, catName, subId, subName, slot, label}]
   var LEAF = {};      // key -> лист
+  var FULL = null;    // рейтинг по всему сразу — им определяется лидер смены
 
   var state = {
     view: "rating",
@@ -68,10 +69,18 @@
 
   function pct(x) { return Math.round(x * 100) + "%"; }
 
+  /* Средний балл — сколько очков в среднем приносит один плюс: видно, берёт
+     человек дорогие задачи или много дешёвых. */
+  function avgScore(score, pluses) {
+    return pluses ? (score / pluses).toFixed(3) : "—";
+  }
+
   function isAdmin(id) { return DATA.config.admin && id === DATA.config.admin; }
 
   function nameCell(tag, cls, student) {
-    return el(tag, cls + (isAdmin(student.id) ? " admin" : ""), student.name);
+    return el(tag, cls +
+      (isAdmin(student.id) ? " admin" : "") +
+      (isLeader(student.id) ? " leader" : ""), student.name);
   }
 
   // ── подготовка данных ───────────────────────────────────
@@ -151,6 +160,14 @@
     state.leaves = new Set(LEAVES.map(function (l) { return l.key; }));
     state.series = new Set(DATA.series.map(function (s) { return s.n; }));
     state.openSeries = DATA.series.length ? DATA.series[DATA.series.length - 1].n : 1;
+
+    /* Лидер смены считается по всему сразу и не зависит от фильтров: он помечен
+       одинаково на любой вкладке и при любом отборе. */
+    FULL = computeRating(state.series, state.leaves, ALL_KINDS);
+  }
+
+  function isLeader(id) {
+    return !!FULL && FULL.place[id] === 1 && FULL.rows[0].score > 0;
   }
 
   var ALL_KINDS = new Set(["problem", "exercise"]);
@@ -424,8 +441,9 @@
     var hr = el("tr");
     hr.appendChild(th("№", "rank"));
     hr.appendChild(th("Ученик", "left"));
+    hr.appendChild(th("Очки"));
     hr.appendChild(th("Баллы"));
-    hr.appendChild(th("Плюсы"));
+    hr.appendChild(th("Ср. балл"));
     hr.appendChild(th("%", "left"));
     thead.appendChild(hr);
     table.appendChild(thead);
@@ -440,9 +458,10 @@
       });
 
       tr.appendChild(el("td", "rank" + (r.rank <= 3 ? " rank-top" : ""), r.rank));
-      tr.appendChild(nameCell("td", "left name" + (r.rank === 1 ? " leader" : ""), r));
+      tr.appendChild(nameCell("td", "left name", r));
       tr.appendChild(el("td", "score", num(r.score)));
       tr.appendChild(el("td", "muted", r.pluses));
+      tr.appendChild(el("td", "muted", avgScore(r.score, r.pluses)));
 
       var share = f.available ? r.pluses / f.available : 0;
       var td = el("td", "left");
@@ -457,6 +476,19 @@
       tbody.appendChild(tr);
     });
     table.appendChild(tbody);
+
+    // строка «Всего» — сколько очков даёт всё учтённое, если решить целиком
+    var tfoot = el("tfoot");
+    var fr = el("tr", "total-row");
+    fr.appendChild(el("td", "rank"));
+    fr.appendChild(el("td", "left name", "Всего"));
+    fr.appendChild(el("td", "score", num(f.ceiling)));
+    fr.appendChild(el("td", "muted", f.available));
+    fr.appendChild(el("td", "muted", avgScore(f.ceiling, f.available)));
+    fr.appendChild(el("td", "left muted", "100%"));
+    tfoot.appendChild(fr);
+    table.appendChild(tfoot);
+
     wrap.appendChild(table);
     host.appendChild(wrap);
 

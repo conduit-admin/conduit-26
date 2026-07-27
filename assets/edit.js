@@ -859,7 +859,7 @@
       left.appendChild(el("div", "savecard-note",
         "Серия уже на сайте: " + pad2(state.series.n) + ".json"));
       card.appendChild(left);
-      card.appendChild(button("Удалить серию", "ghost-btn danger", function () {
+      card.appendChild(button("Удалить серию", "primary-btn danger", function () {
         state.confirmDelete = true;
         render();
       }));

@@ -36,8 +36,11 @@
   --s7: #4a3aa7;
   --s8: #e34948;
 
-  --cell-on: #d9d6c9;
-  --cell-off: #f4f3ee;
+  /* Разрыв между «решено» и «нет» намеренно большой: часть браузеров на
+     телефонах затемняет крупные заливки по-своему, и слабую разницу такое
+     затемнение стирает совсем. */
+  --cell-on: #c4c0ab;
+  --cell-off: #fbfaf6;
 
   --admin: #a1245e;
   --leader: #8a6400;
@@ -75,8 +78,8 @@
 
     /* в тёмной теме разница между клетками должна читаться сама по себе,
        а не только по знаку внутри */
-    --cell-on: #63604f;
-    --cell-off: #201f1d;
+    --cell-on: #74705d;
+    --cell-off: #1c1c1a;
 
     --admin: #f08fb8;
     --leader: #e3b23c;
@@ -455,7 +458,16 @@ table.data td {
   white-space: nowrap;
 }
 
-table.data tr:last-child td { border-bottom: 0; }
+table.data tbody tr:last-child td { border-bottom: 0; }
+
+table.data tfoot td {
+  border-top: 1px solid var(--axis);
+  border-bottom: 0;
+  color: var(--ink-2);
+  font-weight: 560;
+}
+
+table.data tfoot .name { color: var(--ink-muted); font-weight: 600; }
 table.data tbody tr:hover td { background: var(--wash); }
 table.data tr.clickable { cursor: pointer; }
 
@@ -528,10 +540,13 @@ table.conduit th, table.conduit td {
   font-weight: 400;
 }
 
+/* Столбец фамилий должен перекрывать клетки при боковой прокрутке. Клетка с
+   анимацией нажатия создаёт свой слой, поэтому запас по z-index здесь большой,
+   а сами клетки прижаты к нулевому слою. */
 table.conduit th.pname, table.conduit td.pname {
   position: sticky;
   left: 0;
-  z-index: 3;
+  z-index: 6;
   background: var(--surface);
   text-align: left;
   padding: 0 12px 0 14px;
@@ -579,7 +594,9 @@ table.conduit thead th {
   vertical-align: bottom;
 }
 
-table.conduit thead th.pname { z-index: 4; }
+table.conduit thead th.pname { z-index: 7; }
+
+table.conduit td.cell { position: relative; z-index: 0; }
 
 .phead {
   display: flex;
@@ -1289,6 +1306,7 @@ body.is-editor .brand::after {
   var CAT = {};       // id раздела -> раздел
   var LEAVES = [];    // [{key, catId, catName, subId, subName, slot, label}]
   var LEAF = {};      // key -> лист
+  var FULL = null;    // рейтинг по всему сразу — им определяется лидер смены
 
   var state = {
     view: "rating",
@@ -1340,10 +1358,18 @@ body.is-editor .brand::after {
 
   function pct(x) { return Math.round(x * 100) + "%"; }
 
+  /* Средний балл — сколько очков в среднем приносит один плюс: видно, берёт
+     человек дорогие задачи или много дешёвых. */
+  function avgScore(score, pluses) {
+    return pluses ? (score / pluses).toFixed(3) : "—";
+  }
+
   function isAdmin(id) { return DATA.config.admin && id === DATA.config.admin; }
 
   function nameCell(tag, cls, student) {
-    return el(tag, cls + (isAdmin(student.id) ? " admin" : ""), student.name);
+    return el(tag, cls +
+      (isAdmin(student.id) ? " admin" : "") +
+      (isLeader(student.id) ? " leader" : ""), student.name);
   }
 
   // ── подготовка данных ───────────────────────────────────
@@ -1423,6 +1449,14 @@ body.is-editor .brand::after {
     state.leaves = new Set(LEAVES.map(function (l) { return l.key; }));
     state.series = new Set(DATA.series.map(function (s) { return s.n; }));
     state.openSeries = DATA.series.length ? DATA.series[DATA.series.length - 1].n : 1;
+
+    /* Лидер смены считается по всему сразу и не зависит от фильтров: он помечен
+       одинаково на любой вкладке и при любом отборе. */
+    FULL = computeRating(state.series, state.leaves, ALL_KINDS);
+  }
+
+  function isLeader(id) {
+    return !!FULL && FULL.place[id] === 1 && FULL.rows[0].score > 0;
   }
 
   var ALL_KINDS = new Set(["problem", "exercise"]);
@@ -1696,8 +1730,9 @@ body.is-editor .brand::after {
     var hr = el("tr");
     hr.appendChild(th("№", "rank"));
     hr.appendChild(th("Ученик", "left"));
+    hr.appendChild(th("Очки"));
     hr.appendChild(th("Баллы"));
-    hr.appendChild(th("Плюсы"));
+    hr.appendChild(th("Ср. балл"));
     hr.appendChild(th("%", "left"));
     thead.appendChild(hr);
     table.appendChild(thead);
@@ -1712,9 +1747,10 @@ body.is-editor .brand::after {
       });
 
       tr.appendChild(el("td", "rank" + (r.rank <= 3 ? " rank-top" : ""), r.rank));
-      tr.appendChild(nameCell("td", "left name" + (r.rank === 1 ? " leader" : ""), r));
+      tr.appendChild(nameCell("td", "left name", r));
       tr.appendChild(el("td", "score", num(r.score)));
       tr.appendChild(el("td", "muted", r.pluses));
+      tr.appendChild(el("td", "muted", avgScore(r.score, r.pluses)));
 
       var share = f.available ? r.pluses / f.available : 0;
       var td = el("td", "left");
@@ -1729,6 +1765,19 @@ body.is-editor .brand::after {
       tbody.appendChild(tr);
     });
     table.appendChild(tbody);
+
+    // строка «Всего» — сколько очков даёт всё учтённое, если решить целиком
+    var tfoot = el("tfoot");
+    var fr = el("tr", "total-row");
+    fr.appendChild(el("td", "rank"));
+    fr.appendChild(el("td", "left name", "Всего"));
+    fr.appendChild(el("td", "score", num(f.ceiling)));
+    fr.appendChild(el("td", "muted", f.available));
+    fr.appendChild(el("td", "muted", avgScore(f.ceiling, f.available)));
+    fr.appendChild(el("td", "left muted", "100%"));
+    tfoot.appendChild(fr);
+    table.appendChild(tfoot);
+
     wrap.appendChild(table);
     host.appendChild(wrap);
 
