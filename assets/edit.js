@@ -411,7 +411,7 @@
     var pluses = totalPluses();
 
     state.busy = true;
-    state.note = "Сохраняю…";
+    state.note = "";
     state.noteKind = "";
     render();
 
@@ -428,21 +428,19 @@
         markSent(d.n);
         state.busy = false;
         state.dirty = false;
-        state.note = "Сохранено. Сайт обновится примерно за минуту.";
+        state.note = "Сохранено";
         state.noteKind = "good";
         return reload();
       })
       .catch(function (err) {
         state.busy = false;
-        state.note = "Не сохранилось: " + err.message + ". Всё, что на экране, на месте — попробуй ещё раз.";
+        state.note = "Не сохранилось: " + err.message;
         state.noteKind = "bad";
         render();
       });
   }
 
-  /* Удаление серии: файл и строка в списке серий. Пока сайт не переразвернулся,
-     удалённая серия ещё видна в данных — поэтому помним её номер, как и при
-     сохранении, чтобы список дней не врал. */
+  /* Удаление серии: файл и строка в списке серий. */
   function deleteSeries() {
     if (state.busy || !state.series) return;
     if (!TOKEN) return needToken();
@@ -452,7 +450,7 @@
     var file = "data/series/" + name;
 
     state.busy = true;
-    state.note = "Удаляю…";
+    state.note = "";
     state.noteKind = "";
     render();
 
@@ -476,7 +474,7 @@
         state.series = null;
         state.dirty = false;
         state.confirmDelete = false;
-        state.note = "Серия " + n + " удалена. Сайт обновится примерно за минуту.";
+        state.note = "Серия " + n + " удалена";
         state.noteKind = "good";
         return reload();
       })
@@ -518,7 +516,7 @@
 
   function needToken() {
     state.view = "access";
-    state.note = "Сначала нужен токен — вставь его здесь.";
+    state.note = "Нужен токен";
     state.noteKind = "bad";
     render();
   }
@@ -562,7 +560,7 @@
     if (!typesDirty()) return;
 
     state.busy = true;
-    state.note = "Сохраняю…";
+    state.note = "";
     state.noteKind = "";
     render();
 
@@ -574,7 +572,7 @@
       })
       .then(function () {
         state.busy = false;
-        state.note = "Темы сохранены. Сайт обновится примерно за минуту.";
+        state.note = "Сохранено";
         state.noteKind = "good";
         return reload();
       })
@@ -718,6 +716,8 @@
 
   // ── вид: серия ──────────────────────────────────────────
 
+  var lastSeriesN = null;
+
   function viewSeries(host) {
     var picker = el("div", "card");
     var head = el("div", "filter-head");
@@ -745,7 +745,14 @@
     picker.appendChild(chips);
     host.appendChild(picker);
 
-    if (!state.series) return;
+    if (!state.series) { lastSeriesN = null; return; }
+
+    // оживает только при переходе на другую серию, а не на каждую правку
+    var body = el("div", "series-body" +
+      (state.series.n === lastSeriesN ? "" : " view-enter"));
+    lastSeriesN = state.series.n;
+    host.appendChild(body);
+    host = body;
 
     // шапка серии
     var meta = el("div", "card");
@@ -774,8 +781,6 @@
     // задачи
     var sh = el("div", "section-head");
     sh.appendChild(el("span", "section-title", "Задачи"));
-    sh.appendChild(el("span", "section-note",
-      withNum(state.series.problems.length, "единица", "единицы", "единиц") + " зачёта"));
     host.appendChild(sh);
 
     var pcard = el("div", "card");
@@ -791,7 +796,6 @@
     if (state.series.problems.length) {
       var sh2 = el("div", "section-head");
       sh2.appendChild(el("span", "section-title", "Кондуит"));
-      sh2.appendChild(el("span", "section-note", "касание клетки ставит и снимает плюс"));
       host.appendChild(sh2);
       host.appendChild(grid());
     }
@@ -809,9 +813,8 @@
     b.appendChild(el("small", null, label));
     b.addEventListener("click", function () {
       if (waiting) {
-        state.note = "Серия " + n + " сохранена, но сайт ещё не обновился. " +
-          "Подожди минуту и обнови страницу.";
-        state.noteKind = "bad";
+        state.note = "Серия " + n + " сохранена";
+        state.noteKind = "good";
         return render();
       }
       openSeries(open);
@@ -819,17 +822,14 @@
     return b;
   }
 
+  /* Из карточки убрано всё, кроме кнопки: состояние видно по самой кнопке.
+     Остаётся только то, что мешает сохранить — иначе кнопка гаснет молча. */
   function saveBar() {
     var problem = validate();
     var card = el("div", "card savecard");
 
     var left = el("div", "savecard-main");
-    left.appendChild(el("div", "savecard-title",
-      problem ? "Пока нельзя сохранить: " + problem
-        : (state.dirty ? "Есть несохранённые изменения" : "Изменений нет")));
-    left.appendChild(el("div", "savecard-note",
-      withNum(state.series.problems.length, "задача", "задачи", "задач") + " · " +
-      withNum(totalPluses(), "плюс", "плюса", "плюсов")));
+    if (problem) left.appendChild(el("div", "savecard-title", problem));
     card.appendChild(left);
 
     var b = button(state.busy ? "…" : "Сохранить", "primary-btn", saveSeries);
@@ -846,7 +846,6 @@
     if (state.confirmDelete) {
       left.appendChild(el("div", "savecard-title",
         "Удалить серию " + state.series.n + " вместе со всеми плюсами?"));
-      left.appendChild(el("div", "savecard-note", "Отменить это будет нельзя."));
       card.appendChild(left);
       var yes = button(state.busy ? "…" : "Удалить", "primary-btn danger", deleteSeries);
       yes.disabled = state.busy;
@@ -856,8 +855,6 @@
         render();
       }));
     } else {
-      left.appendChild(el("div", "savecard-note",
-        "Серия уже на сайте: " + pad2(state.series.n) + ".json"));
       card.appendChild(left);
       card.appendChild(button("Удалить серию", "primary-btn danger", function () {
         state.confirmDelete = true;
@@ -1132,12 +1129,11 @@
     var card = document.querySelector(".savecard");
     if (!card) return;
     var problem = validate();
-    card.querySelector(".savecard-title").textContent =
-      problem ? "Пока нельзя сохранить: " + problem
-        : (state.dirty ? "Есть несохранённые изменения" : "Изменений нет");
-    card.querySelector(".savecard-note").textContent =
-      withNum(state.series.problems.length, "задача", "задачи", "задач") + " · " +
-      withNum(totalPluses(), "плюс", "плюса", "плюсов");
+    var left = card.querySelector(".savecard-main");
+    if (left) {
+      clear(left);
+      if (problem) left.appendChild(el("div", "savecard-title", problem));
+    }
     var b = card.querySelector(".primary-btn");
     if (b) b.disabled = state.busy || !!problem || !state.dirty;
   }
@@ -1145,9 +1141,6 @@
   // ── вид: темы ───────────────────────────────────────────
 
   function viewThemes(host) {
-    host.appendChild(el("div", "section-note",
-      "Правки уходят на сайт по кнопке внизу. Записанные серии не меняются."));
-
     var card = el("div", "card");
     types().forEach(function (t) {
       var block = el("div", "tblock");
@@ -1271,12 +1264,7 @@
     host.appendChild(card2);
 
     var save = el("div", "card savecard");
-    var left = el("div", "savecard-main");
-    left.appendChild(el("div", "savecard-title",
-      typesDirty() ? "Есть несохранённые изменения" : "Изменений нет"));
-    left.appendChild(el("div", "savecard-note",
-      "Файл тем: data/types.json"));
-    save.appendChild(left);
+    save.appendChild(el("div", "savecard-main"));
     var b = button(state.busy ? "…" : "Сохранить темы", "primary-btn", saveTypes);
     b.disabled = state.busy || !typesDirty();
     save.appendChild(b);
@@ -1286,8 +1274,6 @@
   // ── вид: доступ ─────────────────────────────────────────
 
   function viewAccess(host) {
-    var r = repo();
-
     var card = el("div", "card");
     var sh = el("div", "tblock-head");
     sh.appendChild(el("span", "type-name", "Токен GitHub"));
@@ -1314,37 +1300,26 @@
     row.appendChild(button("Удалить", "ghost-btn", function () {
       TOKEN = null;
       lsDel(LS_TOKEN);
-      state.note = "Токен удалён из этого браузера.";
+      state.note = "Токен удалён";
       state.noteKind = "";
       render();
     }));
     card.appendChild(row);
     host.appendChild(card);
-
-    var help = el("div", "card");
-    help.appendChild(el("div", "tblock-head", "Куда пишем"));
-    help.appendChild(el("div", "summary",
-      (r.owner || "?") + "/" + (r.name || "?") + ", ветка " + (r.branch || "main")));
-    help.appendChild(el("div", "foot",
-      "Токен хранится только в этом браузере. Потерялся телефон — отзови токен " +
-      "в настройках GitHub."));
-    host.appendChild(help);
   }
 
   function check() {
     if (!TOKEN) {
-      state.note = "Токен не задан.";
+      state.note = "Токен не задан";
       state.noteKind = "bad";
       return render();
     }
-    state.note = "Проверяю…";
+    state.note = "";
     state.noteKind = "";
     render();
     api("").then(function (j) {
       var can = j.permissions && j.permissions.push;
-      state.note = can
-        ? "Доступ есть: " + j.full_name + ", запись разрешена."
-        : "Репозиторий виден, но запись не разрешена — проверь права токена.";
+      state.note = can ? "Доступ есть" : "Запись не разрешена";
       state.noteKind = can ? "good" : "bad";
       render();
     }).catch(function (e) {
@@ -1367,7 +1342,9 @@
       t.setAttribute("aria-selected", t.dataset.view === state.view ? "true" : "false");
     });
 
-    var scene = state.view + "/" + (state.series ? state.series.n : "");
+    /* Анимируется только смена вкладки. Выбор серии её не трогает: список дней
+       остаётся на месте, оживает лишь то, что под ним. */
+    var scene = state.view;
     if (scene !== lastScene) {
       lastScene = scene;
       main.classList.add("view-enter");
@@ -1470,9 +1447,6 @@
       var box = el("div", "card");
       box.appendChild(el("div", "section-title", "Не удалось загрузить данные"));
       box.appendChild(el("div", "summary", String(err.message || err)));
-      box.appendChild(el("div", "foot",
-        "Редактор берёт данные с того же сайта. Открой его по адресу вида " +
-        "https://ник.github.io/репозиторий/edit.html — с диска он работать не будет."));
       main.appendChild(box);
     });
   });

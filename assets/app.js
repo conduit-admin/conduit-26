@@ -220,12 +220,6 @@
 
   function filtered() { return computeRating(state.series, state.leaves, state.kinds); }
 
-  function filterActive() {
-    return state.leaves.size !== LEAVES.length ||
-      state.series.size !== DATA.series.length ||
-      state.kinds.size !== 2;
-  }
-
   function hasExercises() {
     return UNITS.some(function (u) { return u.kind === "exercise"; });
   }
@@ -260,15 +254,10 @@
   function viewEmpty(host) {
     var card = el("div", "card");
     card.appendChild(el("div", "section-title", "Серий пока нет"));
-    card.appendChild(el("div", "summary",
-      "Как только первый кондуит попадёт в систему, здесь появится рейтинг: " +
-      "баллы, плюсы и пересчёт по любым темам и дням."));
     host.appendChild(card);
 
     var sh = el("div", "section-head");
     sh.appendChild(el("span", "section-title", "Отряд"));
-    sh.appendChild(el("span", "section-note",
-      withNum(DATA.students.length, "человек", "человека", "человек")));
     host.appendChild(sh);
 
     var wrap = el("div", "table-wrap");
@@ -285,10 +274,6 @@
     table.appendChild(tbody);
     wrap.appendChild(table);
     host.appendChild(wrap);
-
-    host.appendChild(el("div", "foot",
-      "Вес задачи считается от " + DATA.config.students_total +
-      " учеников — это число зафиксировано на смену."));
   }
 
   function tile(label, value, note) {
@@ -414,18 +399,8 @@
     r2.appendChild(c2);
     card.appendChild(r2);
 
-    var f = filtered();
-    var sum = el("div", "summary");
-    sum.textContent = filterActive()
-      ? state.series.size + " из " + DATA.series.length + " " +
-        plural(DATA.series.length, "серии", "серий", "серий") + " · " +
-        f.available + " из " + UNITS.length + " задач"
-      : withNum(DATA.series.length, "серия", "серии", "серий") + " · " +
-        withNum(UNITS.length, "задача", "задачи", "задач");
-    card.appendChild(sum);
-
     host.appendChild(card);
-    return f;
+    return filtered();
   }
 
   // ── вид: рейтинг ────────────────────────────────────────
@@ -491,9 +466,6 @@
 
     wrap.appendChild(table);
     host.appendChild(wrap);
-
-    host.appendChild(el("div", "foot",
-      "Вес задачи = " + DATA.config.students_total + " − число решивших."));
   }
 
   /* Кондуит собран из двух таблиц: слева фамилии, справа прокручиваемые клетки.
@@ -584,9 +556,6 @@
     if (!DATA.series.length) {
       var none = el("div", "card");
       none.appendChild(el("div", "section-title", "Кондуитов пока нет"));
-      none.appendChild(el("div", "summary",
-        "Здесь будет по кондуиту на каждый день: сетка «ученики × задачи», " +
-        "сколько человек решило каждую задачу и сколько она стоит."));
       host.appendChild(none);
       return;
     }
@@ -615,12 +584,7 @@
     var sh = el("div", "section-head");
     sh.appendChild(el("span", "section-title", "Серия " + s.n));
     var exCount = s.problems.filter(function (p) { return p.exercise; }).length;
-    sh.appendChild(el("span", "section-note", prettyDate(s.date) + " · " +
-      withNum(s.problems.length - exCount, "задача", "задачи", "задач") +
-      (exCount ? " и " + withNum(exCount, "упражнение", "упражнения", "упражнений") : "") +
-      " · всего сдано " +
-      withNum(units.reduce(function (a, u) { return a + u.solvers.length; }, 0),
-        "плюс", "плюса", "плюсов")));
+    sh.appendChild(el("span", "section-note", prettyDate(s.date)));
     host.appendChild(sh);
 
     // строки — в порядке результата этой серии
@@ -673,8 +637,8 @@
 
     var tiles = el("div", "tiles");
     tiles.appendChild(tile("Место", row.rank + " / " + DATA.students.length, null));
-    tiles.appendChild(tile("Баллы", num(row.score), "из " + num(f.ceiling) + " возможных"));
-    tiles.appendChild(tile("Плюсы", row.pluses + " / " + f.available, null));
+    tiles.appendChild(tile("Очки", num(row.score), "из " + num(f.ceiling)));
+    tiles.appendChild(tile("Задачи", row.pluses + " / " + f.available, null));
     var best = bestProblem(id);
     tiles.appendChild(tile("Самый ценный плюс", best ? "+" + best.weight : "—",
       best ? "серия " + best.sn + ", задача " + best.id : null));
@@ -698,7 +662,7 @@
       nameBox.appendChild(el("b", null, t.name));
       head.appendChild(nameBox);
       head.appendChild(el("span", "type-val",
-        catStat.got + " / " + catStat.total + " · " + num(catStat.score) + " б."));
+        catStat.got + " / " + catStat.total + " · " + num(catStat.score)));
       block.appendChild(head);
 
       block.appendChild(trackBar(catStat.total ? catStat.got / catStat.total : 0, t.slot));
@@ -780,9 +744,6 @@
     if (!UNITS.length) {
       var none = el("div", "card");
       none.appendChild(el("div", "section-title", "Задач пока нет"));
-      none.appendChild(el("div", "summary",
-        "Темы уже заданы: " + DATA.types.map(function (t) { return t.name; }).join(", ") +
-        ". Решаемость по ним появится, когда будут размечены первые задачи."));
       host.appendChild(none);
       return;
     }
@@ -942,9 +903,6 @@
       var box = el("div", "card");
       box.appendChild(el("div", "section-title", "Не удалось загрузить данные"));
       box.appendChild(el("div", "tile-note", String(err.message || err)));
-      box.appendChild(el("div", "tile-note",
-        "Если файл открыт с диска напрямую, браузер не даёт читать соседние файлы — " +
-        "для локального просмотра используйте офлайн-сборку."));
       main.appendChild(box);
     });
   });

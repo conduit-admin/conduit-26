@@ -664,8 +664,18 @@ td.cell {
   color: var(--ink);
 }
 
-tr.crow:hover td { background: var(--wash); }
-tr.crow:hover td.pname { background: var(--wash); }
+/* Кондуит смотрят, а не трогают: имена не выделяются и не отзываются нигде,
+   клетки — везде, кроме редактора. Прокрутка вбок остаётся: касание достаётся
+   прокручиваемой обёртке, а не таблице внутри неё. */
+.conduit-split {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  cursor: default;
+}
+
+table.conduit.names,
+table.conduit.cells:not(.edit) { pointer-events: none; }
 
 table.conduit tfoot td {
   border-top: 1px solid var(--grid);
@@ -1262,6 +1272,9 @@ body.is-editor .brand::after {
   table.data td, table.data th { padding: 9px 8px; }
   .bar-track { display: none; }
   .tcards { grid-template-columns: 1fr; }
-  table.conduit th.pname, table.conduit td.pname { font-size: 14px; min-width: 148px; }
-  table.conduit th.pname, table.conduit td.pname { min-width: 118px; font-size: 12px; padding: 0 8px 0 10px; }
+  table.conduit th.pname, table.conduit td.pname {
+    min-width: 118px;
+    font-size: 13px;
+    padding: 0 8px 0 10px;
+  }
 }
