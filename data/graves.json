@@ -14,6 +14,11 @@
       "id": "Г3",
       "type": "algebra",
       "sub": "inequalities"
+    },
+    {
+      "id": "Г4",
+      "type": "numbers",
+      "sub": null
     }
   ],
   "solved": {
@@ -23,7 +28,8 @@
     "afanasev-igor": [
       "Г1",
       "Г2",
-      "Г3"
+      "Г3",
+      "Г4"
     ],
     "budyanskiy-mihail": [
       "Г2"
@@ -32,8 +38,12 @@
       "Г1",
       "Г3"
     ],
-    "boyko-gleb": [],
-    "gulev-maksim": [],
+    "boyko-gleb": [
+      "Г4"
+    ],
+    "gulev-maksim": [
+      "Г4"
+    ],
     "zarechnyuk-georgiy": [
       "Г3"
     ],
@@ -47,32 +57,41 @@
     ],
     "kostylev-konstantin": [],
     "larionova-natalya": [
-      "Г2"
+      "Г2",
+      "Г4"
     ],
     "lyubimov-slaven": [],
     "mahrov-aleksandr": [
-      "Г2"
+      "Г2",
+      "Г4"
     ],
     "novoselov-maksim": [
       "Г1"
     ],
-    "osipova-viktoriya": [],
+    "osipova-viktoriya": [
+      "Г4"
+    ],
     "pogorelov-denis": [
       "Г2"
     ],
-    "rudakova-vasilisa": [],
+    "rudakova-vasilisa": [
+      "Г4"
+    ],
     "strelkov-sergey": [
-      "Г3"
+      "Г3",
+      "Г4"
     ],
     "titov-viktor": [
       "Г2"
     ],
     "titov-dmitriy": [
       "Г1",
-      "Г3"
+      "Г3",
+      "Г4"
     ],
     "celikov-aleksandr": [
-      "Г2"
+      "Г2",
+      "Г4"
     ],
     "shipilov-andrey": [
       "Г1"
