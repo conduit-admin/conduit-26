@@ -32,6 +32,7 @@
      затемнение стирает совсем. */
   --cell-on: #c4c0ab;
   --cell-off: #fbfaf6;
+  --cell-ink: #0b0b0b;
 
   --admin: #a1245e;
   --leader: #8a6400;
@@ -67,10 +68,13 @@
     --s7: #9085e9;
     --s8: #e66767;
 
-    /* в тёмной теме разница между клетками должна читаться сама по себе,
-       а не только по знаку внутри */
-    --cell-on: #74705d;
-    --cell-off: #1c1c1a;
+    /* В тёмной теме клетки светлее подложки — зеркально светлой теме, где они
+       темнее. Прежние #1c1c1a на подложке #1a1a19 давали контраст 1.05:1, то
+       есть пустой бокс не было видно вовсе. Знак на заполненном боксе тёмный:
+       бокс яркий, и белый знак на нём потерялся бы. */
+    --cell-on: #ccc6a9;
+    --cell-off: #454440;
+    --cell-ink: #16150f;
 
     --admin: #f08fb8;
     --leader: #e3b23c;
@@ -351,7 +355,8 @@ body {
   height: 5px;
   border-radius: 50%;
   flex: none;
-  background: var(--accent);
+  background-color: var(--accent);
+  background-image: linear-gradient(var(--accent), var(--accent));
 }
 
 .chip.sub[aria-pressed="true"] { color: var(--ink); }
@@ -490,12 +495,18 @@ table.data tr.clickable { cursor: pointer; }
 .delta.down { color: var(--bad); }
 .delta.same { color: var(--ink-muted); }
 
+/* Цветные заливки заданы картинкой-градиентом, а не цветом: браузеры с
+   принудительной тёмной темой (Samsung Internet, Chrome) перекрашивают
+   background-color и не трогают background-image. Отсюда прежняя жалоба, что
+   полоски решаемости темнее, чем кружки тем: цвет один, а перекрашивались
+   они по-разному. */
 .bar {
   display: inline-block;
   vertical-align: middle;
   height: 7px;
   border-radius: 4px;
-  background: var(--s1);
+  background-color: var(--s1);
+  background-image: linear-gradient(var(--s1), var(--s1));
   min-width: 2px;
 }
 
@@ -505,7 +516,8 @@ table.data tr.clickable { cursor: pointer; }
   width: 74px;
   height: 7px;
   border-radius: 4px;
-  background: var(--cell-off);
+  background-color: var(--cell-off);
+  background-image: linear-gradient(var(--cell-off), var(--cell-off));
   overflow: hidden;
   margin-right: 8px;
 }
@@ -651,17 +663,19 @@ td.cell {
   width: 30px;
   height: 30px;
   border-radius: 7px;
-  background: var(--cell-off);
   margin: 0 auto;
   font-size: 19px;
   font-weight: 700;
   line-height: 1;
   color: transparent;
+  background-color: var(--cell-off);
+  background-image: linear-gradient(var(--cell-off), var(--cell-off));
 }
 
 .mark.on {
-  background: var(--cell-on);
-  color: var(--ink);
+  background-color: var(--cell-on);
+  background-image: linear-gradient(var(--cell-on), var(--cell-on));
+  color: var(--cell-ink);
 }
 
 /* Кондуит смотрят, а не трогают: имена не выделяются и не отзываются нигде,
@@ -796,7 +810,8 @@ table.conduit tfoot tr.weights td { color: var(--ink-2); font-weight: 560; }
 .track {
   height: 8px;
   border-radius: 4px;
-  background: var(--cell-off);
+  background-color: var(--cell-off);
+  background-image: linear-gradient(var(--cell-off), var(--cell-off));
   overflow: hidden;
 }
 

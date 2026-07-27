@@ -780,9 +780,17 @@
 
   // ── детали интерфейса ───────────────────────────────────
 
+  /* Заливку задаём картинкой-градиентом, а не цветом: браузеры с принудительной
+     тёмной темой (Samsung Internet, Chrome) перекрашивают background-color и не
+     трогают background-image. */
+  function paint(node, color) {
+    node.style.backgroundColor = color;
+    node.style.backgroundImage = "linear-gradient(" + color + "," + color + ")";
+  }
+
   function dot(slot) {
     var d = el("span", "dot");
-    d.style.background = "var(--s" + slot + ")";
+    paint(d, "var(--s" + slot + ")");
     return d;
   }
 
@@ -1227,7 +1235,7 @@
       var box = el("div", "phead");
       box.appendChild(el("div", "phead-id" + (p.exercise ? " ex" : ""), p.id));
       var rule = el("div", "phead-rule");
-      rule.style.background = "var(--s" + (t ? t.slot : 1) + ")";
+      paint(rule, "var(--s" + (t ? t.slot : 1) + ")");
       box.appendChild(rule);
       cell.appendChild(box);
       hr.appendChild(cell);

@@ -28,6 +28,8 @@
     openStudent: null
   };
 
+  var GRAVES = "graves";   // такой же «день» в списке кондуитов, только без даты
+
   var MONTHS = ["января", "февраля", "марта", "апреля", "мая", "июня",
     "июля", "августа", "сентября", "октября", "ноября", "декабря"];
   var MONTHS_SHORT = ["янв", "фев", "мар", "апр", "мая", "июн",
@@ -185,7 +187,9 @@
 
     state.leaves = new Set(LEAVES.map(function (l) { return l.key; }));
     state.series = new Set(DATA.series.map(function (s) { return s.n; }));
-    state.openSeries = DATA.series.length ? DATA.series[DATA.series.length - 1].n : 1;
+    state.openSeries = DATA.series.length
+      ? DATA.series[DATA.series.length - 1].n
+      : GRAVES;
 
     /* Лидер смены считается по всему сразу и не зависит от фильтров: он помечен
        одинаково на любой вкладке и при любом отборе. */
@@ -196,7 +200,8 @@
     return !!FULL && FULL.place[id] === 1 && FULL.rows[0].score > 0;
   }
 
-  var ALL_KINDS = new Set(["problem", "exercise", "grave"]);
+  var KINDS = [["problem", "Задачи"], ["exercise", "Упражнения"], ["grave", "Гробы"]];
+  var ALL_KINDS = new Set(KINDS.map(function (p) { return p[0]; }));
 
   function allLeaves() {
     return new Set(LEAVES.map(function (l) { return l.key; }));
@@ -249,9 +254,17 @@
 
   // ── общие детали ────────────────────────────────────────
 
+  /* Заливку задаём картинкой-градиентом, а не цветом: браузеры с принудительной
+     тёмной темой (Samsung Internet, Chrome) перекрашивают background-color и не
+     трогают background-image. */
+  function paint(node, color) {
+    node.style.backgroundColor = color;
+    node.style.backgroundImage = "linear-gradient(" + color + "," + color + ")";
+  }
+
   function dot(slot) {
     var d = el("span", "dot");
-    d.style.background = "var(--s" + slot + ")";
+    paint(d, "var(--s" + slot + ")");
     return d;
   }
 
@@ -370,35 +383,26 @@
     });
     card.appendChild(r1);
 
-    /* Вид задания — признак, с темой не связанный. Показываем строку, только
-       если есть из чего выбирать: одни задачи без упражнений и гробов —
-       выбор из одного пункта, он не нужен. */
-    var kinds = [["problem", "Задачи"], ["exercise", "Упражнения"], ["grave", "Гробы"]]
-      .filter(function (pair) {
-        return UNITS.some(function (u) { return u.kind === pair[0]; });
-      });
+    // вид задания — признак, с темой не связанный
+    var r3 = el("div", "filter-row");
+    var h3 = el("div", "filter-head");
+    h3.appendChild(el("span", "filter-title", "Что считаем"));
+    r3.appendChild(h3);
 
-    if (kinds.length > 1) {
-      var r3 = el("div", "filter-row");
-      var h3 = el("div", "filter-head");
-      h3.appendChild(el("span", "filter-title", "Что считаем"));
-      r3.appendChild(h3);
-
-      var c3 = el("div", "chips");
-      kinds.forEach(function (pair) {
-        var on = state.kinds.has(pair[0]);
-        var b = el("button", "chip", pair[1]);
-        b.type = "button";
-        b.setAttribute("aria-pressed", on ? "true" : "false");
-        b.addEventListener("click", function () {
-          if (on) state.kinds.delete(pair[0]); else state.kinds.add(pair[0]);
-          render();
-        });
-        c3.appendChild(b);
+    var c3 = el("div", "chips");
+    KINDS.forEach(function (pair) {
+      var on = state.kinds.has(pair[0]);
+      var b = el("button", "chip", pair[1]);
+      b.type = "button";
+      b.setAttribute("aria-pressed", on ? "true" : "false");
+      b.addEventListener("click", function () {
+        if (on) state.kinds.delete(pair[0]); else state.kinds.add(pair[0]);
+        render();
       });
-      r3.appendChild(c3);
-      card.appendChild(r3);
-    }
+      c3.appendChild(b);
+    });
+    r3.appendChild(c3);
+    card.appendChild(r3);
 
     // серии
     var r2 = el("div", "filter-row");
@@ -583,7 +587,7 @@
   // ── вид: кондуиты ───────────────────────────────────────
 
   function viewSeries(host) {
-    if (!DATA.series.length) {
+    if (!DATA.series.length && !graves().length) {
       var none = el("div", "card");
       none.appendChild(el("div", "section-title", "Кондуитов пока нет"));
       host.appendChild(none);
@@ -601,8 +605,23 @@
         render();
       }));
     });
+
+    // гробарий стоит в том же ряду, что и дни: это такой же кондуит, только без даты
+    var gb = el("button", "chip day pick");
+    gb.type = "button";
+    gb.setAttribute("aria-pressed", state.openSeries === GRAVES ? "true" : "false");
+    gb.appendChild(el("b", null, "Г"));
+    gb.appendChild(el("small", null, "гробы"));
+    gb.addEventListener("click", function () {
+      state.openSeries = GRAVES;
+      render();
+    });
+    chips.appendChild(gb);
+
     picker.appendChild(chips);
     host.appendChild(picker);
+
+    if (state.openSeries === GRAVES) return viewGraveConduit(host);
 
     var s = DATA.series.filter(function (x) { return x.n === state.openSeries; })[0];
     if (!s) return;
@@ -613,7 +632,6 @@
 
     var sh = el("div", "section-head");
     sh.appendChild(el("span", "section-title", "Серия " + s.n));
-    var exCount = s.problems.filter(function (p) { return p.exercise; }).length;
     sh.appendChild(el("span", "section-note", prettyDate(s.date)));
     host.appendChild(sh);
 
@@ -626,10 +644,45 @@
       return [byId[p.id].solvers.length, byId[p.id].weight];
     }));
 
-    // легенда — только темы, встретившиеся в этой серии
+    host.appendChild(legend(s.problems));
+  }
+
+  /* Гробарий в том же виде, что и день: сетка «ученики × задачи», внизу сколько
+     человек взяло гроб и сколько он стоит. Порядок строк — по гробам, а не по
+     общему рейтингу: иначе таблица не про них. */
+  function viewGraveConduit(host) {
+    var list = graves();
+    if (!list.length) {
+      var none = el("div", "card");
+      none.appendChild(el("div", "section-title", "Гробов пока нет"));
+      host.appendChild(none);
+      return;
+    }
+
+    var byId = {};
+    UNITS.forEach(function (u) { if (u.kind === "grave") byId[u.id] = u; });
+
+    var sh = el("div", "section-head");
+    sh.appendChild(el("span", "section-title", "Гробарий"));
+    host.appendChild(sh);
+
+    var order = computeRating(new Set(), allLeaves(), new Set(["grave"])).rows;
+
+    host.appendChild(conduitTables(list, order, function (p, r) {
+      return byId[p.id].solverSet.has(r.id) ? el("div", "mark on", "+") : el("div", "mark");
+    }, function (p) {
+      return [byId[p.id].solvers.length, byId[p.id].weight];
+    }));
+
+    host.appendChild(legend(list));
+  }
+
+  // легенда — только темы, встретившиеся в этом кондуите
+  function legend(problems) {
     var used = {};
-    s.problems.forEach(function (p) { used[leafKey(p.type, p.sub)] = true; });
-    var legend = el("div", "legend");
+    problems.forEach(function (p) { used[leafKey(p.type, p.sub)] = true; });
+
+    var box = el("div", "legend");
     DATA.types.forEach(function (t) {
       var mine = catLeaves(t.id).filter(function (l) { return used[l.key]; });
       if (!mine.length) return;
@@ -638,15 +691,16 @@
       var names = mine.map(function (l) { return l.subName; }).filter(Boolean);
       item.appendChild(document.createTextNode(
         t.name + (names.length ? " · " + names.join(", ") : "")));
-      legend.appendChild(item);
+      box.appendChild(item);
     });
-    if (exCount) {
+
+    if (problems.some(function (p) { return p.exercise; })) {
       var ex = el("span", "legend-item");
       ex.appendChild(el("span", "phead-id ex", "0"));
       ex.appendChild(document.createTextNode("упражнение"));
-      legend.appendChild(ex);
+      box.appendChild(ex);
     }
-    host.appendChild(legend);
+    return box;
   }
 
   // ── вид: ученики ────────────────────────────────────────
@@ -756,7 +810,7 @@
     var track = el("div", "track");
     var fill = el("i");
     fill.style.width = Math.round(share * 100) + "%";
-    fill.style.background = "var(--s" + slot + ")";
+    paint(fill, "var(--s" + slot + ")");
     track.appendChild(fill);
     return track;
   }
