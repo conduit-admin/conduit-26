@@ -254,17 +254,13 @@
 
   // ── общие детали ────────────────────────────────────────
 
-  /* Заливку задаём картинкой-градиентом, а не цветом: браузеры с принудительной
-     тёмной темой (Samsung Internet, Chrome) перекрашивают background-color и не
-     трогают background-image. */
-  function paint(node, color) {
-    node.style.backgroundColor = color;
-    node.style.backgroundImage = "linear-gradient(" + color + "," + color + ")";
-  }
-
+  /* Заливка задаётся обычным цветом. Приём с картинкой-градиентом вместо цвета
+     здесь вреден: в Samsung Internet затемняются как раз градиенты, а плоский
+     цвет остаётся как задан. Проверено на самом кондуите — полоска темы там
+     единственная осталась на чистом цвете и единственная рисовалась верно. */
   function dot(slot) {
     var d = el("span", "dot");
-    paint(d, "var(--s" + slot + ")");
+    d.style.background = "var(--s" + slot + ")";
     return d;
   }
 
@@ -545,7 +541,7 @@
       var slot = leaf ? leaf.slot : (CAT[p.type] ? CAT[p.type].slot : 1);
       var cell = el("th");
       var box = el("div", "phead");
-      box.appendChild(el("div", "phead-id" + (p.exercise ? " ex" : ""), p.id));
+      box.appendChild(el("div", "phead-id", p.id));
       var rule = el("div", "phead-rule");
       rule.style.background = "var(--s" + slot + ")";
       box.appendChild(rule);
@@ -693,13 +689,6 @@
         t.name + (names.length ? " · " + names.join(", ") : "")));
       box.appendChild(item);
     });
-
-    if (problems.some(function (p) { return p.exercise; })) {
-      var ex = el("span", "legend-item");
-      ex.appendChild(el("span", "phead-id ex", "0"));
-      ex.appendChild(document.createTextNode("упражнение"));
-      box.appendChild(ex);
-    }
     return box;
   }
 
@@ -810,7 +799,7 @@
     var track = el("div", "track");
     var fill = el("i");
     fill.style.width = Math.round(share * 100) + "%";
-    paint(fill, "var(--s" + slot + ")");
+    fill.style.background = "var(--s" + slot + ")";
     track.appendChild(fill);
     return track;
   }

@@ -362,8 +362,7 @@ body {
   height: 5px;
   border-radius: 50%;
   flex: none;
-  background-color: var(--accent);
-  background-image: linear-gradient(var(--accent), var(--accent));
+  background: var(--accent);
 }
 
 .chip.sub[aria-pressed="true"] { color: var(--ink); }
@@ -502,18 +501,15 @@ table.data tr.clickable { cursor: pointer; }
 .delta.down { color: var(--bad); }
 .delta.same { color: var(--ink-muted); }
 
-/* Цветные заливки заданы картинкой-градиентом, а не цветом: браузеры с
-   принудительной тёмной темой (Samsung Internet, Chrome) перекрашивают
-   background-color и не трогают background-image. Отсюда прежняя жалоба, что
-   полоски решаемости темнее, чем кружки тем: цвет один, а перекрашивались
-   они по-разному. */
+/* Все цветные заливки — чистым цветом, без картинок-градиентов. Градиент здесь
+   пробовался как защита от принудительной тёмной темы и дал обратный эффект:
+   в Samsung Internet тускнеет именно он, а плоский цвет остаётся как задан. */
 .bar {
   display: inline-block;
   vertical-align: middle;
   height: 7px;
   border-radius: 4px;
-  background-color: var(--s1);
-  background-image: linear-gradient(var(--s1), var(--s1));
+  background: var(--s1);
   min-width: 2px;
 }
 
@@ -523,8 +519,7 @@ table.data tr.clickable { cursor: pointer; }
   width: 74px;
   height: 7px;
   border-radius: 4px;
-  background-color: var(--cell-off);
-  background-image: linear-gradient(var(--cell-off), var(--cell-off));
+  background: var(--cell-off);
   overflow: hidden;
   margin-right: 8px;
 }
@@ -634,13 +629,6 @@ table.conduit thead th {
   letter-spacing: -0.02em;
 }
 
-/* упражнение отличается от задачи не темой, а видом — помечаем номер */
-.phead-id.ex {
-  font-style: italic;
-  color: var(--ink-muted);
-  border-bottom: 1px dotted var(--axis);
-}
-
 .phead-rule {
   width: 20px;
   height: 3px;
@@ -675,13 +663,11 @@ td.cell {
   font-weight: 700;
   line-height: 1;
   color: transparent;
-  background-color: var(--cell-off);
-  background-image: linear-gradient(var(--cell-off), var(--cell-off));
+  background: var(--cell-off);
 }
 
 .mark.on {
-  background-color: var(--cell-on);
-  background-image: linear-gradient(var(--cell-on), var(--cell-on));
+  background: var(--cell-on);
   color: var(--cell-ink);
 }
 
@@ -817,8 +803,7 @@ table.conduit tfoot tr.weights td { color: var(--ink-2); font-weight: 560; }
 .track {
   height: 8px;
   border-radius: 4px;
-  background-color: var(--cell-off);
-  background-image: linear-gradient(var(--cell-off), var(--cell-off));
+  background: var(--cell-off);
   overflow: hidden;
 }
 
