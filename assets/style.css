@@ -1027,6 +1027,17 @@ select.input { padding-right: 6px; }
   background: var(--s2);
 }
 
+/* номер гроба не правится: он всегда «Гn» и выдаётся следующим свободным */
+.grave-id {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  font-size: 15px;
+  font-weight: 560;
+  font-variant-numeric: tabular-nums;
+}
+
 .chip.day.new { border-style: dashed; }
 .chip.day.new b { font-size: 15px; }
 

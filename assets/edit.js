@@ -19,6 +19,7 @@
     series: null,       // открытая серия {n, date, problems, solved}
     isNew: false,
     dirty: false,
+    graves: null,       // правка гробария, пока не сохранена
     typesEdit: null,    // правка тем, пока не сохранена
     busy: false,
     note: "",
@@ -245,13 +246,6 @@
     state.dirty = true;
     state.note = "";
     state.noteKind = "";
-  }
-
-  function toggleMark(studentId, pid) {
-    var list = state.series.solved[studentId] || (state.series.solved[studentId] = []);
-    var i = list.indexOf(pid);
-    if (i === -1) list.push(pid); else list.splice(i, 1);
-    touch();
   }
 
   function solvedCount(pid) {
@@ -519,6 +513,185 @@
     state.note = "Нужен токен";
     state.noteKind = "bad";
     render();
+  }
+
+  // ── гробарий ────────────────────────────────────────────
+
+  /* Гробы живут отдельным файлом: они не привязаны ко дню, копятся всю смену
+     и на сайте включаются в рейтинг отдельным переключателем. Номер всегда
+     «Гn» — поэтому он не редактируется, а выдаётся следующим свободным. */
+
+  function ensureGraves() {
+    if (!state.graves) {
+      state.graves = JSON.parse(JSON.stringify(DATA.graves));
+    }
+    DATA.students.forEach(function (s) {
+      if (!state.graves.solved[s.id]) state.graves.solved[s.id] = [];
+    });
+    return state.graves;
+  }
+
+  function graveNum(id) {
+    var m = String(id).match(/(\d+)/);
+    return m ? Number(m[1]) : 0;
+  }
+
+  function cmpGraves(a, b) { return graveNum(a) - graveNum(b); }
+
+  function gravesPayload(g) {
+    var solved = {};
+    DATA.students.forEach(function (s) {
+      solved[s.id] = (((g && g.solved) || {})[s.id] || []).slice().sort(cmpGraves);
+    });
+    return {
+      problems: (((g && g.problems) || [])).map(function (p) {
+        return { id: p.id, type: p.type, sub: p.sub || null };
+      }),
+      solved: solved
+    };
+  }
+
+  function gravesDirty() {
+    return !!state.graves &&
+      JSON.stringify(gravesPayload(state.graves)) !==
+      JSON.stringify(gravesPayload(DATA.graves));
+  }
+
+  function touchGraves() {
+    state.note = "";
+    state.noteKind = "";
+  }
+
+  function addGrave() {
+    var g = ensureGraves();
+    var max = 0;
+    g.problems.forEach(function (p) {
+      var n = graveNum(p.id);
+      if (n > max) max = n;
+    });
+    var first = types()[0];
+    g.problems.push({
+      id: "Г" + (max + 1),
+      type: first.id,
+      sub: first.subs && first.subs.length ? first.subs[0].id : null
+    });
+    touchGraves();
+  }
+
+  function removeGrave(id) {
+    var g = ensureGraves();
+    g.problems = g.problems.filter(function (p) { return p.id !== id; });
+    Object.keys(g.solved).forEach(function (sid) {
+      g.solved[sid] = g.solved[sid].filter(function (x) { return x !== id; });
+    });
+    touchGraves();
+  }
+
+  function graveSolvers() {
+    var g = ensureGraves();
+    return DATA.students.reduce(function (a, s) {
+      return a + (g.solved[s.id] || []).length;
+    }, 0);
+  }
+
+  function saveGraves() {
+    if (state.busy) return;
+    if (!TOKEN) return needToken();
+    if (!gravesDirty()) return;
+
+    var payload = gravesPayload(state.graves);
+    var pluses = graveSolvers();
+
+    state.busy = true;
+    state.note = "";
+    state.noteKind = "";
+    render();
+
+    getFile("data/graves.json")
+      .then(function (cur) {
+        return putFile("data/graves.json", JSON.stringify(payload, null, 2) + "\n",
+          "Гробарий: " + withNum(payload.problems.length, "гроб", "гроба", "гробов") +
+          ", " + withNum(pluses, "плюс", "плюса", "плюсов"),
+          cur && cur.sha);
+      })
+      .then(function () {
+        state.busy = false;
+        state.note = "Сохранено";
+        state.noteKind = "good";
+        return reload();
+      })
+      .catch(function (err) {
+        state.busy = false;
+        state.note = "Не сохранилось: " + err.message;
+        state.noteKind = "bad";
+        render();
+      });
+  }
+
+  function viewGraves(host) {
+    var g = ensureGraves();
+
+    var card = el("div", "card");
+    g.problems.forEach(function (p) { card.appendChild(graveRow(p)); });
+
+    var actions = el("div", "frow gap");
+    actions.appendChild(button("+ гроб", "ghost-btn", function () {
+      addGrave();
+      render();
+    }));
+    card.appendChild(actions);
+    host.appendChild(card);
+
+    if (g.problems.length) {
+      var sh = el("div", "section-head");
+      sh.appendChild(el("span", "section-title", "Кто решил"));
+      host.appendChild(sh);
+      host.appendChild(conduitGrid(g.problems, g.solved, function () {
+        touchGraves();
+        refreshSaveCard();
+      }));
+    }
+
+    var save = el("div", "card savecard");
+    save.appendChild(el("div", "savecard-main"));
+    var b = button(state.busy ? "…" : "Сохранить", "primary-btn", saveGraves);
+    b.disabled = state.busy || !gravesDirty();
+    save.appendChild(b);
+    host.appendChild(save);
+  }
+
+  function graveRow(p) {
+    var wrap = el("div", "prow-wrap");
+    var row = el("div", "prow");
+
+    row.appendChild(el("span", "grave-id", p.id));
+
+    var t = typeById(p.type);
+    var sub = t && (t.subs || []).filter(function (s) { return s.id === p.sub; })[0];
+    var open = state.pickTheme === p.id;
+
+    var pick = el("button", "picker-btn" + (open ? " open" : ""));
+    pick.type = "button";
+    var label = el("span", "picker-label");
+    label.appendChild(dot(t ? t.slot : 1));
+    label.appendChild(document.createTextNode(
+      (t ? t.name : "тема?") + (sub ? " · " + sub.name : "")));
+    pick.appendChild(label);
+    pick.appendChild(el("span", "picker-caret", "▾"));
+    pick.addEventListener("click", function () {
+      state.pickTheme = open ? null : p.id;
+      render();
+    });
+    row.appendChild(pick);
+
+    row.appendChild(button("×", "icon-btn", function () {
+      removeGrave(p.id);
+      render();
+    }));
+
+    wrap.appendChild(row);
+    if (open) wrap.appendChild(themeChooser(p, false, touchGraves));
+    return wrap;
   }
 
   // ── темы ────────────────────────────────────────────────
@@ -797,7 +970,11 @@
       var sh2 = el("div", "section-head");
       sh2.appendChild(el("span", "section-title", "Кондуит"));
       host.appendChild(sh2);
-      host.appendChild(grid());
+      host.appendChild(conduitGrid(state.series.problems, state.series.solved,
+        function () {
+          touch();
+          refreshSaveCard();
+        }));
     }
 
     host.appendChild(saveBar());
@@ -907,28 +1084,33 @@
     }));
 
     wrap.appendChild(row);
-    if (open) wrap.appendChild(themeChooser(p));
+    if (open) wrap.appendChild(themeChooser(p, true, touch));
     return wrap;
   }
 
-  function themeChooser(p) {
+  /* Один и тот же выбор темы для задачи серии и для гроба. У гроба нет выбора
+     «задача или упражнение», и правка помечает другой файл — отсюда два
+     параметра. */
+  function themeChooser(p, withKind, touch) {
     var box = el("div", "chooser");
 
-    // вид задания — признак, не связанный с темой
-    var kinds = el("div", "chips");
-    [[false, "Задача"], [true, "Упражнение"]].forEach(function (pair) {
-      var b = el("button", "chip pick", pair[1]);
-      b.type = "button";
-      b.setAttribute("aria-pressed", !!p.exercise === pair[0] ? "true" : "false");
-      b.addEventListener("click", function () {
-        p.exercise = pair[0];
-        touch();
-        render();
+    if (withKind) {
+      // вид задания — признак, не связанный с темой
+      var kinds = el("div", "chips");
+      [[false, "Задача"], [true, "Упражнение"]].forEach(function (pair) {
+        var b = el("button", "chip pick", pair[1]);
+        b.type = "button";
+        b.setAttribute("aria-pressed", !!p.exercise === pair[0] ? "true" : "false");
+        b.addEventListener("click", function () {
+          p.exercise = pair[0];
+          touch();
+          render();
+        });
+        kinds.appendChild(b);
       });
-      kinds.appendChild(b);
-    });
-    box.appendChild(kinds);
-    box.appendChild(el("div", "chooser-sep"));
+      box.appendChild(kinds);
+      box.appendChild(el("div", "chooser-sep"));
+    }
 
     var cats = el("div", "chips");
     types().forEach(function (t) {
@@ -983,11 +1165,29 @@
   }
 
   /* Как и на сайте: фамилии — отдельной таблицей слева, клетки прокручиваются
-     справа. Залипающий столбец на телефоне налезал на имена. */
-  function grid() {
-    var problems = state.series.problems;
+     справа. Залипающий столбец на телефоне налезал на имена.
+
+     Сетка одна на серию и на гробарий: ей передают список задач, отметки и
+     что сделать после касания. Подписи она пересчитывает сама, не перерисовывая
+     таблицу — иначе на каждом плюсе сбивалась бы прокрутка. */
+  function conduitGrid(problems, solved, onChange) {
     var leader = leaderId();
     var split = el("div", "conduit-split");
+
+    function marked(sid, pid) {
+      var list = solved[sid];
+      return !!list && list.indexOf(pid) !== -1;
+    }
+
+    function rowCount(sid) { return (solved[sid] || []).length; }
+
+    function colCount(pid) {
+      return DATA.students.filter(function (s) { return marked(s.id, pid); }).length;
+    }
+
+    function allCount() {
+      return DATA.students.reduce(function (a, s) { return a + rowCount(s.id); }, 0);
+    }
 
     var names = el("table", "conduit names");
     var nHead = el("thead");
@@ -1041,36 +1241,37 @@
       var tr = el("tr", "crow");
       problems.forEach(function (p) {
         var td = el("td", "cell");
-        var isOn = (state.series.solved[st.id] || []).indexOf(p.id) !== -1;
+        var isOn = marked(st.id, p.id);
         var b = el("button", "mark" + (isOn ? " on" : ""), isOn ? "+" : "");
         b.type = "button";
-        b.setAttribute("aria-label", st.name +
-          (p.exercise ? ", упражнение " : ", задача ") + p.id);
+        b.setAttribute("aria-label", st.name + ", " + p.id);
         b.addEventListener("click", function () {
-          toggleMark(st.id, p.id);
-          var on = (state.series.solved[st.id] || []).indexOf(p.id) !== -1;
+          var list = solved[st.id] || (solved[st.id] = []);
+          var i = list.indexOf(p.id);
+          if (i === -1) list.push(p.id); else list.splice(i, 1);
+
+          var on = i === -1;
           b.className = "mark" + (on ? " on pop" : "");
           b.textContent = on ? "+" : "";
           if (on) setTimeout(function () { b.classList.remove("pop"); }, 240);
-          updateCounters(table);
+          refresh();
         });
         td.appendChild(b);
         tr.appendChild(td);
       });
-      tr.appendChild(el("td", "pcount rowcount",
-        (state.series.solved[st.id] || []).length));
+      tr.appendChild(el("td", "pcount rowcount", rowCount(st.id)));
       tbody.appendChild(tr);
     });
     table.appendChild(tbody);
 
     var tfoot = el("tfoot");
     var f1 = el("tr");
-    problems.forEach(function (p) { f1.appendChild(el("td", "colcount", solvedCount(p.id))); });
-    f1.appendChild(el("td", "pcount total", totalPluses()));
+    problems.forEach(function (p) { f1.appendChild(el("td", "colcount", colCount(p.id))); });
+    f1.appendChild(el("td", "pcount total", allCount()));
     tfoot.appendChild(f1);
     var f2 = el("tr", "weights");
     problems.forEach(function (p) {
-      f2.appendChild(el("td", "colweight", DATA.config.students_total - solvedCount(p.id)));
+      f2.appendChild(el("td", "colweight", DATA.config.students_total - colCount(p.id)));
     });
     f2.appendChild(el("td", "pcount"));
     tfoot.appendChild(f2);
@@ -1078,6 +1279,26 @@
 
     scroll.appendChild(table);
     split.appendChild(scroll);
+
+    function refresh() {
+      var rows = table.querySelectorAll("tbody tr");
+      DATA.students.forEach(function (st, i) {
+        var c = rows[i] && rows[i].querySelector(".rowcount");
+        if (c) c.textContent = rowCount(st.id);
+      });
+
+      var cols = table.querySelectorAll(".colcount");
+      var ws = table.querySelectorAll(".colweight");
+      problems.forEach(function (p, i) {
+        var n = colCount(p.id);
+        if (cols[i]) cols[i].textContent = n;
+        if (ws[i]) ws[i].textContent = DATA.config.students_total - n;
+      });
+      var total = table.querySelector(".total");
+      if (total) total.textContent = allCount();
+      if (onChange) onChange();
+    }
+
     return split;
   }
 
@@ -1104,37 +1325,24 @@
     return best;
   }
 
-  /* Пересчёт подписей без перерисовки таблицы: перерисовка сбивала бы прокрутку
-     на каждом касании. */
-  function updateCounters(table) {
-    var rows = table.querySelectorAll("tbody tr");
-    DATA.students.forEach(function (st, i) {
-      var c = rows[i] && rows[i].querySelector(".rowcount");
-      if (c) c.textContent = (state.series.solved[st.id] || []).length;
-    });
-
-    var cols = table.querySelectorAll(".colcount");
-    var ws = table.querySelectorAll(".colweight");
-    state.series.problems.forEach(function (p, i) {
-      var n = solvedCount(p.id);
-      if (cols[i]) cols[i].textContent = n;
-      if (ws[i]) ws[i].textContent = DATA.config.students_total - n;
-    });
-    var total = table.querySelector(".total");
-    if (total) total.textContent = totalPluses();
-    refreshSaveCard();
-  }
-
+  /* Кнопку сохранения обновляем на месте: перерисовать экран нельзя, иначе на
+     каждом касании сбивалась бы прокрутка кондуита. */
   function refreshSaveCard() {
     var card = document.querySelector(".savecard");
     if (!card) return;
+    var b = card.querySelector(".primary-btn");
+
+    if (state.view === "graves") {
+      if (b) b.disabled = state.busy || !gravesDirty();
+      return;
+    }
+
     var problem = validate();
     var left = card.querySelector(".savecard-main");
     if (left) {
       clear(left);
       if (problem) left.appendChild(el("div", "savecard-title", problem));
     }
-    var b = card.querySelector(".primary-btn");
     if (b) b.disabled = state.busy || !!problem || !state.dirty;
   }
 
@@ -1369,6 +1577,7 @@
     }
 
     if (state.view === "series") viewSeries(main);
+    else if (state.view === "graves") viewGraves(main);
     else if (state.view === "themes") viewThemes(main);
     else if (state.view === "access") viewAccess(main);
   }
@@ -1384,12 +1593,13 @@
         state.note = "";
         state.noteKind = "";
         state.confirmSub = null;
+        state.pickTheme = null;
         render();
       });
     });
 
     window.addEventListener("beforeunload", function (e) {
-      if (state.busy || state.dirty || typesDirty()) {
+      if (state.busy || state.dirty || typesDirty() || gravesDirty()) {
         e.preventDefault();
         e.returnValue = "";
       }
@@ -1406,13 +1616,25 @@
           return r.json();
         });
     }
+    // гробария может ещё не быть в репозитории — заводим пустой
+    var soft = get("graves.json").catch(function () {
+      return { problems: [], solved: {} };
+    });
     return Promise.all([
-      get("config.json"), get("types.json"), get("students.json"), get("series/manifest.json")
+      get("config.json"), get("types.json"), get("students.json"),
+      get("series/manifest.json"), soft
     ]).then(function (res) {
       return Promise.all(res[3].series.map(function (f) { return get("series/" + f); }))
         .then(function (series) {
           series.sort(function (a, b) { return a.n - b.n; });
-          return { config: res[0], types: res[1], students: res[2], series: series };
+          return {
+            config: res[0], types: res[1], students: res[2],
+            series: series,
+            graves: {
+              problems: res[4].problems || [],
+              solved: res[4].solved || {}
+            }
+          };
         });
     });
   }
@@ -1422,6 +1644,7 @@
       DATA = d;
       pruneSent();
       if (state.typesEdit && !typesDirty()) state.typesEdit = null;
+      if (state.graves && !gravesDirty()) state.graves = null;
       render();
     }).catch(function () { render(); });
   }

@@ -71,11 +71,17 @@ def stamp_config(version: str) -> None:
 
 def load_all() -> dict:
     manifest = read_json(DATA / "series" / "manifest.json")
+    graves_path = DATA / "graves.json"
     bundle = {
         "config": read_json(DATA / "config.json"),
         "types": read_json(DATA / "types.json"),
         "students": read_json(DATA / "students.json"),
         "series": [read_json(DATA / "series" / name) for name in manifest["series"]],
+        "graves": (
+            read_json(graves_path)
+            if graves_path.exists()
+            else {"problems": [], "solved": {}}
+        ),
     }
     bundle["config"]["offline_date"] = date.today().isoformat()
     return bundle
@@ -117,7 +123,8 @@ def main() -> None:
     print(f"версия статики: {version}")
     print(f"offline.html — {OUT.stat().st_size / 1024:.0f} КБ, снимок от {date.today():%d.%m.%Y}")
     print(f"данные: {len(bundle['students'])} учеников, "
-          f"{len(bundle['series'])} серий, {cells} задач")
+          f"{len(bundle['series'])} серий, {cells} задач, "
+          f"{len(bundle['graves']['problems'])} гробов")
 
 
 if __name__ == "__main__":

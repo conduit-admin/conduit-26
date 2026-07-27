@@ -23,7 +23,7 @@
     view: "rating",
     leaves: new Set(),
     series: new Set(),
-    kinds: new Set(["problem", "exercise"]),
+    kinds: new Set(["problem", "exercise", "grave"]),
     openSeries: 1,
     openStudent: null
   };
@@ -87,6 +87,14 @@
 
   function leafKey(catId, subId) { return catId + "/" + (subId || ""); }
 
+  /* Гробарий — задачи вне серий: они не привязаны ко дню и потому не попадают
+     под отбор по сериям, зато включаются и выключаются отдельным признаком. */
+  function graves() { return (DATA.graves && DATA.graves.problems) || []; }
+
+  function graveSolved(id) {
+    return (DATA.graves && DATA.graves.solved && DATA.graves.solved[id]) || [];
+  }
+
   function buildIndex() {
     CAT = {};
     DATA.types.forEach(function (t) { CAT[t.id] = t; });
@@ -96,6 +104,7 @@
     DATA.series.forEach(function (s) {
       s.problems.forEach(function (p) { seen[leafKey(p.type, p.sub)] = true; });
     });
+    graves().forEach(function (p) { seen[leafKey(p.type, p.sub)] = true; });
 
     LEAVES = [];
     LEAF = {};
@@ -157,6 +166,23 @@
       });
     });
 
+    graves().forEach(function (p) {
+      var solvers = [];
+      DATA.students.forEach(function (st) {
+        if (graveSolved(st.id).indexOf(p.id) !== -1) solvers.push(st.id);
+      });
+      UNITS.push({
+        sn: null,
+        id: p.id,
+        leafKey: leafKey(p.type, p.sub),
+        catId: p.type,
+        kind: "grave",
+        solvers: solvers,
+        solverSet: new Set(solvers),
+        weight: DATA.config.students_total - solvers.length
+      });
+    });
+
     state.leaves = new Set(LEAVES.map(function (l) { return l.key; }));
     state.series = new Set(DATA.series.map(function (s) { return s.n; }));
     state.openSeries = DATA.series.length ? DATA.series[DATA.series.length - 1].n : 1;
@@ -170,7 +196,7 @@
     return !!FULL && FULL.place[id] === 1 && FULL.rows[0].score > 0;
   }
 
-  var ALL_KINDS = new Set(["problem", "exercise"]);
+  var ALL_KINDS = new Set(["problem", "exercise", "grave"]);
 
   function allLeaves() {
     return new Set(LEAVES.map(function (l) { return l.key; }));
@@ -190,7 +216,8 @@
 
     var available = 0, ceiling = 0;
     UNITS.forEach(function (u) {
-      if (!seriesSet.has(u.sn) || !leafSet.has(u.leafKey) || !kindSet.has(u.kind)) return;
+      if (u.sn !== null && !seriesSet.has(u.sn)) return;
+      if (!leafSet.has(u.leafKey) || !kindSet.has(u.kind)) return;
       available += 1;
       ceiling += u.weight;
       u.solvers.forEach(function (id) {
@@ -219,10 +246,6 @@
   }
 
   function filtered() { return computeRating(state.series, state.leaves, state.kinds); }
-
-  function hasExercises() {
-    return UNITS.some(function (u) { return u.kind === "exercise"; });
-  }
 
   // ── общие детали ────────────────────────────────────────
 
@@ -347,15 +370,22 @@
     });
     card.appendChild(r1);
 
-    // задачи и упражнения — отдельный признак, с темой не связанный
-    if (hasExercises()) {
+    /* Вид задания — признак, с темой не связанный. Показываем строку, только
+       если есть из чего выбирать: одни задачи без упражнений и гробов —
+       выбор из одного пункта, он не нужен. */
+    var kinds = [["problem", "Задачи"], ["exercise", "Упражнения"], ["grave", "Гробы"]]
+      .filter(function (pair) {
+        return UNITS.some(function (u) { return u.kind === pair[0]; });
+      });
+
+    if (kinds.length > 1) {
       var r3 = el("div", "filter-row");
       var h3 = el("div", "filter-head");
       h3.appendChild(el("span", "filter-title", "Что считаем"));
       r3.appendChild(h3);
 
       var c3 = el("div", "chips");
-      [["problem", "Задачи"], ["exercise", "Упражнения"]].forEach(function (pair) {
+      kinds.forEach(function (pair) {
         var on = state.kinds.has(pair[0]);
         var b = el("button", "chip", pair[1]);
         b.type = "button";
@@ -641,7 +671,8 @@
     tiles.appendChild(tile("Задачи", row.pluses + " / " + f.available, null));
     var best = bestProblem(id);
     tiles.appendChild(tile("Самый ценный плюс", best ? "+" + best.weight : "—",
-      best ? "серия " + best.sn + ", задача " + best.id : null));
+      best ? (best.sn === null ? "гроб " + best.id
+        : "серия " + best.sn + ", задача " + best.id) : null));
     host.appendChild(tiles);
 
     var sh2 = el("div", "section-head");
@@ -705,7 +736,8 @@
     var set = new Set(keys);
     var total = 0, got = 0, score = 0, solvers = 0, weight = 0;
     UNITS.forEach(function (u) {
-      if (!set.has(u.leafKey) || !state.series.has(u.sn) || !state.kinds.has(u.kind)) return;
+      if (u.sn !== null && !state.series.has(u.sn)) return;
+      if (!set.has(u.leafKey) || !state.kinds.has(u.kind)) return;
       total += 1;
       solvers += u.solvers.length;
       weight += u.weight;
@@ -871,6 +903,9 @@
   function boot(data) {
     if (checkStale(data.config)) return;
     DATA = data;
+    DATA.graves = DATA.graves || { problems: [], solved: {} };
+    DATA.graves.problems = DATA.graves.problems || [];
+    DATA.graves.solved = DATA.graves.solved || {};
     DATA.series.sort(function (a, b) { return a.n - b.n; });
     buildIndex();
     setupChrome();
@@ -885,12 +920,20 @@
         return r.json();
       });
     }
+    // гробария может не быть — это не повод не открыть сайт
+    var soft = get("graves.json").catch(function () {
+      return { problems: [], solved: {} };
+    });
     return Promise.all([
-      get("config.json"), get("types.json"), get("students.json"), get("series/manifest.json")
+      get("config.json"), get("types.json"), get("students.json"),
+      get("series/manifest.json"), soft
     ]).then(function (res) {
       return Promise.all(res[3].series.map(function (f) { return get("series/" + f); }))
         .then(function (series) {
-          return { config: res[0], types: res[1], students: res[2], series: series };
+          return {
+            config: res[0], types: res[1], students: res[2],
+            series: series, graves: res[4]
+          };
         });
     });
   }
