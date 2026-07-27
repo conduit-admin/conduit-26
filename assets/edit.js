@@ -1127,7 +1127,7 @@
       none.type = "button";
       none.style.setProperty("--accent", "var(--s" + t.slot + ")");
       none.setAttribute("aria-pressed", p.sub ? "false" : "true");
-      none.appendChild(document.createTextNode("без уточнения"));
+      none.appendChild(document.createTextNode("прочее"));
       none.addEventListener("click", function () {
         p.sub = null;
         state.pickTheme = null;
@@ -1629,6 +1629,8 @@
   }
 
   document.addEventListener("DOMContentLoaded", function () {
+    // без слушателя касаний Safari на iPhone не применяет :active
+    document.addEventListener("touchstart", function () {}, { passive: true });
     TOKEN = lsGet(LS_TOKEN, null);
     loadSent();
     loadFromFiles().then(function (d) {

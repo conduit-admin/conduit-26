@@ -6,7 +6,7 @@
    Темы двухуровневые: раздел (Алгебра, Геометрия, Комбинаторика, Теория чисел)
    и необязательный подраздел. Единица фильтрации — «лист»: раздел без
    подразбиения или пара раздел+подраздел. Задача без указанного подраздела
-   попадает в лист «без уточнения» своего раздела — так новые подразделы можно
+   попадает в лист «прочее» своего раздела — так новые подразделы можно
    добавлять по ходу смены, ничего не ломая. */
 
 (function () {
@@ -45,18 +45,6 @@
   }
 
   function num(n) { return Number(n).toLocaleString("ru-RU"); }
-
-  function plural(n, one, few, many) {
-    var a = Math.abs(n) % 100, b = a % 10;
-    if (a > 10 && a < 20) return many;
-    if (b > 1 && b < 5) return few;
-    if (b === 1) return one;
-    return many;
-  }
-
-  function withNum(n, one, few, many) {
-    return num(n) + " " + plural(n, one, few, many);
-  }
 
   function prettyDate(iso, short) {
     var p = String(iso).split("-");
@@ -115,11 +103,11 @@
       subs.forEach(function (sub) {
         add(t, sub.id, sub.name, t.name + " · " + sub.name);
       });
-      // раздел без подразбиения — либо задачи, которым подраздел не проставили
-      if (!subs.length || seen[leafKey(t.id, null)]) {
-        add(t, null, subs.length ? "без уточнения" : null,
-          subs.length ? t.name + " · без уточнения" : t.name);
-      }
+      /* «Прочее» — задачи раздела без подраздела. Заводится всегда, даже когда
+         таких задач ещё нет: иначе чип появлялся бы и пропадал сам по себе, и
+         набор фильтров менялся бы под руками. */
+      if (subs.length) add(t, null, "прочее", t.name + " · прочее");
+      else add(t, null, null, t.name);
     });
 
     /* Подраздел мог появиться в данных раньше, чем в types.json (например,
@@ -833,22 +821,14 @@
 
   function statFor(keys, studentId) {
     var set = new Set(keys);
-    var total = 0, got = 0, score = 0, solvers = 0, weight = 0;
+    var total = 0, got = 0, score = 0;
     UNITS.forEach(function (u) {
       if (u.sn !== null && !state.series.has(u.sn)) return;
       if (!set.has(u.leafKey) || !state.kinds.has(u.kind)) return;
       total += 1;
-      solvers += u.solvers.length;
-      weight += u.weight;
-      if (studentId && u.solverSet.has(studentId)) { got += 1; score += u.weight; }
+      if (u.solverSet.has(studentId)) { got += 1; score += u.weight; }
     });
-    return {
-      total: total,
-      got: got,
-      score: score,
-      rate: total ? solvers / (total * DATA.config.students_total) : 0,
-      avgWeight: total ? weight / total : 0
-    };
+    return { total: total, got: got, score: score };
   }
 
   /* Шкала набрана мелкими блоками, а не одной заливкой. Причина внешняя: в
@@ -879,73 +859,6 @@
     return best;
   }
 
-  // ── вид: темы ───────────────────────────────────────────
-
-  function viewTypes(host) {
-    if (!UNITS.length) {
-      var none = el("div", "card");
-      none.appendChild(el("div", "section-title", "Задач пока нет"));
-      host.appendChild(none);
-      return;
-    }
-
-    var grid = el("div", "tcards");
-
-    DATA.types.forEach(function (t) {
-      var leaves = catLeaves(t.id);
-      if (!leaves.length) return;
-      var st = statFor(leaves.map(function (l) { return l.key; }), null);
-      if (!st.total) return;
-
-      var card = el("div", "card tcard");
-
-      var head = el("div", "tblock-head");
-      var nameBox = el("span", "type-name");
-      nameBox.appendChild(dot(t.slot));
-      nameBox.appendChild(el("b", null, t.name));
-      head.appendChild(nameBox);
-      head.appendChild(el("span", "type-val", withNum(st.total, "задача", "задачи", "задач")));
-      card.appendChild(head);
-
-      var facts = el("div", "tfacts");
-      facts.appendChild(fact("решаемость", pct(st.rate)));
-      var top = computeRating(state.series,
-        new Set(leaves.map(function (l) { return l.key; })), state.kinds).rows[0];
-      var best = el("div", "tfact");
-      best.appendChild(el("span", "tfact-label", "лучший"));
-      best.appendChild(top
-        ? nameCell("span", "tfact-value", top)
-        : el("span", "tfact-value", "—"));
-      facts.appendChild(best);
-      card.appendChild(facts);
-
-      if (leaves.length > 1 || leaves[0].subName) {
-        var subs = el("div", "tsubs");
-        leaves.forEach(function (l) {
-          var ls = statFor([l.key], null);
-          var line = el("div", "subline");
-          line.appendChild(el("span", "subline-name", l.subName || t.name));
-          line.appendChild(meter(ls.rate, t.slot));
-          line.appendChild(el("span", "subline-val",
-            ls.total + " " + plural(ls.total, "задача", "задачи", "задач") + " · " + pct(ls.rate)));
-          subs.appendChild(line);
-        });
-        card.appendChild(subs);
-      }
-
-      grid.appendChild(card);
-    });
-
-    host.appendChild(grid);
-  }
-
-  function fact(label, value) {
-    var f = el("div", "tfact");
-    f.appendChild(el("span", "tfact-label", label));
-    f.appendChild(el("span", "tfact-value", value));
-    return f;
-  }
-
   // ── каркас ──────────────────────────────────────────────
 
   var lastScene = null;
@@ -972,7 +885,6 @@
       if (state.openStudent) viewStudentCard(main, state.openStudent);
       else viewRating(main);
     } else if (state.view === "series") viewSeries(main);
-    else if (state.view === "types") viewTypes(main);
   }
 
   function setupChrome() {
@@ -1045,7 +957,15 @@
     });
   }
 
+  /* Пустой обработчик касания. Safari на iPhone не применяет :active, пока на
+     странице нет ни одного слушателя касаний, — без этой строки отклик на
+     нажатие там просто не сработает. */
+  function enableTouchFeedback() {
+    document.addEventListener("touchstart", function () {}, { passive: true });
+  }
+
   document.addEventListener("DOMContentLoaded", function () {
+    enableTouchFeedback();
     if (window.__CONDUIT__) { boot(window.__CONDUIT__); return; }
     loadFromFiles().then(boot).catch(function (err) {
       var main = document.getElementById("main");

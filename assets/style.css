@@ -747,16 +747,25 @@ table.conduit tfoot tr.weights td { color: var(--ink-2); font-weight: 560; }
 
 .section-note { font-size: 12.5px; color: var(--ink-muted); }
 
+/* та же маленькая кнопка, что «все» и «последние 5» */
 .back-btn {
   appearance: none;
-  border: 0;
-  background: none;
-  color: var(--s1);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--ink-2);
+  border-radius: 999px;
   font: inherit;
-  font-size: 13.5px;
-  padding: 4px 0;
+  font-size: 12px;
+  line-height: 1;
+  padding: 7px 12px;
   cursor: pointer;
-  margin-bottom: 6px;
+  margin-bottom: 10px;
+}
+
+.back-btn:hover {
+  background: var(--wash);
+  border-color: var(--border-strong);
+  color: var(--ink);
 }
 
 .type-name { display: inline-flex; align-items: center; gap: 8px; }
@@ -788,8 +797,6 @@ table.conduit tfoot tr.weights td { color: var(--ink-2); font-weight: 560; }
 .subline-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .subline-val { font-variant-numeric: tabular-nums; white-space: nowrap; }
 
-.subline-right { display: inline-flex; align-items: center; gap: 10px; white-space: nowrap; }
-
 .confirm {
   display: inline-flex;
   align-items: center;
@@ -799,29 +806,6 @@ table.conduit tfoot tr.weights td { color: var(--ink-2); font-weight: 560; }
 
 .confirm-text { color: var(--ink); font-size: 12.5px; }
 .mini-btn.danger { color: var(--bad); border-color: var(--bad); }
-
-/* вкладка «Темы» — карточками, а не широкой таблицей */
-.tcards {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
-  gap: 12px;
-  margin-top: 12px;
-}
-
-.tcard .subline { grid-template-columns: minmax(72px, 118px) 1fr auto; }
-
-.tfacts {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 18px;
-  margin: 9px 0 2px;
-}
-
-.tfact { display: flex; flex-direction: column; gap: 1px; }
-.tfact-label { font-size: 11px; color: var(--ink-muted); }
-.tfact-value { font-size: 14px; font-weight: 560; font-variant-numeric: tabular-nums; }
-
-.tsubs { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--grid); }
 
 /* Шкала решаемости — ряд мелких блоков вместо одной широкой заливки: крупную
    плоскую заливку принудительная тёмная тема телефона гасит, мелкую оставляет.
@@ -987,14 +971,36 @@ td .date { margin-left: 8px; font-size: 12px; }
 .back-btn:hover { opacity: .7; }
 .delta { transition: color .16s ease; }
 
-.chip, .ghost-btn, .primary-btn, .icon-btn, .mini-btn {
+/* Отклик на касание. На телефоне подсветка касания погашена нарочно, поэтому
+   без этого кнопки кажутся мёртвыми: нажал — и ничего. Сжатие берём
+   преобразованием, оно не трогает разметку и ничего не сдвигает вокруг. */
+.chip, .ghost-btn, .primary-btn, .icon-btn, .mini-btn, .back-btn,
+.tab, .cal-day, .cal-nav, .banner-close, .picker-btn {
   transition: background-color .14s ease, color .14s ease,
-              border-color .14s ease, transform .1s ease, opacity .14s ease;
+              border-color .14s ease, transform .12s ease, opacity .14s ease;
 }
 
 .chip:active, .ghost-btn:active, .primary-btn:active, .icon-btn:active {
-  transform: scale(.97);
+  transform: scale(.96);
 }
+
+/* мелкие кнопки сжимаются заметнее — на их размере .96 не разглядеть */
+.mini-btn:active, .back-btn:active, .banner-close:active { transform: scale(.92); }
+
+.tab:active { transform: scale(.94); }
+.cal-day:active, .cal-nav:active { transform: scale(.9); }
+.picker-btn:active { transform: scale(.99); }
+
+/* строка рейтинга — тоже кнопка: по ней открывается карточка ученика */
+table.data tr.clickable:active td { background: var(--wash); }
+table.data tr.clickable:active td.name { transform: translateX(2px); }
+
+/* клетка кондуита в редакторе: и сжатие, и вспышка кольцом при постановке */
+table.conduit.edit .mark { transition: background-color .14s ease, transform .1s ease; }
+table.conduit.edit .mark:active { transform: scale(.88); filter: brightness(.92); }
+
+.smini { transition: transform .12s ease, background-color .14s ease, border-color .14s ease; }
+.smini:active { transform: scale(.96); }
 
 table.data tbody tr { transition: background-color .12s ease; }
 .mark { transition: background-color .14s ease; }
@@ -1129,22 +1135,19 @@ select.input { padding-right: 6px; }
 .chip.day.new { border-style: dashed; }
 .chip.day.new b { font-size: 15px; }
 
-/* В редакторе клетка — кнопка. Отклик на нажатие сделан без transform:
-   преобразование поднимает клетку в отдельный слой, и при боковой прокрутке
-   она всплывала над залипшим столбцом фамилий. */
 table.conduit thead th:not(.pname):not(.pcount) {
   width: 38px;
   min-width: 38px;
 }
 
+/* В редакторе клетка — кнопка. Сжатие при нажатии безопасно: фамилии живут в
+   отдельной таблице, наехать на них клетке нечем. */
 table.conduit.edit .mark {
   appearance: none;
   border: 0;
   padding: 0;
   cursor: pointer;
 }
-
-table.conduit.edit .mark:active { filter: brightness(0.92); }
 
 @keyframes pop {
   0% { box-shadow: 0 0 0 0 var(--cell-on); }
@@ -1371,7 +1374,6 @@ body.is-editor .brand::after {
   .tile-value { font-size: 23px; }
   table.data td, table.data th { padding: 9px 8px; }
   .bar-track { display: none; }
-  .tcards { grid-template-columns: 1fr; }
   .pline { gap: 8px; }
   table.conduit th.pname, table.conduit td.pname {
     min-width: 118px;
