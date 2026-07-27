@@ -40,6 +40,7 @@
   --cell-off: #f4f3ee;
 
   --admin: #a1245e;
+  --leader: #8a6400;
 
   --radius: 10px;
   --tap: 44px;
@@ -72,10 +73,13 @@
     --s7: #9085e9;
     --s8: #e66767;
 
-    --cell-on: #46443d;
-    --cell-off: #232320;
+    /* в тёмной теме разница между клетками должна читаться сама по себе,
+       а не только по знаку внутри */
+    --cell-on: #63604f;
+    --cell-off: #201f1d;
 
     --admin: #f08fb8;
+    --leader: #e3b23c;
   }
 }
 
@@ -553,9 +557,16 @@ table.conduit tfoot td.pname {
   color: var(--ink-muted);
 }
 
-/* админ кондуита выделен цветом всюду, где встречается его имя */
-.admin { color: var(--admin); }
-td.pname.admin, .name.admin { font-weight: 600; }
+/* Админ кондуита помечен знаком, а не цветом: цвет отдан первому месту,
+   иначе две разные вещи спорили бы за одно средство. */
+.admin::after {
+  content: "✎";
+  margin-left: 6px;
+  font-size: 0.9em;
+  color: var(--admin);
+}
+
+.leader { color: var(--leader); font-weight: 600; }
 
 table.conduit thead th {
   position: sticky;
@@ -666,7 +677,7 @@ table.conduit tfoot tr.weights td { color: var(--ink-2); font-weight: 560; }
   margin: 22px 0 10px;
 }
 
-.section-title { font-size: 16px; font-weight: 600; }
+.section-title { font-size: 16px; font-weight: 600; white-space: nowrap; }
 
 .section-note { font-size: 12.5px; color: var(--ink-muted); }
 
@@ -1024,28 +1035,21 @@ table.conduit .pcount {
 table.conduit tbody .pcount { font-size: 12px; }
 table.conduit .pcount.total { color: var(--ink); font-weight: 600; }
 
-/* Режим редактора видно с первого взгляда: яркая полоса сверху и цветная
-   кромка страницы — чтобы не спутать редактор с публичным сайтом. */
+/* Режим редактора помечен двумя вещами: полосой сверху и карандашом
+   у заголовка — тем же цветом, которым помечен админ. */
 .editor-flag {
   position: sticky;
   top: 0;
   z-index: 40;
-  background: #d1560f;
-  color: #fff;
-  font-size: 12.5px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  text-align: center;
-  padding: 7px 12px calc(7px + env(safe-area-inset-top, 0px));
+  height: 5px;
+  background: var(--admin);
 }
 
-body.is-editor {
-  min-height: 100vh;
-  border-left: 3px solid #d1560f;
-  border-right: 3px solid #d1560f;
+body.is-editor .brand::after {
+  content: "✎";
+  margin-left: 8px;
+  color: var(--admin);
 }
-body.is-editor .brand::after { content: " ✎"; color: #d1560f; }
 
 /* карточка сохранения */
 .savecard {
@@ -1487,33 +1491,6 @@ body.is-editor .brand::after { content: " ✎"; color: #d1560f; }
     return UNITS.some(function (u) { return u.kind === "exercise"; });
   }
 
-  // ── подсказки ───────────────────────────────────────────
-
-  var tip = null;
-
-  function showTip(target, html) {
-    if (!tip) {
-      tip = el("div", "tip");
-      document.body.appendChild(tip);
-    }
-    tip.innerHTML = html;
-    tip.classList.add("show");
-    var r = target.getBoundingClientRect();
-    var t = tip.getBoundingClientRect();
-    var left = Math.min(Math.max(8, r.left + r.width / 2 - t.width / 2), window.innerWidth - t.width - 8);
-    var top = r.top - t.height - 8;
-    if (top < 8) top = r.bottom + 8;
-    tip.style.left = left + "px";
-    tip.style.top = top + "px";
-  }
-
-  function hideTip() { if (tip) tip.classList.remove("show"); }
-
-  function tipify(node, html) {
-    node.addEventListener("mouseenter", function () { showTip(node, html); });
-    node.addEventListener("mouseleave", hideTip);
-  }
-
   // ── общие детали ────────────────────────────────────────
 
   function dot(slot) {
@@ -1535,8 +1512,6 @@ body.is-editor .brand::after { content: " ✎"; color: #d1560f; }
     b.setAttribute("aria-pressed", pressed ? "true" : "false");
     b.appendChild(el("b", null, s.n));
     b.appendChild(el("small", null, prettyDate(s.date, true)));
-    tipify(b, "Серия " + s.n + " · " + prettyDate(s.date) + "<br>" +
-      withNum(s.problems.length, "задача", "задачи", "задач"));
     b.addEventListener("click", onClick);
     return b;
   }
@@ -1731,7 +1706,7 @@ body.is-editor .brand::after { content: " ✎"; color: #d1560f; }
     hr.appendChild(th("Ученик", "left"));
     hr.appendChild(th("Баллы"));
     hr.appendChild(th("Плюсы"));
-    hr.appendChild(th("Доля решённого", "left"));
+    hr.appendChild(th("Доля", "left"));
     thead.appendChild(hr);
     table.appendChild(thead);
 
@@ -1752,12 +1727,11 @@ body.is-editor .brand::after { content: " ✎"; color: #d1560f; }
         var cell = el("td");
         var span = el("span", "delta " + (d > 0 ? "up" : d < 0 ? "down" : "same"));
         span.textContent = d > 0 ? "▲ " + d : d < 0 ? "▼ " + (-d) : "—";
-        tipify(span, "Без фильтра — " + was + " место");
         cell.appendChild(span);
         tr.appendChild(cell);
       }
 
-      tr.appendChild(nameCell("td", "left name", r));
+      tr.appendChild(nameCell("td", "left name" + (r.rank === 1 ? " leader" : ""), r));
       tr.appendChild(el("td", "score", num(r.score)));
       tr.appendChild(el("td", "muted", r.pluses));
 
@@ -1842,10 +1816,6 @@ body.is-editor .brand::after { content: " ✎"; color: #d1560f; }
       rule.style.background = "var(--s" + slot + ")";
       box.appendChild(rule);
       cell.appendChild(box);
-      tipify(cell, (p.exercise ? "Упражнение " : "Задача ") + p.id + " · " +
-        (leaf ? leaf.label : p.type) +
-        "<br>решили " + byId[p.id].solvers.length + " из " + DATA.config.students_total +
-        " · вес " + byId[p.id].weight);
       hr.appendChild(cell);
     });
     thead.appendChild(hr);
@@ -1863,8 +1833,6 @@ body.is-editor .brand::after { content: " ✎"; color: #d1560f; }
         var on = u.solverSet.has(r.id);
         var td = el("td", "cell");
         td.appendChild(el("div", "mark" + (on ? " on" : ""), on ? "+" : ""));
-        tipify(td, r.name + "<br>" + (p.exercise ? "упражнение " : "задача ") + p.id +
-          " — " + (on ? "плюс, +" + u.weight : "нет"));
         tr.appendChild(td);
       });
       tbody.appendChild(tr);
@@ -1989,7 +1957,6 @@ body.is-editor .brand::after { content: " ✎"; color: #d1560f; }
       });
       var b = el("span", "smini");
       b.innerHTML = "С" + s.n + " · <b>" + got + "</b>/" + total + " · " + num(score);
-      tipify(b, prettyDate(s.date) + "<br>" + withNum(score, "балл", "балла", "баллов"));
       mini2.appendChild(b);
     });
     host.appendChild(mini2);
@@ -2110,7 +2077,6 @@ body.is-editor .brand::after { content: " ✎"; color: #d1560f; }
   var enterTimer = null;
 
   function render() {
-    hideTip();
     var main = document.getElementById("main");
     clear(main);
 
@@ -2151,8 +2117,6 @@ body.is-editor .brand::after { content: " ✎"; color: #d1560f; }
         render();
       });
     });
-
-    window.addEventListener("scroll", hideTip, { passive: true });
   }
 
   function boot(data) {

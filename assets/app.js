@@ -215,33 +215,6 @@
     return UNITS.some(function (u) { return u.kind === "exercise"; });
   }
 
-  // ── подсказки ───────────────────────────────────────────
-
-  var tip = null;
-
-  function showTip(target, html) {
-    if (!tip) {
-      tip = el("div", "tip");
-      document.body.appendChild(tip);
-    }
-    tip.innerHTML = html;
-    tip.classList.add("show");
-    var r = target.getBoundingClientRect();
-    var t = tip.getBoundingClientRect();
-    var left = Math.min(Math.max(8, r.left + r.width / 2 - t.width / 2), window.innerWidth - t.width - 8);
-    var top = r.top - t.height - 8;
-    if (top < 8) top = r.bottom + 8;
-    tip.style.left = left + "px";
-    tip.style.top = top + "px";
-  }
-
-  function hideTip() { if (tip) tip.classList.remove("show"); }
-
-  function tipify(node, html) {
-    node.addEventListener("mouseenter", function () { showTip(node, html); });
-    node.addEventListener("mouseleave", hideTip);
-  }
-
   // ── общие детали ────────────────────────────────────────
 
   function dot(slot) {
@@ -263,8 +236,6 @@
     b.setAttribute("aria-pressed", pressed ? "true" : "false");
     b.appendChild(el("b", null, s.n));
     b.appendChild(el("small", null, prettyDate(s.date, true)));
-    tipify(b, "Серия " + s.n + " · " + prettyDate(s.date) + "<br>" +
-      withNum(s.problems.length, "задача", "задачи", "задач"));
     b.addEventListener("click", onClick);
     return b;
   }
@@ -459,7 +430,7 @@
     hr.appendChild(th("Ученик", "left"));
     hr.appendChild(th("Баллы"));
     hr.appendChild(th("Плюсы"));
-    hr.appendChild(th("Доля решённого", "left"));
+    hr.appendChild(th("Доля", "left"));
     thead.appendChild(hr);
     table.appendChild(thead);
 
@@ -480,12 +451,11 @@
         var cell = el("td");
         var span = el("span", "delta " + (d > 0 ? "up" : d < 0 ? "down" : "same"));
         span.textContent = d > 0 ? "▲ " + d : d < 0 ? "▼ " + (-d) : "—";
-        tipify(span, "Без фильтра — " + was + " место");
         cell.appendChild(span);
         tr.appendChild(cell);
       }
 
-      tr.appendChild(nameCell("td", "left name", r));
+      tr.appendChild(nameCell("td", "left name" + (r.rank === 1 ? " leader" : ""), r));
       tr.appendChild(el("td", "score", num(r.score)));
       tr.appendChild(el("td", "muted", r.pluses));
 
@@ -570,10 +540,6 @@
       rule.style.background = "var(--s" + slot + ")";
       box.appendChild(rule);
       cell.appendChild(box);
-      tipify(cell, (p.exercise ? "Упражнение " : "Задача ") + p.id + " · " +
-        (leaf ? leaf.label : p.type) +
-        "<br>решили " + byId[p.id].solvers.length + " из " + DATA.config.students_total +
-        " · вес " + byId[p.id].weight);
       hr.appendChild(cell);
     });
     thead.appendChild(hr);
@@ -591,8 +557,6 @@
         var on = u.solverSet.has(r.id);
         var td = el("td", "cell");
         td.appendChild(el("div", "mark" + (on ? " on" : ""), on ? "+" : ""));
-        tipify(td, r.name + "<br>" + (p.exercise ? "упражнение " : "задача ") + p.id +
-          " — " + (on ? "плюс, +" + u.weight : "нет"));
         tr.appendChild(td);
       });
       tbody.appendChild(tr);
@@ -717,7 +681,6 @@
       });
       var b = el("span", "smini");
       b.innerHTML = "С" + s.n + " · <b>" + got + "</b>/" + total + " · " + num(score);
-      tipify(b, prettyDate(s.date) + "<br>" + withNum(score, "балл", "балла", "баллов"));
       mini2.appendChild(b);
     });
     host.appendChild(mini2);
@@ -838,7 +801,6 @@
   var enterTimer = null;
 
   function render() {
-    hideTip();
     var main = document.getElementById("main");
     clear(main);
 
@@ -879,8 +841,6 @@
         render();
       });
     });
-
-    window.addEventListener("scroll", hideTip, { passive: true });
   }
 
   function boot(data) {

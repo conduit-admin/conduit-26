@@ -31,6 +31,7 @@
   --cell-off: #f4f3ee;
 
   --admin: #a1245e;
+  --leader: #8a6400;
 
   --radius: 10px;
   --tap: 44px;
@@ -63,10 +64,13 @@
     --s7: #9085e9;
     --s8: #e66767;
 
-    --cell-on: #46443d;
-    --cell-off: #232320;
+    /* в тёмной теме разница между клетками должна читаться сама по себе,
+       а не только по знаку внутри */
+    --cell-on: #63604f;
+    --cell-off: #201f1d;
 
     --admin: #f08fb8;
+    --leader: #e3b23c;
   }
 }
 
@@ -544,9 +548,16 @@ table.conduit tfoot td.pname {
   color: var(--ink-muted);
 }
 
-/* админ кондуита выделен цветом всюду, где встречается его имя */
-.admin { color: var(--admin); }
-td.pname.admin, .name.admin { font-weight: 600; }
+/* Админ кондуита помечен знаком, а не цветом: цвет отдан первому месту,
+   иначе две разные вещи спорили бы за одно средство. */
+.admin::after {
+  content: "✎";
+  margin-left: 6px;
+  font-size: 0.9em;
+  color: var(--admin);
+}
+
+.leader { color: var(--leader); font-weight: 600; }
 
 table.conduit thead th {
   position: sticky;
@@ -657,7 +668,7 @@ table.conduit tfoot tr.weights td { color: var(--ink-2); font-weight: 560; }
   margin: 22px 0 10px;
 }
 
-.section-title { font-size: 16px; font-weight: 600; }
+.section-title { font-size: 16px; font-weight: 600; white-space: nowrap; }
 
 .section-note { font-size: 12.5px; color: var(--ink-muted); }
 
@@ -1015,28 +1026,21 @@ table.conduit .pcount {
 table.conduit tbody .pcount { font-size: 12px; }
 table.conduit .pcount.total { color: var(--ink); font-weight: 600; }
 
-/* Режим редактора видно с первого взгляда: яркая полоса сверху и цветная
-   кромка страницы — чтобы не спутать редактор с публичным сайтом. */
+/* Режим редактора помечен двумя вещами: полосой сверху и карандашом
+   у заголовка — тем же цветом, которым помечен админ. */
 .editor-flag {
   position: sticky;
   top: 0;
   z-index: 40;
-  background: #d1560f;
-  color: #fff;
-  font-size: 12.5px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  text-align: center;
-  padding: 7px 12px calc(7px + env(safe-area-inset-top, 0px));
+  height: 5px;
+  background: var(--admin);
 }
 
-body.is-editor {
-  min-height: 100vh;
-  border-left: 3px solid #d1560f;
-  border-right: 3px solid #d1560f;
+body.is-editor .brand::after {
+  content: "✎";
+  margin-left: 8px;
+  color: var(--admin);
 }
-body.is-editor .brand::after { content: " ✎"; color: #d1560f; }
 
 /* карточка сохранения */
 .savecard {
