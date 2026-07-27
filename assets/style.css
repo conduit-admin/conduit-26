@@ -98,7 +98,13 @@
   -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
 }
 
-html { -webkit-tap-highlight-color: rgba(0, 0, 0, 0); }
+html {
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+  /* Место под полосу прокрутки держим всегда. Без этого на короткой вкладке
+     («Темы») полоса пропадает, окно становится шире на её толщину, и вся
+     страница дёргается вбок при каждом переключении. */
+  scrollbar-gutter: stable;
+}
 
 /* Синий прямоугольник при касании складывается из двух вещей: подсветки самого
    касания и выделения текста внутри кнопки. Гасим обе, но оставляем видимую
@@ -836,6 +842,50 @@ table.conduit tfoot tr.weights td { color: var(--ink-2); font-weight: 560; }
   background: var(--meter-off);
 }
 
+/* шкала подтемы мельче шкалы раздела, но делений столько же */
+.meter.small > i { width: 7px; height: 7px; }
+
+/* Строка «название — шкала — счёт». Шкала и счёт имеют жёсткую ширину, имя
+   забирает остаток — поэтому шкала стоит на одном месте во всех строках, как
+   бы ни звалась тема. Отступ подтемы сделан внутри её колонки имени, а не
+   отступом строки: иначе он сдвинул бы и шкалу. */
+.pline {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 108px 54px;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 0;
+  max-width: 430px;
+}
+
+.pline.sub .pline-name { padding-left: 14px; }
+
+.pline-name {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 560;
+}
+
+.pline.sub .pline-name {
+  font-weight: 400;
+  font-size: 12.5px;
+  color: var(--ink-2);
+}
+
+.pline-val {
+  font-size: 12.5px;
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+td .date { margin-left: 8px; font-size: 12px; }
+
 .type-val {
   font-variant-numeric: tabular-nums;
   color: var(--ink-2);
@@ -1322,6 +1372,7 @@ body.is-editor .brand::after {
   table.data td, table.data th { padding: 9px 8px; }
   .bar-track { display: none; }
   .tcards { grid-template-columns: 1fr; }
+  .pline { gap: 8px; }
   table.conduit th.pname, table.conduit td.pname {
     min-width: 118px;
     font-size: 13px;

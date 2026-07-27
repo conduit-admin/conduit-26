@@ -732,27 +732,16 @@
       if (!leaves.length) return;
 
       var catStat = statFor(leaves.map(function (l) { return l.key; }), id);
+      if (!catStat.total) return;   // тема без задач ничего не говорит
+
       var block = el("div", "tblock");
-
-      var head = el("div", "tblock-head");
-      var nameBox = el("span", "type-name");
-      nameBox.appendChild(dot(t.slot));
-      nameBox.appendChild(el("b", null, t.name));
-      head.appendChild(nameBox);
-      head.appendChild(el("span", "type-val",
-        catStat.got + " / " + catStat.total + " · " + num(catStat.score)));
-      block.appendChild(head);
-
-      block.appendChild(meter(catStat.total ? catStat.got / catStat.total : 0, t.slot));
+      block.appendChild(statLine(t.name, dot(t.slot), catStat, t.slot, false));
 
       if (leaves.length > 1 || leaves[0].subName) {
         leaves.forEach(function (l) {
           var st = statFor([l.key], id);
-          var line = el("div", "subline");
-          line.appendChild(el("span", "subline-name", l.subName || t.name));
-          line.appendChild(el("span", "subline-val",
-            st.got + " / " + st.total + " · " + num(st.score)));
-          block.appendChild(line);
+          if (!st.total) return;
+          block.appendChild(statLine(l.subName || t.name, null, st, t.slot, true));
         });
       }
 
@@ -760,23 +749,86 @@
     });
     host.appendChild(card);
 
-    var sh3 = el("div", "section-head");
-    sh3.appendChild(el("span", "section-title", "По сериям"));
-    host.appendChild(sh3);
+    // гробы — списком: их немного, и каждый стоит дорого
+    if (graves().length) {
+      var sh3 = el("div", "section-head");
+      sh3.appendChild(el("span", "section-title", "Гробы"));
+      host.appendChild(sh3);
 
-    var mini2 = el("div", "series-mini");
+      var box = el("div", "series-mini");
+      var mine = UNITS.filter(function (u) {
+        return u.kind === "grave" && u.solverSet.has(id);
+      });
+      if (mine.length) {
+        mine.forEach(function (u) {
+          var chip = el("span", "smini");
+          chip.appendChild(el("b", null, u.id));
+          chip.appendChild(document.createTextNode(" +" + u.weight));
+          box.appendChild(chip);
+        });
+      } else {
+        box.appendChild(el("span", "muted", "—"));
+      }
+      host.appendChild(box);
+    }
+
+    var sh4 = el("div", "section-head");
+    sh4.appendChild(el("span", "section-title", "По сериям"));
+    host.appendChild(sh4);
+    host.appendChild(seriesTable(id));
+  }
+
+  /* Строка «название — шкала — сколько из скольких». Ширины колонок заданы
+     жёстко, чтобы шкала стояла на одном месте независимо от длины названия;
+     у подтемы шкала мельче, но начинается там же. */
+  function statLine(name, mark, stat, slot, small) {
+    var line = el("div", "pline" + (small ? " sub" : ""));
+
+    var label = el("span", "pline-name");
+    if (mark) label.appendChild(mark);
+    label.appendChild(document.createTextNode(name));
+    line.appendChild(label);
+
+    line.appendChild(meter(stat.total ? stat.got / stat.total : 0, slot, small));
+    line.appendChild(el("span", "pline-val", stat.got + "/" + stat.total));
+    return line;
+  }
+
+  function seriesTable(id) {
+    var wrap = el("div", "table-wrap");
+    var table = el("table", "data");
+
+    var thead = el("thead");
+    var hr = el("tr");
+    hr.appendChild(th("Серия", "left"));
+    hr.appendChild(th("Задачи"));
+    hr.appendChild(th("Очки"));
+    thead.appendChild(hr);
+    table.appendChild(thead);
+
+    var tbody = el("tbody");
     DATA.series.forEach(function (s) {
-      var got = 0, total = 0, score = 0;
+      var got = 0, total = 0, score = 0, ceiling = 0;
       UNITS.forEach(function (u) {
         if (u.sn !== s.n) return;
         total += 1;
+        ceiling += u.weight;
         if (u.solverSet.has(id)) { got += 1; score += u.weight; }
       });
-      var b = el("span", "smini");
-      b.innerHTML = "С" + s.n + " · <b>" + got + "</b>/" + total + " · " + num(score);
-      mini2.appendChild(b);
+
+      var tr = el("tr");
+      var first = el("td", "left");
+      first.appendChild(el("b", null, s.n));
+      first.appendChild(el("span", "muted date", prettyDate(s.date, true)));
+      tr.appendChild(first);
+      tr.appendChild(el("td", null, got + " / " + total));
+      tr.appendChild(el("td", null, num(score) + " / " + num(ceiling)));
+      tbody.appendChild(tr);
     });
-    host.appendChild(mini2);
+    table.appendChild(tbody);
+
+    wrap.appendChild(table);
+    return wrap;
   }
 
   function statFor(keys, studentId) {
@@ -806,8 +858,8 @@
      закрашенных блоков, а не только по цвету. */
   var METER_STEPS = 10;   // одна шкала на весь сайт: 10 квадратов — это 100%
 
-  function meter(share, slot) {
-    var box = el("div", "meter");
+  function meter(share, slot, small) {
+    var box = el("div", "meter" + (small ? " small" : ""));
     var on = Math.round(share * METER_STEPS);
     if (share > 0 && on === 0) on = 1;   // ненулевую долю показываем всегда
     for (var i = 0; i < METER_STEPS; i++) {
