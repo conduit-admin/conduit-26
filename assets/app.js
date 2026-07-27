@@ -425,16 +425,18 @@
 
     var f = renderFilters(host);
 
+    /* Ширины колонок закреплены: при автоматической раскладке они зависят от
+       самого длинного числа в столбце, и таблица переезжала при каждом
+       переключении фильтра. */
     var wrap = el("div", "table-wrap");
-    var table = el("table", "data");
+    var table = el("table", "data fixed");
     var thead = el("thead");
     var hr = el("tr");
     hr.appendChild(th("№", "rank"));
     hr.appendChild(th("Ученик", "left"));
-    hr.appendChild(th("Очки"));
-    hr.appendChild(th("Задачи"));
-    hr.appendChild(th("Ср. балл"));
-    hr.appendChild(th("%", "left"));
+    hr.appendChild(th("Очки", "c-score"));
+    hr.appendChild(th("Задачи", "c-tasks"));
+    hr.appendChild(th("Ср. балл", "c-avg"));
     thead.appendChild(hr);
     table.appendChild(thead);
 
@@ -453,16 +455,6 @@
       tr.appendChild(el("td", "muted", r.pluses));
       tr.appendChild(el("td", "muted", avgScore(r.score, r.pluses)));
 
-      var share = f.available ? r.pluses / f.available : 0;
-      var td = el("td", "left");
-      var track = el("span", "bar-track");
-      var bar = el("span", "bar");
-      bar.style.width = Math.max(2, Math.round(share * 74)) + "px";
-      track.appendChild(bar);
-      td.appendChild(track);
-      td.appendChild(el("span", "muted", pct(share)));
-      tr.appendChild(td);
-
       tbody.appendChild(tr);
     });
     table.appendChild(tbody);
@@ -475,7 +467,6 @@
     fr.appendChild(el("td", "score", num(f.ceiling)));
     fr.appendChild(el("td", "muted", f.available));
     fr.appendChild(el("td", "muted", avgScore(f.ceiling, f.available)));
-    fr.appendChild(el("td", "left muted", "100%"));
     tfoot.appendChild(fr);
     table.appendChild(tfoot);
 
@@ -629,7 +620,6 @@
       return [byId[p.id].solvers.length, byId[p.id].weight];
     }));
 
-    host.appendChild(legend(s.problems));
   }
 
   /* Гробарий в том же виде, что и день: сетка «ученики × задачи», внизу сколько
@@ -658,33 +648,12 @@
     }, function (p) {
       return [byId[p.id].solvers.length, byId[p.id].weight];
     }));
-
-    host.appendChild(legend(list));
-  }
-
-  // легенда — только темы, встретившиеся в этом кондуите
-  function legend(problems) {
-    var used = {};
-    problems.forEach(function (p) { used[leafKey(p.type, p.sub)] = true; });
-
-    var box = el("div", "legend");
-    DATA.types.forEach(function (t) {
-      var mine = catLeaves(t.id).filter(function (l) { return used[l.key]; });
-      if (!mine.length) return;
-      var item = el("span", "legend-item");
-      item.appendChild(dot(t.slot));
-      var names = mine.map(function (l) { return l.subName; }).filter(Boolean);
-      item.appendChild(document.createTextNode(
-        t.name + (names.length ? " · " + names.join(", ") : "")));
-      box.appendChild(item);
-    });
-    return box;
   }
 
   // ── вид: ученики ────────────────────────────────────────
 
   function viewStudentCard(host, id) {
-    var back = el("button", "back-btn", "← к рейтингу");
+    var back = el("button", "back-btn", "К рейтингу");
     back.type = "button";
     back.addEventListener("click", function () { state.openStudent = null; render(); });
     host.appendChild(back);
@@ -701,6 +670,13 @@
     tiles.appendChild(tile("Место", row.rank + " / " + DATA.students.length, null));
     tiles.appendChild(tile("Очки", num(row.score), "из " + num(f.ceiling)));
     tiles.appendChild(tile("Задачи", row.pluses + " / " + f.available, null));
+
+    // половина задач — рубеж, который стоит отметить
+    var share = f.available ? row.pluses / f.available : 0;
+    var pctTile = tile("Процент", pct(share), null);
+    if (share >= 0.5) pctTile.className = "tile hi";
+    tiles.appendChild(pctTile);
+
     var best = bestProblem(id);
     tiles.appendChild(tile("Самый ценный плюс", best ? "+" + best.weight : "—",
       best ? (best.sn === null ? "гроб " + best.id

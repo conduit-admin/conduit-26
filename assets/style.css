@@ -49,6 +49,9 @@
 
   --admin: #a1245e;
   --leader: #4f6b00;
+  /* отметка достижения — старое золото лидера, оно освободилось */
+  --accent-hi: #8a6400;
+  --accent-wash: rgba(138, 100, 0, 0.07);
 
   --radius: 10px;
   --tap: 44px;
@@ -92,6 +95,8 @@
 
     --admin: #f08fb8;
     --leader: #c9f24f;
+    --accent-hi: #e3b23c;
+    --accent-wash: rgba(227, 178, 60, 0.12);
   }
 }
 
@@ -486,6 +491,15 @@ body {
   margin-top: 2px;
 }
 
+/* плитка, отмечающая достижение: половина задач и выше */
+.tile.hi {
+  border-color: var(--accent-hi);
+  background: var(--accent-wash);
+}
+
+.tile.hi .tile-value { color: var(--accent-hi); }
+.tile.hi .tile-label { color: var(--accent-hi); opacity: .85; }
+
 /* ── таблицы ───────────────────────────────────────────── */
 
 .table-wrap {
@@ -499,6 +513,20 @@ table.data {
   width: 100%;
   border-collapse: collapse;
   font-variant-numeric: tabular-nums;
+}
+
+/* Колонки с числами закреплены по ширине, имя забирает остаток. При обычной
+   раскладке ширина столбца зависит от самого длинного числа в нём, и таблица
+   переезжала при каждом переключении фильтра. */
+table.data.fixed { table-layout: fixed; }
+table.data.fixed th.rank { width: 38px; }
+table.data.fixed th.c-score { width: 74px; }
+table.data.fixed th.c-tasks { width: 66px; }
+table.data.fixed th.c-avg { width: 82px; }
+
+table.data.fixed td.name {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 table.data th {
@@ -570,25 +598,6 @@ table.data tr.clickable { cursor: pointer; }
 /* Все цветные заливки — чистым цветом, без картинок-градиентов. Градиент здесь
    пробовался как защита от принудительной тёмной темы и дал обратный эффект:
    в Samsung Internet тускнеет именно он, а плоский цвет остаётся как задан. */
-.bar {
-  display: inline-block;
-  vertical-align: middle;
-  height: 7px;
-  border-radius: 4px;
-  background: var(--s1);
-  min-width: 2px;
-}
-
-.bar-track {
-  display: inline-block;
-  vertical-align: middle;
-  width: 74px;
-  height: 7px;
-  border-radius: 4px;
-  background: var(--cell-off);
-  overflow: hidden;
-  margin-right: 8px;
-}
 
 /* ── кондуит ───────────────────────────────────────────── */
 
@@ -771,17 +780,6 @@ table.conduit tfoot td.pname {
 
 table.conduit tfoot tr.weights td { color: var(--ink-2); font-weight: 560; }
 
-.legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 14px;
-  margin: 12px 0 0;
-  font-size: 12.5px;
-  color: var(--ink-2);
-}
-
-.legend-item { display: inline-flex; align-items: center; gap: 6px; }
-
 /* ── прочее ────────────────────────────────────────────── */
 
 .section-head {
@@ -798,6 +796,9 @@ table.conduit tfoot tr.weights td { color: var(--ink-2); font-weight: 560; }
 /* та же маленькая кнопка, что «все» и «последние 5» */
 .back-btn {
   appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   border: 1px solid var(--border);
   background: var(--surface);
   color: var(--ink-2);
@@ -805,15 +806,36 @@ table.conduit tfoot tr.weights td { color: var(--ink-2); font-weight: 560; }
   font: inherit;
   font-size: 12px;
   line-height: 1;
-  padding: 7px 12px;
+  padding: 7px 13px 7px 11px;
   cursor: pointer;
   margin-bottom: 10px;
+}
+
+/* Стрелка нарисована рамками, а не взята символом: символьные стрелки на части
+   телефонных шрифтов выпадают в пустой квадрат, а эта везде одинакова. */
+.back-btn::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-left: 1.6px solid currentColor;
+  border-bottom: 1.6px solid currentColor;
+  transform: rotate(45deg);
+  transition: transform .18s cubic-bezier(.2, .8, .3, 1);
 }
 
 .back-btn:hover {
   background: var(--wash);
   border-color: var(--border-strong);
   color: var(--ink);
+}
+
+.back-btn:hover::before { transform: rotate(45deg) translate(2px, -2px); }
+.back-btn.tap::before { animation: nudgeBack .32s cubic-bezier(.2, .8, .3, 1); }
+
+@keyframes nudgeBack {
+  0% { transform: rotate(45deg); }
+  45% { transform: rotate(45deg) translate(3px, -3px); }
+  100% { transform: rotate(45deg); }
 }
 
 .type-name { display: inline-flex; align-items: center; gap: 8px; }
@@ -1401,7 +1423,6 @@ body.is-editor .brand::after {
 .banner.good { border-color: var(--good); color: var(--ink); }
 .banner.bad { border-color: var(--bad); color: var(--ink); }
 .banner > span { flex: 1; min-width: 0; }
-.banner-link { color: var(--s1); font-size: 13px; white-space: nowrap; }
 
 .banner-close {
   appearance: none;
@@ -1432,8 +1453,17 @@ body.is-editor .brand::after {
   .wrap { padding: 0 12px 48px; }
   .brand { font-size: 19px; }
   .tile-value { font-size: 23px; }
-  table.data td, table.data th { padding: 9px 8px; }
-  .bar-track { display: none; }
+  table.data td, table.data th { padding: 9px 6px; }
+
+  /* На телефоне числовым колонкам оставляем ровно столько, сколько нужно их
+     заголовкам и значениям, остальное отдаём имени: обрезанная фамилия хуже
+     тесной колонки с числом. */
+  table.data.fixed th { font-size: 10.5px; }
+  table.data.fixed th.rank { width: 26px; }
+  table.data.fixed th.c-score { width: 56px; }
+  table.data.fixed th.c-tasks { width: 52px; }
+  table.data.fixed th.c-avg { width: 64px; }
+  table.data.fixed td.name { font-size: 13.5px; }
   .pline { gap: 8px; }
   table.conduit th.pname, table.conduit td.pname {
     min-width: 118px;

@@ -1447,11 +1447,6 @@
     host.appendChild(sh);
 
     var token = el("div", "card");
-    var head = el("div", "tblock-head");
-    head.appendChild(el("span", "type-name", "Токен GitHub"));
-    head.appendChild(el("span", "type-val", TOKEN ? "сохранён" : "не задан"));
-    token.appendChild(head);
-
     var input = el("input");
     input.className = "input";
     input.type = "password";
@@ -1528,11 +1523,6 @@
     if (state.note) {
       var banner = el("div", "banner " + (state.noteKind || ""));
       banner.appendChild(el("span", null, state.note));
-      if (state.noteKind === "good") {
-        var link = el("a", "banner-link", "открыть сайт");
-        link.href = "index.html";
-        banner.appendChild(link);
-      }
       banner.appendChild(button("×", "banner-close", function () {
         state.note = "";
         state.noteKind = "";
@@ -1548,10 +1538,6 @@
   }
 
   function setupChrome() {
-    var r = repo();
-    document.getElementById("brand-sub").textContent =
-      (r.owner || "?") + "/" + (r.name || "?");
-
     Array.prototype.forEach.call(document.querySelectorAll(".tab"), function (t) {
       t.addEventListener("click", function () {
         state.view = t.dataset.view;
