@@ -1,0 +1,156 @@
+{
+  "n": 14,
+  "date": "2026-08-07",
+  "title": "Серия 14",
+  "problems": [
+    {
+      "id": "0",
+      "type": "algebra",
+      "sub": "inequalities",
+      "exercise": true
+    },
+    {
+      "id": "1а",
+      "type": "algebra",
+      "sub": "inequalities",
+      "exercise": false
+    },
+    {
+      "id": "1б",
+      "type": "algebra",
+      "sub": "inequalities",
+      "exercise": false
+    },
+    {
+      "id": "2",
+      "type": "comb",
+      "sub": "cells",
+      "exercise": false
+    },
+    {
+      "id": "3",
+      "type": "geometry",
+      "sub": "stereometry",
+      "exercise": false
+    },
+    {
+      "id": "4",
+      "type": "numbers",
+      "sub": null,
+      "exercise": false
+    },
+    {
+      "id": "5",
+      "type": "comb",
+      "sub": "games",
+      "exercise": false
+    },
+    {
+      "id": "6",
+      "type": "numbers",
+      "sub": null,
+      "exercise": false
+    },
+    {
+      "id": "7",
+      "type": "comb",
+      "sub": "graphs",
+      "exercise": false
+    }
+  ],
+  "solved": {
+    "aksenova-elizaveta": [],
+    "afanasev-igor": [
+      "1а",
+      "3"
+    ],
+    "budyanskiy-mihail": [
+      "3"
+    ],
+    "velichko-platon": [
+      "3"
+    ],
+    "boyko-gleb": [
+      "0",
+      "2",
+      "3",
+      "6"
+    ],
+    "gulev-maksim": [
+      "3"
+    ],
+    "zarechnyuk-georgiy": [
+      "1а",
+      "5"
+    ],
+    "karonov-mihail": [
+      "1б",
+      "3",
+      "6"
+    ],
+    "karev-denis": [
+      "3"
+    ],
+    "kovalev-artem": [
+      "1а",
+      "2",
+      "5"
+    ],
+    "kostylev-konstantin": [
+      "3",
+      "6"
+    ],
+    "larionova-natalya": [
+      "1б"
+    ],
+    "lyubimov-slaven": [
+      "1а",
+      "3"
+    ],
+    "mahrov-aleksandr": [
+      "2",
+      "3",
+      "5"
+    ],
+    "novoselov-maksim": [
+      "1б"
+    ],
+    "osipova-viktoriya": [
+      "2",
+      "5",
+      "6"
+    ],
+    "pogorelov-denis": [
+      "1а",
+      "5"
+    ],
+    "rudakova-vasilisa": [
+      "3"
+    ],
+    "strelkov-sergey": [
+      "1а",
+      "1б",
+      "3",
+      "5",
+      "6"
+    ],
+    "titov-viktor": [
+      "1а",
+      "2",
+      "6"
+    ],
+    "titov-dmitriy": [
+      "3",
+      "4"
+    ],
+    "celikov-aleksandr": [
+      "1а"
+    ],
+    "shipilov-andrey": [
+      "1б",
+      "3",
+      "5"
+    ],
+    "shirtanova-valeriya": []
+  }
+}
