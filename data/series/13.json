@@ -1,0 +1,61 @@
+{
+  "n": 13,
+  "date": "2026-05-14",
+  "title": "Серия 13",
+  "problems": [
+    {
+      "id": "0",
+      "type": "algebra",
+      "sub": "inequalities",
+      "exercise": true
+    }
+  ],
+  "solved": {
+    "aksenova-elizaveta": [
+      "0"
+    ],
+    "afanasev-igor": [],
+    "budyanskiy-mihail": [],
+    "velichko-platon": [],
+    "boyko-gleb": [
+      "0"
+    ],
+    "gulev-maksim": [],
+    "zarechnyuk-georgiy": [],
+    "karonov-mihail": [
+      "0"
+    ],
+    "karev-denis": [
+      "0"
+    ],
+    "kovalev-artem": [],
+    "kostylev-konstantin": [],
+    "larionova-natalya": [],
+    "lyubimov-slaven": [],
+    "mahrov-aleksandr": [
+      "0"
+    ],
+    "novoselov-maksim": [
+      "0"
+    ],
+    "osipova-viktoriya": [
+      "0"
+    ],
+    "pogorelov-denis": [
+      "0"
+    ],
+    "rudakova-vasilisa": [],
+    "strelkov-sergey": [],
+    "titov-viktor": [
+      "0"
+    ],
+    "titov-dmitriy": [
+      "0"
+    ],
+    "celikov-aleksandr": [
+      "0"
+    ],
+    "shipilov-andrey": [],
+    "shirtanova-valeriya": []
+  }
+}
