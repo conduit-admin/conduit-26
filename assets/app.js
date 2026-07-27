@@ -23,6 +23,7 @@
     view: "rating",
     leaves: new Set(),
     series: new Set(),
+    kinds: new Set(["problem", "exercise"]),
     openSeries: 1,
     openStudent: null
   };
@@ -134,6 +135,7 @@
           id: p.id,
           leafKey: leafKey(p.type, p.sub),
           catId: p.type,
+          kind: p.exercise ? "exercise" : "problem",
           solvers: solvers,
           solverSet: new Set(solvers),
           weight: DATA.config.students_total - solvers.length
@@ -144,14 +146,21 @@
     state.leaves = new Set(LEAVES.map(function (l) { return l.key; }));
     state.series = new Set(DATA.series.map(function (s) { return s.n; }));
     state.openSeries = DATA.series.length ? DATA.series[DATA.series.length - 1].n : 1;
-    FULL = computeRating(state.series, state.leaves);
+    FULL = computeRating(state.series, state.leaves, ALL_KINDS);
+  }
+
+  var ALL_KINDS = new Set(["problem", "exercise"]);
+
+  function allLeaves() {
+    return new Set(LEAVES.map(function (l) { return l.key; }));
   }
 
   function catLeaves(catId) {
     return LEAVES.filter(function (l) { return l.catId === catId; });
   }
 
-  function computeRating(seriesSet, leafSet) {
+  function computeRating(seriesSet, leafSet, kindSet) {
+    kindSet = kindSet || state.kinds;
     var rows = DATA.students.map(function (s) {
       return { id: s.id, name: s.name, score: 0, pluses: 0 };
     });
@@ -160,7 +169,7 @@
 
     var available = 0, ceiling = 0;
     UNITS.forEach(function (u) {
-      if (!seriesSet.has(u.sn) || !leafSet.has(u.leafKey)) return;
+      if (!seriesSet.has(u.sn) || !leafSet.has(u.leafKey) || !kindSet.has(u.kind)) return;
       available += 1;
       ceiling += u.weight;
       u.solvers.forEach(function (id) {
@@ -188,10 +197,16 @@
     return { rows: rows, available: available, ceiling: ceiling, place: place };
   }
 
-  function filtered() { return computeRating(state.series, state.leaves); }
+  function filtered() { return computeRating(state.series, state.leaves, state.kinds); }
 
   function filterActive() {
-    return state.leaves.size !== LEAVES.length || state.series.size !== DATA.series.length;
+    return state.leaves.size !== LEAVES.length ||
+      state.series.size !== DATA.series.length ||
+      state.kinds.size !== 2;
+  }
+
+  function hasExercises() {
+    return UNITS.some(function (u) { return u.kind === "exercise"; });
   }
 
   // ── подсказки ───────────────────────────────────────────
@@ -358,6 +373,31 @@
     });
     card.appendChild(r1);
 
+    // задачи и упражнения — отдельный признак, с темой не связанный
+    if (hasExercises()) {
+      var r3 = el("div", "filter-row");
+      var h3 = el("div", "filter-head");
+      h3.appendChild(el("span", "filter-title", "Что считаем"));
+      r3.appendChild(h3);
+
+      var c3 = el("div", "chips");
+      [["problem", "Задачи"], ["exercise", "Упражнения"]].forEach(function (pair) {
+        var on = state.kinds.has(pair[0]);
+        var b = el("button", "chip", pair[1]);
+        b.type = "button";
+        b.setAttribute("aria-pressed", on ? "true" : "false");
+        var count = UNITS.filter(function (u) { return u.kind === pair[0]; }).length;
+        b.appendChild(el("span", "chip-count", count));
+        b.addEventListener("click", function () {
+          if (on) state.kinds.delete(pair[0]); else state.kinds.add(pair[0]);
+          render();
+        });
+        c3.appendChild(b);
+      });
+      r3.appendChild(c3);
+      card.appendChild(r3);
+    }
+
     // серии
     var r2 = el("div", "filter-row");
     var h2 = el("div", "filter-head");
@@ -515,8 +555,11 @@
 
     var sh = el("div", "section-head");
     sh.appendChild(el("span", "section-title", "Серия " + s.n));
+    var exCount = s.problems.filter(function (p) { return p.exercise; }).length;
     sh.appendChild(el("span", "section-note", prettyDate(s.date) + " · " +
-      withNum(s.problems.length, "задача", "задачи", "задач") + " · всего сдано " +
+      withNum(s.problems.length - exCount, "задача", "задачи", "задач") +
+      (exCount ? " и " + withNum(exCount, "упражнение", "упражнения", "упражнений") : "") +
+      " · всего сдано " +
       withNum(units.reduce(function (a, u) { return a + u.solvers.length; }, 0),
         "плюс", "плюса", "плюсов")));
     host.appendChild(sh);
@@ -532,12 +575,13 @@
       var slot = leaf ? leaf.slot : (CAT[p.type] ? CAT[p.type].slot : 1);
       var cell = el("th");
       var box = el("div", "phead");
-      box.appendChild(el("div", "phead-id", p.id));
+      box.appendChild(el("div", "phead-id" + (p.exercise ? " ex" : ""), p.id));
       var rule = el("div", "phead-rule");
       rule.style.background = "var(--s" + slot + ")";
       box.appendChild(rule);
       cell.appendChild(box);
-      tipify(cell, "Задача " + p.id + " · " + (leaf ? leaf.label : p.type) +
+      tipify(cell, (p.exercise ? "Упражнение " : "Задача ") + p.id + " · " +
+        (leaf ? leaf.label : p.type) +
         "<br>решили " + byId[p.id].solvers.length + " из " + DATA.config.students_total +
         " · вес " + byId[p.id].weight);
       hr.appendChild(cell);
@@ -546,8 +590,7 @@
     table.appendChild(thead);
 
     // строки — в порядке результата этой серии
-    var order = computeRating(new Set([s.n]),
-      new Set(LEAVES.map(function (l) { return l.key; }))).rows;
+    var order = computeRating(new Set([s.n]), allLeaves(), ALL_KINDS).rows;
 
     var tbody = el("tbody");
     order.forEach(function (r) {
@@ -557,8 +600,9 @@
         var u = byId[p.id];
         var on = u.solverSet.has(r.id);
         var td = el("td", "cell");
-        td.appendChild(el("div", "mark" + (on ? " on" : "")));
-        tipify(td, r.name + "<br>задача " + p.id + " — " + (on ? "плюс, +" + u.weight : "нет"));
+        td.appendChild(el("div", "mark" + (on ? " on" : ""), on ? "+" : ""));
+        tipify(td, r.name + "<br>" + (p.exercise ? "упражнение " : "задача ") + p.id +
+          " — " + (on ? "плюс, +" + u.weight : "нет"));
         tr.appendChild(td);
       });
       tbody.appendChild(tr);
@@ -593,6 +637,12 @@
         t.name + (names.length ? " · " + names.join(", ") : "")));
       legend.appendChild(item);
     });
+    if (exCount) {
+      var ex = el("span", "legend-item");
+      ex.appendChild(el("span", "phead-id ex", "0"));
+      ex.appendChild(document.createTextNode("упражнение"));
+      legend.appendChild(ex);
+    }
     host.appendChild(legend);
   }
 
@@ -688,7 +738,7 @@
     var set = new Set(keys);
     var total = 0, got = 0, score = 0, solvers = 0, weight = 0;
     UNITS.forEach(function (u) {
-      if (!set.has(u.leafKey) || !state.series.has(u.sn)) return;
+      if (!set.has(u.leafKey) || !state.series.has(u.sn) || !state.kinds.has(u.kind)) return;
       total += 1;
       solvers += u.solvers.length;
       weight += u.weight;
@@ -761,7 +811,7 @@
       facts.appendChild(fact("решаемость", pct(st.rate)));
       facts.appendChild(fact("средний вес", st.avgWeight.toFixed(1)));
       var top = computeRating(state.series,
-        new Set(leaves.map(function (l) { return l.key; }))).rows[0];
+        new Set(leaves.map(function (l) { return l.key; })), state.kinds).rows[0];
       facts.appendChild(fact("лучший", top ? top.name : "—"));
       card.appendChild(facts);
 

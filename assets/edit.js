@@ -303,6 +303,37 @@
     touch();
   }
 
+  /* Упражнение — не тема, а вид задания: идёт под нулевым номером, тоже может
+     иметь пункты и на сайте фильтруется отдельно от тем. */
+  function addExercise() {
+    var ps = state.series.problems;
+    var first = types()[0];
+    var family = ps.filter(function (p) { return numPrefix(p.id) === 0; });
+
+    if (!family.length) {
+      ps.unshift({
+        id: "0",
+        type: first.id,
+        sub: first.subs && first.subs.length ? first.subs[0].id : null,
+        exercise: true
+      });
+    } else {
+      var sample = family[family.length - 1];
+      if (family.length === 1 && String(sample.id) === "0") {
+        renameProblem("0", "0" + LETTERS[0]);
+        insertAfter(sample, {
+          id: "0" + LETTERS[1], type: sample.type, sub: sample.sub, exercise: true
+        });
+      } else {
+        var letter = LETTERS[family.length] || LETTERS[LETTERS.length - 1];
+        insertAfter(sample, {
+          id: "0" + letter, type: sample.type, sub: sample.sub, exercise: true
+        });
+      }
+    }
+    touch();
+  }
+
   function addPart() {
     var ps = state.series.problems;
     if (!ps.length) return addProblem();
@@ -363,7 +394,12 @@
       date: d.date,
       title: "Серия " + d.n,
       problems: d.problems.map(function (p) {
-        return { id: String(p.id).trim(), type: p.type, sub: p.sub || null };
+        return {
+          id: String(p.id).trim(),
+          type: p.type,
+          sub: p.sub || null,
+          exercise: !!p.exercise
+        };
       }),
       solved: {}
     };
@@ -696,6 +732,7 @@
     var actions = el("div", "frow gap");
     actions.appendChild(button("+ задача", "ghost-btn", function () { addProblem(); render(); }));
     actions.appendChild(button("+ пункт", "ghost-btn", function () { addPart(); render(); }));
+    actions.appendChild(button("+ упражнение", "ghost-btn", function () { addExercise(); render(); }));
     pcard.appendChild(actions);
     host.appendChild(pcard);
 
@@ -774,6 +811,7 @@
     pick.type = "button";
     var label = el("span", "picker-label");
     label.appendChild(dot(t ? t.slot : 1));
+    if (p.exercise) label.appendChild(el("span", "badge", "упр."));
     label.appendChild(document.createTextNode(
       (t ? t.name : "тема?") + (sub ? " · " + sub.name : "")));
     pick.appendChild(label);
@@ -798,6 +836,22 @@
 
   function themeChooser(p) {
     var box = el("div", "chooser");
+
+    // вид задания — признак, не связанный с темой
+    var kinds = el("div", "chips");
+    [[false, "Задача"], [true, "Упражнение"]].forEach(function (pair) {
+      var b = el("button", "chip pick", pair[1]);
+      b.type = "button";
+      b.setAttribute("aria-pressed", !!p.exercise === pair[0] ? "true" : "false");
+      b.addEventListener("click", function () {
+        p.exercise = pair[0];
+        touch();
+        render();
+      });
+      kinds.appendChild(b);
+    });
+    box.appendChild(kinds);
+    box.appendChild(el("div", "chooser-sep"));
 
     var cats = el("div", "chips");
     types().forEach(function (t) {
@@ -863,7 +917,7 @@
       var t = typeById(p.type);
       var cell = el("th");
       var box = el("div", "phead");
-      box.appendChild(el("div", "phead-id", p.id));
+      box.appendChild(el("div", "phead-id" + (p.exercise ? " ex" : ""), p.id));
       var rule = el("div", "phead-rule");
       rule.style.background = "var(--s" + (t ? t.slot : 1) + ")";
       box.appendChild(rule);
@@ -880,14 +934,17 @@
       tr.appendChild(el("td", "pname", st.name));
       problems.forEach(function (p) {
         var td = el("td", "cell");
-        var b = el("button", "mark" +
-          ((state.series.solved[st.id] || []).indexOf(p.id) !== -1 ? " on" : ""));
+        var isOn = (state.series.solved[st.id] || []).indexOf(p.id) !== -1;
+        var b = el("button", "mark" + (isOn ? " on" : ""), isOn ? "+" : "");
         b.type = "button";
-        b.setAttribute("aria-label", st.name + ", задача " + p.id);
+        b.setAttribute("aria-label", st.name +
+          (p.exercise ? ", упражнение " : ", задача ") + p.id);
         b.addEventListener("click", function () {
           toggleMark(st.id, p.id);
           var on = (state.series.solved[st.id] || []).indexOf(p.id) !== -1;
-          b.className = "mark" + (on ? " on" : "");
+          b.className = "mark" + (on ? " on pop" : "");
+          b.textContent = on ? "+" : "";
+          if (on) setTimeout(function () { b.classList.remove("pop"); }, 240);
           updateCounters(table);
         });
         td.appendChild(b);

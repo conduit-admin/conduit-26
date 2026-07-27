@@ -38,8 +38,8 @@
   --s7: #4a3aa7;
   --s8: #e34948;
 
-  --cell-on: #23231f;
-  --cell-off: #ecebe5;
+  --cell-on: #d9d6c9;
+  --cell-off: #f4f3ee;
 
   --radius: 10px;
   --tap: 44px;
@@ -502,9 +502,12 @@ table.conduit th.pname, table.conduit td.pname {
   padding: 0 12px 0 14px;
   white-space: nowrap;
   border-right: 1px solid var(--grid);
-  font-size: 13px;
-  min-width: 150px;
+  font-size: 15px;
+  min-width: 176px;
 }
+
+table.conduit thead th.pname,
+table.conduit tfoot td.pname { font-size: 12px; }
 
 table.conduit thead th {
   position: sticky;
@@ -533,6 +536,13 @@ table.conduit thead th.pname { z-index: 4; }
   letter-spacing: -0.02em;
 }
 
+/* упражнение отличается от задачи не темой, а видом — помечаем номер */
+.phead-id.ex {
+  font-style: italic;
+  color: var(--ink-muted);
+  border-bottom: 1px dotted var(--axis);
+}
+
 .phead-rule {
   width: 20px;
   height: 3px;
@@ -545,42 +555,28 @@ td.cell {
   text-align: center;
 }
 
-/* Клетка кондуита. Плюс — не просто залитый квадрат: сам знак читается
-   заметно лучше на телефоне и на солнце, а форма работает второй подсказкой
-   помимо контраста. */
+/* Клетка кондуита. Плюс — настоящий знак, а не белая полоска поверх тёмного
+   квадрата: браузеры с принудительной тёмной темой инвертируют цвета сами, и
+   конструкция «фон плюс накладка» под инверсией теряет контраст. Текст же
+   инвертируется вместе с фоном, поэтому знак виден в любой теме. */
 .mark {
-  position: relative;
-  width: 20px;
-  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
   border-radius: 5px;
   background: var(--cell-off);
   margin: 0 auto;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1;
+  color: transparent;
 }
 
-.mark.on { background: var(--cell-on); }
-
-.mark.on::before,
-.mark.on::after {
-  content: "";
-  position: absolute;
-  background: var(--surface);
-  border-radius: 1px;
-}
-
-.mark.on::before {
-  left: 50%;
-  top: 22%;
-  width: 2px;
-  height: 56%;
-  transform: translateX(-50%);
-}
-
-.mark.on::after {
-  top: 50%;
-  left: 22%;
-  height: 2px;
-  width: 56%;
-  transform: translateY(-50%);
+.mark.on {
+  background: var(--cell-on);
+  color: var(--ink);
 }
 
 tr.crow:hover td { background: var(--wash); }
@@ -782,7 +778,36 @@ table.conduit tfoot tr.weights td { color: var(--ink-2); font-weight: 560; }
 .view-enter > *:nth-child(3) { animation-delay: .07s; }
 .view-enter > *:nth-child(n+4) { animation-delay: .09s; }
 
+/* строки таблиц набегают по очереди — но только первые полтора десятка,
+   дальше задержка перестаёт читаться и превращается в ожидание */
+.view-enter table.data tbody tr,
+.view-enter table.conduit tbody tr { animation: fade .3s ease-out both; }
+
+.view-enter tbody tr:nth-child(1) { animation-delay: .06s; }
+.view-enter tbody tr:nth-child(2) { animation-delay: .08s; }
+.view-enter tbody tr:nth-child(3) { animation-delay: .1s; }
+.view-enter tbody tr:nth-child(4) { animation-delay: .12s; }
+.view-enter tbody tr:nth-child(5) { animation-delay: .14s; }
+.view-enter tbody tr:nth-child(6) { animation-delay: .16s; }
+.view-enter tbody tr:nth-child(7) { animation-delay: .18s; }
+.view-enter tbody tr:nth-child(8) { animation-delay: .2s; }
+.view-enter tbody tr:nth-child(9) { animation-delay: .22s; }
+.view-enter tbody tr:nth-child(10) { animation-delay: .24s; }
+.view-enter tbody tr:nth-child(n+11) { animation-delay: .26s; }
+
+.view-enter .tile { animation: rise .28s cubic-bezier(.2, .7, .3, 1) both; }
+.view-enter .chips > * { animation: fade .3s ease-out both; }
+
 .banner { animation: rise .2s ease-out both; }
+
+.card { transition: border-color .16s ease; }
+.tile { transition: transform .16s ease, border-color .16s ease; }
+.tile:hover { transform: translateY(-1px); border-color: var(--border-strong); }
+.smini { transition: background-color .14s ease, border-color .14s ease; }
+.smini:hover { border-color: var(--border-strong); background: var(--wash); }
+.back-btn { transition: opacity .14s ease; }
+.back-btn:hover { opacity: .7; }
+.delta { transition: color .16s ease; }
 
 .chip, .ghost-btn, .primary-btn, .icon-btn, .mini-btn {
   transition: background-color .14s ease, color .14s ease,
@@ -928,9 +953,16 @@ table.conduit.edit .mark {
   margin: 0 auto;
 }
 
-table.conduit.edit .mark.on::before { width: 3px; }
-table.conduit.edit .mark.on::after { height: 3px; }
+table.conduit.edit .mark { font-size: 19px; }
 table.conduit.edit .mark:active { transform: scale(.92); }
+
+@keyframes pop {
+  0% { transform: scale(.72); }
+  55% { transform: scale(1.12); }
+  100% { transform: none; }
+}
+
+table.conduit.edit .mark.pop { animation: pop .22s cubic-bezier(.2, .8, .3, 1); }
 
 table.conduit .pcount {
   text-align: center;
@@ -1002,6 +1034,12 @@ table.conduit .pcount.total { color: var(--ink); font-weight: 600; }
 }
 
 .chooser .subs-row { margin-top: 8px; }
+
+.chooser-sep {
+  height: 1px;
+  background: var(--grid);
+  margin: 10px 0;
+}
 
 .datefield { position: relative; min-width: 190px; }
 
@@ -1135,6 +1173,7 @@ table.conduit .pcount.total { color: var(--ink); font-weight: 600; }
   table.data td, table.data th { padding: 9px 8px; }
   .bar-track { display: none; }
   .tcards { grid-template-columns: 1fr; }
+  table.conduit th.pname, table.conduit td.pname { font-size: 14px; min-width: 148px; }
   table.conduit th.pname, table.conduit td.pname { min-width: 118px; font-size: 12px; padding: 0 8px 0 10px; }
 }
 
@@ -1185,6 +1224,7 @@ table.conduit .pcount.total { color: var(--ink); font-weight: 600; }
     view: "rating",
     leaves: new Set(),
     series: new Set(),
+    kinds: new Set(["problem", "exercise"]),
     openSeries: 1,
     openStudent: null
   };
@@ -1296,6 +1336,7 @@ table.conduit .pcount.total { color: var(--ink); font-weight: 600; }
           id: p.id,
           leafKey: leafKey(p.type, p.sub),
           catId: p.type,
+          kind: p.exercise ? "exercise" : "problem",
           solvers: solvers,
           solverSet: new Set(solvers),
           weight: DATA.config.students_total - solvers.length
@@ -1306,14 +1347,21 @@ table.conduit .pcount.total { color: var(--ink); font-weight: 600; }
     state.leaves = new Set(LEAVES.map(function (l) { return l.key; }));
     state.series = new Set(DATA.series.map(function (s) { return s.n; }));
     state.openSeries = DATA.series.length ? DATA.series[DATA.series.length - 1].n : 1;
-    FULL = computeRating(state.series, state.leaves);
+    FULL = computeRating(state.series, state.leaves, ALL_KINDS);
+  }
+
+  var ALL_KINDS = new Set(["problem", "exercise"]);
+
+  function allLeaves() {
+    return new Set(LEAVES.map(function (l) { return l.key; }));
   }
 
   function catLeaves(catId) {
     return LEAVES.filter(function (l) { return l.catId === catId; });
   }
 
-  function computeRating(seriesSet, leafSet) {
+  function computeRating(seriesSet, leafSet, kindSet) {
+    kindSet = kindSet || state.kinds;
     var rows = DATA.students.map(function (s) {
       return { id: s.id, name: s.name, score: 0, pluses: 0 };
     });
@@ -1322,7 +1370,7 @@ table.conduit .pcount.total { color: var(--ink); font-weight: 600; }
 
     var available = 0, ceiling = 0;
     UNITS.forEach(function (u) {
-      if (!seriesSet.has(u.sn) || !leafSet.has(u.leafKey)) return;
+      if (!seriesSet.has(u.sn) || !leafSet.has(u.leafKey) || !kindSet.has(u.kind)) return;
       available += 1;
       ceiling += u.weight;
       u.solvers.forEach(function (id) {
@@ -1350,10 +1398,16 @@ table.conduit .pcount.total { color: var(--ink); font-weight: 600; }
     return { rows: rows, available: available, ceiling: ceiling, place: place };
   }
 
-  function filtered() { return computeRating(state.series, state.leaves); }
+  function filtered() { return computeRating(state.series, state.leaves, state.kinds); }
 
   function filterActive() {
-    return state.leaves.size !== LEAVES.length || state.series.size !== DATA.series.length;
+    return state.leaves.size !== LEAVES.length ||
+      state.series.size !== DATA.series.length ||
+      state.kinds.size !== 2;
+  }
+
+  function hasExercises() {
+    return UNITS.some(function (u) { return u.kind === "exercise"; });
   }
 
   // ── подсказки ───────────────────────────────────────────
@@ -1520,6 +1574,31 @@ table.conduit .pcount.total { color: var(--ink); font-weight: 600; }
     });
     card.appendChild(r1);
 
+    // задачи и упражнения — отдельный признак, с темой не связанный
+    if (hasExercises()) {
+      var r3 = el("div", "filter-row");
+      var h3 = el("div", "filter-head");
+      h3.appendChild(el("span", "filter-title", "Что считаем"));
+      r3.appendChild(h3);
+
+      var c3 = el("div", "chips");
+      [["problem", "Задачи"], ["exercise", "Упражнения"]].forEach(function (pair) {
+        var on = state.kinds.has(pair[0]);
+        var b = el("button", "chip", pair[1]);
+        b.type = "button";
+        b.setAttribute("aria-pressed", on ? "true" : "false");
+        var count = UNITS.filter(function (u) { return u.kind === pair[0]; }).length;
+        b.appendChild(el("span", "chip-count", count));
+        b.addEventListener("click", function () {
+          if (on) state.kinds.delete(pair[0]); else state.kinds.add(pair[0]);
+          render();
+        });
+        c3.appendChild(b);
+      });
+      r3.appendChild(c3);
+      card.appendChild(r3);
+    }
+
     // серии
     var r2 = el("div", "filter-row");
     var h2 = el("div", "filter-head");
@@ -1677,8 +1756,11 @@ table.conduit .pcount.total { color: var(--ink); font-weight: 600; }
 
     var sh = el("div", "section-head");
     sh.appendChild(el("span", "section-title", "Серия " + s.n));
+    var exCount = s.problems.filter(function (p) { return p.exercise; }).length;
     sh.appendChild(el("span", "section-note", prettyDate(s.date) + " · " +
-      withNum(s.problems.length, "задача", "задачи", "задач") + " · всего сдано " +
+      withNum(s.problems.length - exCount, "задача", "задачи", "задач") +
+      (exCount ? " и " + withNum(exCount, "упражнение", "упражнения", "упражнений") : "") +
+      " · всего сдано " +
       withNum(units.reduce(function (a, u) { return a + u.solvers.length; }, 0),
         "плюс", "плюса", "плюсов")));
     host.appendChild(sh);
@@ -1694,12 +1776,13 @@ table.conduit .pcount.total { color: var(--ink); font-weight: 600; }
       var slot = leaf ? leaf.slot : (CAT[p.type] ? CAT[p.type].slot : 1);
       var cell = el("th");
       var box = el("div", "phead");
-      box.appendChild(el("div", "phead-id", p.id));
+      box.appendChild(el("div", "phead-id" + (p.exercise ? " ex" : ""), p.id));
       var rule = el("div", "phead-rule");
       rule.style.background = "var(--s" + slot + ")";
       box.appendChild(rule);
       cell.appendChild(box);
-      tipify(cell, "Задача " + p.id + " · " + (leaf ? leaf.label : p.type) +
+      tipify(cell, (p.exercise ? "Упражнение " : "Задача ") + p.id + " · " +
+        (leaf ? leaf.label : p.type) +
         "<br>решили " + byId[p.id].solvers.length + " из " + DATA.config.students_total +
         " · вес " + byId[p.id].weight);
       hr.appendChild(cell);
@@ -1708,8 +1791,7 @@ table.conduit .pcount.total { color: var(--ink); font-weight: 600; }
     table.appendChild(thead);
 
     // строки — в порядке результата этой серии
-    var order = computeRating(new Set([s.n]),
-      new Set(LEAVES.map(function (l) { return l.key; }))).rows;
+    var order = computeRating(new Set([s.n]), allLeaves(), ALL_KINDS).rows;
 
     var tbody = el("tbody");
     order.forEach(function (r) {
@@ -1719,8 +1801,9 @@ table.conduit .pcount.total { color: var(--ink); font-weight: 600; }
         var u = byId[p.id];
         var on = u.solverSet.has(r.id);
         var td = el("td", "cell");
-        td.appendChild(el("div", "mark" + (on ? " on" : "")));
-        tipify(td, r.name + "<br>задача " + p.id + " — " + (on ? "плюс, +" + u.weight : "нет"));
+        td.appendChild(el("div", "mark" + (on ? " on" : ""), on ? "+" : ""));
+        tipify(td, r.name + "<br>" + (p.exercise ? "упражнение " : "задача ") + p.id +
+          " — " + (on ? "плюс, +" + u.weight : "нет"));
         tr.appendChild(td);
       });
       tbody.appendChild(tr);
@@ -1755,6 +1838,12 @@ table.conduit .pcount.total { color: var(--ink); font-weight: 600; }
         t.name + (names.length ? " · " + names.join(", ") : "")));
       legend.appendChild(item);
     });
+    if (exCount) {
+      var ex = el("span", "legend-item");
+      ex.appendChild(el("span", "phead-id ex", "0"));
+      ex.appendChild(document.createTextNode("упражнение"));
+      legend.appendChild(ex);
+    }
     host.appendChild(legend);
   }
 
@@ -1850,7 +1939,7 @@ table.conduit .pcount.total { color: var(--ink); font-weight: 600; }
     var set = new Set(keys);
     var total = 0, got = 0, score = 0, solvers = 0, weight = 0;
     UNITS.forEach(function (u) {
-      if (!set.has(u.leafKey) || !state.series.has(u.sn)) return;
+      if (!set.has(u.leafKey) || !state.series.has(u.sn) || !state.kinds.has(u.kind)) return;
       total += 1;
       solvers += u.solvers.length;
       weight += u.weight;
@@ -1923,7 +2012,7 @@ table.conduit .pcount.total { color: var(--ink); font-weight: 600; }
       facts.appendChild(fact("решаемость", pct(st.rate)));
       facts.appendChild(fact("средний вес", st.avgWeight.toFixed(1)));
       var top = computeRating(state.series,
-        new Set(leaves.map(function (l) { return l.key; }))).rows[0];
+        new Set(leaves.map(function (l) { return l.key; })), state.kinds).rows[0];
       facts.appendChild(fact("лучший", top ? top.name : "—"));
       card.appendChild(facts);
 

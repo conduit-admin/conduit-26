@@ -29,8 +29,8 @@
   --s7: #4a3aa7;
   --s8: #e34948;
 
-  --cell-on: #23231f;
-  --cell-off: #ecebe5;
+  --cell-on: #d9d6c9;
+  --cell-off: #f4f3ee;
 
   --radius: 10px;
   --tap: 44px;
@@ -493,9 +493,12 @@ table.conduit th.pname, table.conduit td.pname {
   padding: 0 12px 0 14px;
   white-space: nowrap;
   border-right: 1px solid var(--grid);
-  font-size: 13px;
-  min-width: 150px;
+  font-size: 15px;
+  min-width: 176px;
 }
+
+table.conduit thead th.pname,
+table.conduit tfoot td.pname { font-size: 12px; }
 
 table.conduit thead th {
   position: sticky;
@@ -524,6 +527,13 @@ table.conduit thead th.pname { z-index: 4; }
   letter-spacing: -0.02em;
 }
 
+/* упражнение отличается от задачи не темой, а видом — помечаем номер */
+.phead-id.ex {
+  font-style: italic;
+  color: var(--ink-muted);
+  border-bottom: 1px dotted var(--axis);
+}
+
 .phead-rule {
   width: 20px;
   height: 3px;
@@ -536,42 +546,28 @@ td.cell {
   text-align: center;
 }
 
-/* Клетка кондуита. Плюс — не просто залитый квадрат: сам знак читается
-   заметно лучше на телефоне и на солнце, а форма работает второй подсказкой
-   помимо контраста. */
+/* Клетка кондуита. Плюс — настоящий знак, а не белая полоска поверх тёмного
+   квадрата: браузеры с принудительной тёмной темой инвертируют цвета сами, и
+   конструкция «фон плюс накладка» под инверсией теряет контраст. Текст же
+   инвертируется вместе с фоном, поэтому знак виден в любой теме. */
 .mark {
-  position: relative;
-  width: 20px;
-  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
   border-radius: 5px;
   background: var(--cell-off);
   margin: 0 auto;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1;
+  color: transparent;
 }
 
-.mark.on { background: var(--cell-on); }
-
-.mark.on::before,
-.mark.on::after {
-  content: "";
-  position: absolute;
-  background: var(--surface);
-  border-radius: 1px;
-}
-
-.mark.on::before {
-  left: 50%;
-  top: 22%;
-  width: 2px;
-  height: 56%;
-  transform: translateX(-50%);
-}
-
-.mark.on::after {
-  top: 50%;
-  left: 22%;
-  height: 2px;
-  width: 56%;
-  transform: translateY(-50%);
+.mark.on {
+  background: var(--cell-on);
+  color: var(--ink);
 }
 
 tr.crow:hover td { background: var(--wash); }
@@ -773,7 +769,36 @@ table.conduit tfoot tr.weights td { color: var(--ink-2); font-weight: 560; }
 .view-enter > *:nth-child(3) { animation-delay: .07s; }
 .view-enter > *:nth-child(n+4) { animation-delay: .09s; }
 
+/* строки таблиц набегают по очереди — но только первые полтора десятка,
+   дальше задержка перестаёт читаться и превращается в ожидание */
+.view-enter table.data tbody tr,
+.view-enter table.conduit tbody tr { animation: fade .3s ease-out both; }
+
+.view-enter tbody tr:nth-child(1) { animation-delay: .06s; }
+.view-enter tbody tr:nth-child(2) { animation-delay: .08s; }
+.view-enter tbody tr:nth-child(3) { animation-delay: .1s; }
+.view-enter tbody tr:nth-child(4) { animation-delay: .12s; }
+.view-enter tbody tr:nth-child(5) { animation-delay: .14s; }
+.view-enter tbody tr:nth-child(6) { animation-delay: .16s; }
+.view-enter tbody tr:nth-child(7) { animation-delay: .18s; }
+.view-enter tbody tr:nth-child(8) { animation-delay: .2s; }
+.view-enter tbody tr:nth-child(9) { animation-delay: .22s; }
+.view-enter tbody tr:nth-child(10) { animation-delay: .24s; }
+.view-enter tbody tr:nth-child(n+11) { animation-delay: .26s; }
+
+.view-enter .tile { animation: rise .28s cubic-bezier(.2, .7, .3, 1) both; }
+.view-enter .chips > * { animation: fade .3s ease-out both; }
+
 .banner { animation: rise .2s ease-out both; }
+
+.card { transition: border-color .16s ease; }
+.tile { transition: transform .16s ease, border-color .16s ease; }
+.tile:hover { transform: translateY(-1px); border-color: var(--border-strong); }
+.smini { transition: background-color .14s ease, border-color .14s ease; }
+.smini:hover { border-color: var(--border-strong); background: var(--wash); }
+.back-btn { transition: opacity .14s ease; }
+.back-btn:hover { opacity: .7; }
+.delta { transition: color .16s ease; }
 
 .chip, .ghost-btn, .primary-btn, .icon-btn, .mini-btn {
   transition: background-color .14s ease, color .14s ease,
@@ -919,9 +944,16 @@ table.conduit.edit .mark {
   margin: 0 auto;
 }
 
-table.conduit.edit .mark.on::before { width: 3px; }
-table.conduit.edit .mark.on::after { height: 3px; }
+table.conduit.edit .mark { font-size: 19px; }
 table.conduit.edit .mark:active { transform: scale(.92); }
+
+@keyframes pop {
+  0% { transform: scale(.72); }
+  55% { transform: scale(1.12); }
+  100% { transform: none; }
+}
+
+table.conduit.edit .mark.pop { animation: pop .22s cubic-bezier(.2, .8, .3, 1); }
 
 table.conduit .pcount {
   text-align: center;
@@ -993,6 +1025,12 @@ table.conduit .pcount.total { color: var(--ink); font-weight: 600; }
 }
 
 .chooser .subs-row { margin-top: 8px; }
+
+.chooser-sep {
+  height: 1px;
+  background: var(--grid);
+  margin: 10px 0;
+}
 
 .datefield { position: relative; min-width: 190px; }
 
@@ -1126,5 +1164,6 @@ table.conduit .pcount.total { color: var(--ink); font-weight: 600; }
   table.data td, table.data th { padding: 9px 8px; }
   .bar-track { display: none; }
   .tcards { grid-template-columns: 1fr; }
+  table.conduit th.pname, table.conduit td.pname { font-size: 14px; min-width: 148px; }
   table.conduit th.pname, table.conduit td.pname { min-width: 118px; font-size: 12px; padding: 0 8px 0 10px; }
 }
