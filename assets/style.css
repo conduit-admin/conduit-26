@@ -573,7 +573,10 @@ table.conduit tfoot td.pname {
   color: var(--admin);
 }
 
-.leader { color: var(--leader); font-weight: 600; }
+/* Правило столбца фамилий задаёт цвет и перебивает .leader по весу селектора,
+   поэтому лидер прописан здесь отдельно — иначе в кондуите он оставался белым. */
+.leader,
+table.conduit tbody td.pname.leader { color: var(--leader); font-weight: 600; }
 
 table.conduit thead th {
   position: sticky;
@@ -595,7 +598,7 @@ table.conduit td.cell { position: relative; z-index: 0; }
   align-items: center;
   gap: 5px;
   padding-bottom: 6px;
-  width: 26px;
+  width: 38px;
 }
 
 .phead-id {
@@ -617,10 +620,16 @@ table.conduit td.cell { position: relative; z-index: 0; }
   border-radius: 2px;
 }
 
+/* Клетка одинакова на сайте и в редакторе: размер выбран под палец, но и
+   читается на просмотре лучше мелкой. min-width обязателен — без него браузер
+   сжимает столбцы, когда таблица шире экрана. */
 td.cell {
-  width: 26px;
-  height: 26px;
+  width: 38px;
+  min-width: 38px;
+  height: 38px;
   text-align: center;
+  position: relative;
+  z-index: 0;
 }
 
 /* Клетка кондуита. Плюс — настоящий знак, а не белая полоска поверх тёмного
@@ -631,12 +640,12 @@ td.cell {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
-  border-radius: 5px;
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
   background: var(--cell-off);
   margin: 0 auto;
-  font-size: 15px;
+  font-size: 19px;
   font-weight: 700;
   line-height: 1;
   color: transparent;
@@ -1003,37 +1012,30 @@ select.input { padding-right: 6px; }
 .chip.day.new { border-style: dashed; }
 .chip.day.new b { font-size: 15px; }
 
-/* сетка ввода: клетка — кнопка, палец крупнее курсора.
-   min-width обязателен: без него браузер сжимает столбцы, когда таблица шире
-   экрана, и клетка становится меньше пальца. */
-table.conduit.edit td.cell,
-table.conduit.edit thead th:not(.pname):not(.pcount) {
+/* В редакторе клетка — кнопка. Отклик на нажатие сделан без transform:
+   преобразование поднимает клетку в отдельный слой, и при боковой прокрутке
+   она всплывала над залипшим столбцом фамилий. */
+table.conduit thead th:not(.pname):not(.pcount) {
   width: 38px;
   min-width: 38px;
-  height: 38px;
 }
 
 table.conduit.edit .mark {
   appearance: none;
   border: 0;
   padding: 0;
-  width: 30px;
-  height: 30px;
   cursor: pointer;
-  display: block;
-  margin: 0 auto;
 }
 
-table.conduit.edit .mark { font-size: 19px; }
-table.conduit.edit .mark:active { transform: scale(.92); }
+table.conduit.edit .mark:active { filter: brightness(0.92); }
 
 @keyframes pop {
-  0% { transform: scale(.72); }
-  55% { transform: scale(1.12); }
-  100% { transform: none; }
+  0% { box-shadow: 0 0 0 0 var(--cell-on); }
+  60% { box-shadow: 0 0 0 6px rgba(0, 0, 0, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(0, 0, 0, 0); }
 }
 
-table.conduit.edit .mark.pop { animation: pop .22s cubic-bezier(.2, .8, .3, 1); }
+table.conduit.edit .mark.pop { animation: pop .3s ease-out; }
 
 table.conduit .pcount {
   text-align: center;

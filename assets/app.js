@@ -442,7 +442,7 @@
     hr.appendChild(th("№", "rank"));
     hr.appendChild(th("Ученик", "left"));
     hr.appendChild(th("Очки"));
-    hr.appendChild(th("Баллы"));
+    hr.appendChild(th("Задачи"));
     hr.appendChild(th("Ср. балл"));
     hr.appendChild(th("%", "left"));
     thead.appendChild(hr);
