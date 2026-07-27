@@ -213,7 +213,6 @@
   }
 
   function openSeries(n) {
-    if (!confirmLeave()) return;
     var s = seriesByNumber(n);
     state.isNew = !s;
     if (s) {
@@ -235,11 +234,6 @@
     state.pickDate = false;
     state.confirmDelete = false;
     render();
-  }
-
-  function confirmLeave() {
-    if (!state.dirty) return true;
-    return window.confirm("Есть несохранённые изменения. Уйти и потерять их?");
   }
 
   function touch() {
@@ -1604,13 +1598,6 @@
         state.pickTheme = null;
         render();
       });
-    });
-
-    window.addEventListener("beforeunload", function (e) {
-      if (state.busy || state.dirty || typesDirty() || gravesDirty()) {
-        e.preventDefault();
-        e.returnValue = "";
-      }
     });
   }
 
