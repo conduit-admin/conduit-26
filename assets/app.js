@@ -30,6 +30,17 @@
 
   var GRAVES = "graves";   // такой же «день» в списке кондуитов, только без даты
 
+  /* День смены бывает трёх видов. Выходной и матбой занимают номер и дату, но
+     задач не несут: они нужны, чтобы в ряду дней не было дыр и было видно ритм
+     смены. */
+  var DAY_NAME = { off: "Выходной", battle: "Математический бой" };
+
+  function dayKind(s) { return s.kind || "series"; }
+
+  function hasTasks(s) { return dayKind(s) === "series" && s.problems.length > 0; }
+
+  function realSeries() { return DATA.series.filter(hasTasks); }
+
   var MONTHS = ["января", "февраля", "марта", "апреля", "мая", "июня",
     "июля", "августа", "сентября", "октября", "ноября", "декабря"];
   var MONTHS_SHORT = ["янв", "фев", "мар", "апр", "мая", "июн",
@@ -168,7 +179,7 @@
     });
 
     state.leaves = new Set(LEAVES.map(function (l) { return l.key; }));
-    state.series = new Set(DATA.series.map(function (s) { return s.n; }));
+    state.series = new Set(realSeries().map(function (s) { return s.n; }));
     state.openSeries = DATA.series.length
       ? DATA.series[DATA.series.length - 1].n
       : GRAVES;
@@ -215,16 +226,12 @@
       });
     });
 
+    /* Сначала очки, при равенстве — по алфавиту. Место у каждого своё: делить
+       одно место на двоих в таблице из двух десятков человек неудобно. */
     rows.sort(function (a, b) {
-      return b.score - a.score || b.pluses - a.pluses || a.name.localeCompare(b.name, "ru");
+      return b.score - a.score || a.name.localeCompare(b.name, "ru");
     });
-
-    var rank = 0, prev = null;
-    rows.forEach(function (r, i) {
-      var key = r.score + "/" + r.pluses;
-      if (key !== prev) { rank = i + 1; prev = key; }
-      r.rank = rank;
-    });
+    rows.forEach(function (r, i) { r.rank = i + 1; });
 
     var place = {};
     rows.forEach(function (r) { place[r.id] = r.rank; });
@@ -254,11 +261,15 @@
   }
 
   function dayChip(s, pressed, extraClass, onClick) {
-    var b = el("button", "chip day" + (extraClass ? " " + extraClass : ""));
+    var kind = dayKind(s);
+    var b = el("button", "chip day" + (extraClass ? " " + extraClass : "") +
+      (kind === "series" ? "" : " " + kind));
     b.type = "button";
     b.setAttribute("aria-pressed", pressed ? "true" : "false");
     b.appendChild(el("b", null, s.n));
-    b.appendChild(el("small", null, prettyDate(s.date, true)));
+    // у дня без серии важнее вид дня, чем дата: дату видно в заголовке
+    b.appendChild(el("small", null,
+      kind === "off" ? "вых" : kind === "battle" ? "бой" : prettyDate(s.date, true)));
     b.addEventListener("click", onClick);
     return b;
   }
@@ -383,15 +394,18 @@
     card.appendChild(r3);
 
     // серии
+    // выходные и матбои сюда не попадают: считать в них нечего
+    var days = realSeries();
+
     var r2 = el("div", "filter-row");
     var h2 = el("div", "filter-head");
     h2.appendChild(el("span", "filter-title", "Серии"));
     h2.appendChild(mini("все", function () {
-      state.series = new Set(DATA.series.map(function (s) { return s.n; }));
+      state.series = new Set(days.map(function (s) { return s.n; }));
       render();
     }));
     h2.appendChild(mini("последние 5", function () {
-      state.series = new Set(DATA.series.slice(-5).map(function (s) { return s.n; }));
+      state.series = new Set(days.slice(-5).map(function (s) { return s.n; }));
       render();
     }));
     h2.appendChild(mini("ни одной", function () {
@@ -401,7 +415,7 @@
     r2.appendChild(h2);
 
     var c2 = el("div", "chips");
-    DATA.series.forEach(function (s) {
+    days.forEach(function (s) {
       c2.appendChild(dayChip(s, state.series.has(s.n), null, function () {
         if (state.series.has(s.n)) state.series.delete(s.n);
         else state.series.add(s.n);
@@ -418,7 +432,7 @@
   // ── вид: рейтинг ────────────────────────────────────────
 
   function viewRating(host) {
-    if (!DATA.series.length) return viewEmpty(host);
+    if (!UNITS.length) return viewEmpty(host);
 
     var f = renderFilters(host);
 
@@ -476,7 +490,7 @@
      при прокрутке налезали на имена — залипание конфликтует со слоями, которые
      браузер заводит под анимации. Две таблицы такого конфликта не создают.
      Высоты строк заданы жёстко, поэтому половинки идут вровень. */
-  function conduitTables(problems, rows, cellFor, footFor) {
+  function conduitTables(problems, rows, cellFor, footFor, countFor) {
     var split = el("div", "conduit-split");
 
     var names = el("table", "conduit names");
@@ -521,9 +535,11 @@
       cell.appendChild(box);
       hr.appendChild(cell);
     });
+    hr.appendChild(el("th", "pcount", "всего"));
     thead.appendChild(hr);
     cells.appendChild(thead);
 
+    var total = 0;
     var tbody = el("tbody");
     rows.forEach(function (r) {
       var tr = el("tr", "crow");
@@ -532,6 +548,9 @@
         td.appendChild(cellFor(p, r));
         tr.appendChild(td);
       });
+      var n = countFor(r);
+      total += n;
+      tr.appendChild(el("td", "pcount rowcount", n));
       tbody.appendChild(tr);
     });
     cells.appendChild(tbody);
@@ -544,6 +563,8 @@
       f1.appendChild(el("td", null, pair[0]));
       f2.appendChild(el("td", null, pair[1]));
     });
+    f1.appendChild(el("td", "pcount total", total));
+    f2.appendChild(el("td", "pcount"));
     tfoot.appendChild(f1);
     tfoot.appendChild(f2);
     cells.appendChild(tfoot);
@@ -599,14 +620,18 @@
     var s = DATA.series.filter(function (x) { return x.n === state.openSeries; })[0];
     if (!s) return;
 
-    var units = UNITS.filter(function (u) { return u.sn === s.n; });
-    var byId = {};
-    units.forEach(function (u) { byId[u.id] = u; });
-
+    var kind = dayKind(s);
     var sh = el("div", "section-head");
-    sh.appendChild(el("span", "section-title", "Серия " + s.n));
+    sh.appendChild(el("span", "section-title",
+      kind === "series" ? "Серия " + s.n : DAY_NAME[kind]));
     sh.appendChild(el("span", "section-note", prettyDate(s.date)));
     host.appendChild(sh);
+
+    // в выходной и в матбой кондуита нет — показываем только сам день
+    if (kind !== "series" || !s.problems.length) return;
+
+    var byId = {};
+    UNITS.forEach(function (u) { if (u.sn === s.n) byId[u.id] = u; });
 
     // строки — в порядке результата этой серии
     var order = computeRating(new Set([s.n]), allLeaves(), ALL_KINDS).rows;
@@ -615,8 +640,11 @@
       return byId[p.id].solverSet.has(r.id) ? el("div", "mark on", "+") : el("div", "mark");
     }, function (p) {
       return [byId[p.id].solvers.length, byId[p.id].weight];
+    }, function (r) {
+      return s.problems.filter(function (p) {
+        return byId[p.id].solverSet.has(r.id);
+      }).length;
     }));
-
   }
 
   /* Гробарий в том же виде, что и день: сетка «ученики × задачи», внизу сколько
@@ -644,6 +672,8 @@
       return byId[p.id].solverSet.has(r.id) ? el("div", "mark on", "+") : el("div", "mark");
     }, function (p) {
       return [byId[p.id].solvers.length, byId[p.id].weight];
+    }, function (r) {
+      return list.filter(function (p) { return byId[p.id].solverSet.has(r.id); }).length;
     }));
   }
 
@@ -760,7 +790,7 @@
     table.appendChild(thead);
 
     var tbody = el("tbody");
-    DATA.series.forEach(function (s) {
+    realSeries().forEach(function (s) {
       var got = 0, total = 0, score = 0, ceiling = 0;
       UNITS.forEach(function (u) {
         if (u.sn !== s.n) return;

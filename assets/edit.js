@@ -35,6 +35,11 @@
      ещё старые, и всё выглядело бы несохранённым. */
   var SAVED = { types: null, graves: null };
 
+  /* Виды дня: обычная серия, выходной и математический бой. Два последних
+     занимают номер и дату, но задач не несут. */
+  var DAY_KINDS = [["series", "Серия"], ["off", "Выходной"], ["battle", "Матбой"]];
+  var DAY_NAME = { off: "Выходной", battle: "Математический бой" };
+
   var LS_TOKEN = "conduit-token";
   var LS_SENT = "conduit-sent";
   var LETTERS = "абвгде";
@@ -222,7 +227,8 @@
     state.isNew = !s;
     if (s) {
       state.series = JSON.parse(JSON.stringify({
-        n: s.n, date: s.date, problems: s.problems, solved: s.solved
+        n: s.n, date: s.date, kind: s.kind || "series",
+        problems: s.problems, solved: s.solved
       }));
       DATA.students.forEach(function (st) {
         if (!state.series.solved[st.id]) state.series.solved[st.id] = [];
@@ -230,7 +236,9 @@
     } else {
       var solved = {};
       DATA.students.forEach(function (st) { solved[st.id] = []; });
-      state.series = { n: n, date: todayISO(), problems: [], solved: solved };
+      state.series = {
+        n: n, date: todayISO(), kind: "series", problems: [], solved: solved
+      };
     }
     state.dirty = false;
     state.note = "";
@@ -355,6 +363,7 @@
     var d = state.series;
     if (!d) return "нечего сохранять";
     if (!/^\d{4}-\d{2}-\d{2}$/.test(d.date)) return "не указана дата";
+    if (d.kind !== "series") return null;   // в выходной и в матбой задач нет
     if (!d.problems.length) return "не добавлено ни одной задачи";
     var seen = {};
     for (var i = 0; i < d.problems.length; i++) {
@@ -378,11 +387,13 @@
   function putSeriesFile() {
     var d = state.series;
     var file = "data/series/" + pad2(d.n) + ".json";
+    var plain = d.kind !== "series";     // выходной и матбой задач не несут
     var payload = {
       n: d.n,
       date: d.date,
-      title: "Серия " + d.n,
-      problems: d.problems.map(function (p) {
+      kind: d.kind,
+      title: plain ? DAY_NAME[d.kind] : "Серия " + d.n,
+      problems: plain ? [] : d.problems.map(function (p) {
         return {
           id: String(p.id).trim(),
           type: p.type,
@@ -393,16 +404,18 @@
       solved: {}
     };
     DATA.students.forEach(function (s) {
-      payload.solved[s.id] = (d.solved[s.id] || []).slice().sort(cmpIds);
+      payload.solved[s.id] = plain ? [] : (d.solved[s.id] || []).slice().sort(cmpIds);
     });
     var pluses = totalPluses();
 
     return getFile(file)
       .then(function (cur) {
         return putFile(file, JSON.stringify(payload, null, 2) + "\n",
-          "Серия " + d.n + " (" + shortDate(d.date) + "): " +
-          withNum(payload.problems.length, "задача", "задачи", "задач") + ", " +
-          withNum(pluses, "плюс", "плюса", "плюсов"),
+          plain
+            ? DAY_NAME[d.kind] + " " + d.n + " (" + shortDate(d.date) + ")"
+            : "Серия " + d.n + " (" + shortDate(d.date) + "): " +
+              withNum(payload.problems.length, "задача", "задачи", "задач") + ", " +
+              withNum(pluses, "плюс", "плюса", "плюсов"),
           cur && cur.sha);
       })
       .then(function () { return ensureManifest(pad2(d.n) + ".json"); })
@@ -904,7 +917,10 @@
 
     var chips = el("div", "chips");
     DATA.series.forEach(function (s) {
-      chips.appendChild(dayChip(s.n, shortDate(s.date), false, s.n));
+      var kind = s.kind || "series";
+      chips.appendChild(dayChip(s.n,
+        kind === "off" ? "вых" : kind === "battle" ? "бой" : shortDate(s.date),
+        false, s.n, kind));
     });
     Object.keys(SENT).sort().forEach(function (k) {
       var n = Number(k);
@@ -952,39 +968,57 @@
       touch();
       render();
     });
-    mrow.appendChild(field("Номер серии", numInput));
+    mrow.appendChild(field("Номер дня", numInput));
     mrow.appendChild(field("Дата", dateField()));
     meta.appendChild(mrow);
 
+    // вид дня: серия, выходной или матбой
+    var kinds = el("div", "chips");
+    DAY_KINDS.forEach(function (pair) {
+      var b = el("button", "chip pick", pair[1]);
+      b.type = "button";
+      b.setAttribute("aria-pressed", state.series.kind === pair[0] ? "true" : "false");
+      b.addEventListener("click", function () {
+        state.series.kind = pair[0];
+        touch();
+        render();
+      });
+      kinds.appendChild(b);
+    });
+    meta.appendChild(field("Что было", kinds));
+
     host.appendChild(meta);
 
-    // задачи
-    var sh = el("div", "section-head");
-    sh.appendChild(el("span", "section-title", "Задачи"));
-    host.appendChild(sh);
+    // в выходной и в матбой задач нет — показывать нечего
+    if (state.series.kind === "series") {
+      var sh = el("div", "section-head");
+      sh.appendChild(el("span", "section-title", "Задачи"));
+      host.appendChild(sh);
 
-    var pcard = el("div", "card");
-    state.series.problems.forEach(function (p) { pcard.appendChild(problemRow(p)); });
+      var pcard = el("div", "card");
+      state.series.problems.forEach(function (p) { pcard.appendChild(problemRow(p)); });
 
-    var actions = el("div", "frow gap");
-    actions.appendChild(button("+ задача", "ghost-btn", function () { addProblem(); render(); }));
-    actions.appendChild(button("+ пункт", "ghost-btn", function () { addPart(); render(); }));
-    actions.appendChild(button("+ упражнение", "ghost-btn", function () { addExercise(); render(); }));
-    pcard.appendChild(actions);
-    host.appendChild(pcard);
+      var actions = el("div", "frow gap");
+      actions.appendChild(button("+ задача", "ghost-btn", function () { addProblem(); render(); }));
+      actions.appendChild(button("+ пункт", "ghost-btn", function () { addPart(); render(); }));
+      actions.appendChild(button("+ упражнение", "ghost-btn", function () { addExercise(); render(); }));
+      pcard.appendChild(actions);
+      host.appendChild(pcard);
 
-    if (state.series.problems.length) {
-      var sh2 = el("div", "section-head");
-      sh2.appendChild(el("span", "section-title", "Кондуит"));
-      host.appendChild(sh2);
-      host.appendChild(conduitGrid(state.series.problems, state.series.solved, touch));
+      if (state.series.problems.length) {
+        var sh2 = el("div", "section-head");
+        sh2.appendChild(el("span", "section-title", "Кондуит"));
+        host.appendChild(sh2);
+        host.appendChild(conduitGrid(state.series.problems, state.series.solved, touch));
+      }
     }
 
     if (!state.isNew) host.appendChild(deleteBar());
   }
 
-  function dayChip(n, label, waiting, open) {
-    var b = el("button", "chip day" + (waiting ? " pending" : ""));
+  function dayChip(n, label, waiting, open, kind) {
+    var b = el("button", "chip day" + (waiting ? " pending" : "") +
+      (kind && kind !== "series" ? " " + kind : ""));
     b.type = "button";
     b.setAttribute("aria-pressed",
       state.series && state.series.n === n ? "true" : "false");
@@ -1431,10 +1465,52 @@
   /* Единственное место, откуда что-либо уезжает в репозиторий. Правки во всех
      вкладках живут в памяти страницы, здесь видно, что накопилось, и одна
      кнопка отправляет всё разом. */
+  /* Задачи, у которых подраздела больше нет в списке тем. Они не считаются в
+     рейтинге, и молча это заметить нельзя — поэтому список висит здесь, пока
+     их не переразметят. Смотрим и записанное на сайте, и открытую правку. */
+  function untypedTasks() {
+    var found = [];
+
+    DATA.series.forEach(function (s) {
+      if (state.series && state.series.n === s.n) return;   // её проверим ниже
+      var bad = (s.problems || []).filter(function (p) { return !typed(p); });
+      if (bad.length) found.push(["Серия " + s.n, bad]);
+    });
+
+    if (state.series && state.series.kind === "series") {
+      var mine = state.series.problems.filter(function (p) { return !typed(p); });
+      if (mine.length) found.push(["Серия " + state.series.n, mine]);
+    }
+
+    var gr = (state.graves || DATA.graves).problems || [];
+    var badGraves = gr.filter(function (p) { return !typed(p); });
+    if (badGraves.length) found.push(["Гробарий", badGraves]);
+
+    return found;
+  }
+
   function viewSave(host) {
+    var untyped = untypedTasks();
+    if (untyped.length) {
+      var warn = el("div", "card warn");
+      warn.appendChild(el("div", "warn-title", "Задачи без темы — не считаются"));
+      untyped.forEach(function (pair) {
+        var line = el("div", "warn-line");
+        line.appendChild(el("span", "warn-where", pair[0]));
+        line.appendChild(el("span", "warn-ids", pair[1].map(function (p) {
+          return p.id;
+        }).join(", ")));
+        warn.appendChild(line);
+      });
+      host.appendChild(warn);
+    }
+
     var items = [];
     if (typesDirty()) items.push("Темы");
-    if (state.dirty) items.push("Серия " + state.series.n);
+    if (state.dirty) {
+      items.push((state.series.kind === "series"
+        ? "Серия " : DAY_NAME[state.series.kind] + " ") + state.series.n);
+    }
     if (gravesDirty()) items.push("Гробарий");
     var problem = state.dirty ? validate() : null;
 

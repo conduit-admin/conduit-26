@@ -53,7 +53,11 @@
   --accent-hi: #8a6400;
   --accent-wash: rgba(138, 100, 0, 0.07);
 
-  --radius: 10px;
+  /* Два радиуса на весь интерфейс: крупный для карточек и панелей, мелкий для
+     полей, клеток и квадратных кнопок. Круглые кнопки — отдельно, 999px. */
+  --radius: 12px;
+  --radius-sm: 8px;
+  --shadow: 0 1px 2px rgba(11, 11, 11, .04), 0 6px 16px rgba(11, 11, 11, .05);
   --tap: 44px;
 }
 
@@ -97,6 +101,8 @@
     --leader: #f0c34c;
     --accent-hi: #e3b23c;
     --accent-wash: rgba(227, 178, 60, 0.12);
+    /* на тёмном тень почти не читается — держим её едва заметной */
+    --shadow: 0 1px 2px rgba(0, 0, 0, .35);
   }
 }
 
@@ -274,7 +280,29 @@ body {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 14px 16px;
+  box-shadow: var(--shadow);
 }
+
+/* карточка-предупреждение: данные не потеряны, но и не считаются */
+.card.warn { border-color: var(--accent-hi); background: var(--accent-wash); }
+
+.warn-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent-hi);
+  margin-bottom: 6px;
+}
+
+.warn-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+  padding: 3px 0;
+}
+
+.warn-where { color: var(--ink-2); }
+.warn-ids { font-variant-numeric: tabular-nums; white-space: nowrap; }
 
 .filters { margin-bottom: 14px; }
 
@@ -399,6 +427,13 @@ body {
   color: var(--ink-muted);
 }
 
+/* день без серии: выходной и матбой видно по подписи и приглушённому виду */
+.chip.day.off, .chip.day.battle { border-style: dotted; }
+.chip.day.off small, .chip.day.battle small { opacity: 1; font-weight: 600; }
+.chip.day.off b, .chip.day.battle b { opacity: .55; }
+.chip.day.battle small { color: var(--s2); }
+.chip[aria-pressed="true"].day.battle small { color: inherit; }
+
 /* темы: раздел и его подразделы */
 .tgroup {
   display: flex;
@@ -507,6 +542,7 @@ body {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   overflow-x: auto;
+  box-shadow: var(--shadow);
 }
 
 table.data {
@@ -610,6 +646,7 @@ table.data tr.clickable { cursor: pointer; }
   border: 1px solid var(--border);
   border-radius: var(--radius);
   overflow: hidden;
+  box-shadow: var(--shadow);
 }
 
 table.conduit.names {
@@ -758,7 +795,7 @@ td.cell {
   justify-content: center;
   width: 30px;
   height: 30px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   margin: 0 auto;
   font-size: 19px;
   font-weight: 700;
@@ -933,7 +970,7 @@ td .date { margin-left: 8px; font-size: 12px; }
 
 .smini {
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   padding: 6px 9px;
   font-size: 12.5px;
   color: var(--ink-2);
@@ -951,7 +988,7 @@ td .date { margin-left: 8px; font-size: 12px; }
   font-size: 12px;
   line-height: 1.35;
   padding: 6px 9px;
-  border-radius: 7px;
+  border-radius: var(--radius-sm);
   box-shadow: 0 4px 14px rgba(0, 0, 0, .18);
   max-width: 220px;
   opacity: 0;
@@ -1081,7 +1118,7 @@ table.data tbody tr { transition: background-color .12s ease; }
   color: var(--ink);
   background: var(--surface);
   border: 1px solid var(--border-strong);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   padding: 8px 10px;
   min-height: 40px;
   min-width: 0;
@@ -1130,7 +1167,7 @@ select.input { padding-right: 6px; }
   border: 1px solid var(--border);
   background: var(--surface);
   color: var(--ink-muted);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   font: inherit;
   font-size: 17px;
   line-height: 1;
@@ -1282,7 +1319,7 @@ body.is-editor .brand::after {
   min-height: 40px;
   padding: 8px 10px;
   border: 1px solid var(--border-strong);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: var(--surface);
   color: var(--ink);
   font: inherit;
@@ -1311,7 +1348,7 @@ body.is-editor .brand::after {
   margin: 8px 0 2px;
   padding: 10px;
   border: 1px solid var(--grid);
-  border-radius: 10px;
+  border-radius: var(--radius);
   background: var(--plane);
   animation: rise .16s ease-out both;
 }
@@ -1330,7 +1367,7 @@ body.is-editor .brand::after {
   margin-top: 8px;
   padding: 10px;
   border: 1px solid var(--grid);
-  border-radius: 10px;
+  border-radius: var(--radius);
   background: var(--plane);
   animation: rise .16s ease-out both;
 }
@@ -1350,7 +1387,7 @@ body.is-editor .brand::after {
   border: 1px solid var(--border);
   background: var(--surface);
   color: var(--ink-2);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   font: inherit;
   font-size: 16px;
   line-height: 1;
@@ -1379,7 +1416,7 @@ body.is-editor .brand::after {
   border: 1px solid transparent;
   background: var(--surface);
   color: var(--ink);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   font: inherit;
   font-size: 13.5px;
   font-variant-numeric: tabular-nums;
