@@ -685,15 +685,16 @@
     row.appendChild(idBox);
 
     var t = typeById(p.type);
-    var sub = t && (t.subs || []).filter(function (s) { return s.id === p.sub; })[0];
+    var sub = subOf(t, p);
+    var ok = typed(p);
     var open = state.pickTheme === p.id;
 
     var pick = el("button", "picker-btn" + (open ? " open" : ""));
     pick.type = "button";
     var label = el("span", "picker-label");
-    label.appendChild(dot(t ? t.slot : 1));
+    label.appendChild(ok ? dot(t.slot) : greyDot());
     label.appendChild(document.createTextNode(
-      (t ? t.name : "тема?") + (sub ? " · " + sub.name : "")));
+      !t ? "тема?" : t.name + (sub ? " · " + sub.name : (ok ? "" : " · ?"))));
     pick.appendChild(label);
     pick.appendChild(el("span", "picker-caret", "▾"));
     pick.addEventListener("click", function () {
@@ -731,19 +732,17 @@
       (SAVED.types || JSON.stringify(DATA.types));
   }
 
-  function subUsage(catId, subId) {
-    var n = 0;
-    DATA.series.forEach(function (s) {
-      (s.problems || []).forEach(function (p) {
-        if (p.type === catId && (p.sub || null) === subId) n += 1;
-      });
-    });
-    if (state.series) {
-      state.series.problems.forEach(function (p) {
-        if (p.type === catId && (p.sub || null) === subId) n += 1;
-      });
-    }
-    return n;
+  /* Тема задачи задана правильно, если её подраздел есть в списке тем. После
+     удаления подраздела задача остаётся без темы: в кондуите её видно серой,
+     в рейтинг она не идёт. */
+  function subOf(t, p) {
+    return t && (t.subs || []).filter(function (s) { return s.id === p.sub; })[0];
+  }
+
+  function typed(p) {
+    var t = typeById(p.type);
+    if (!t) return false;
+    return (t.subs || []).length ? !!subOf(t, p) : !p.sub;
   }
 
   function putTypesFile() {
@@ -782,6 +781,13 @@
   function dot(slot) {
     var d = el("span", "dot");
     d.style.background = "var(--s" + slot + ")";
+    return d;
+  }
+
+  // задача без темы — серый кружок вместо цвета раздела
+  function greyDot() {
+    var d = el("span", "dot");
+    d.style.background = "var(--axis)";
     return d;
   }
 
@@ -936,11 +942,13 @@
     numInput.min = "1";
     numInput.value = state.series.n;
     numInput.className = "input short";
+    /* Занятый номер не принимаем: иначе правка молча уехала бы поверх чужой
+       серии. Свой собственный номер, разумеется, занятым не считается. */
     numInput.addEventListener("change", function () {
       var v = parseInt(numInput.value, 10);
-      if (!v || v < 1) { numInput.value = state.series.n; return; }
+      var taken = v !== state.series.n && (seriesByNumber(v) || SENT[pad2(v)]);
+      if (!v || v < 1 || taken) { numInput.value = state.series.n; return; }
       state.series.n = v;
-      state.isNew = !seriesByNumber(v);
       touch();
       render();
     });
@@ -993,14 +1001,14 @@
     return b;
   }
 
+  /* Кнопка стоит по центру: слева от неё ничего нет, и прижатая к правому краю
+     она смотрелась брошенной. */
   function deleteBar() {
-    var card = el("div", "card savecard");
-    var left = el("div", "savecard-main");
+    var card = el("div", "card savecard center");
 
     if (state.confirmDelete) {
-      left.appendChild(el("div", "savecard-title",
+      card.appendChild(el("div", "savecard-title",
         "Удалить серию " + state.series.n + " вместе со всеми плюсами?"));
-      card.appendChild(left);
       var yes = button(state.busy ? "…" : "Удалить", "primary-btn danger", deleteSeries);
       yes.disabled = state.busy;
       card.appendChild(yes);
@@ -1009,7 +1017,6 @@
         render();
       }));
     } else {
-      card.appendChild(left);
       card.appendChild(button("Удалить серию", "primary-btn danger", function () {
         state.confirmDelete = true;
         render();
@@ -1035,16 +1042,17 @@
     row.appendChild(idIn);
 
     var t = typeById(p.type);
-    var sub = t && (t.subs || []).filter(function (s) { return s.id === p.sub; })[0];
+    var sub = subOf(t, p);
+    var ok = typed(p);
     var open = state.pickTheme === p.id;
 
     var pick = el("button", "picker-btn" + (open ? " open" : ""));
     pick.type = "button";
     var label = el("span", "picker-label");
-    label.appendChild(dot(t ? t.slot : 1));
+    label.appendChild(ok ? dot(t.slot) : greyDot());
     if (p.exercise) label.appendChild(el("span", "badge", "упр."));
     label.appendChild(document.createTextNode(
-      (t ? t.name : "тема?") + (sub ? " · " + sub.name : "")));
+      !t ? "тема?" : t.name + (sub ? " · " + sub.name : (ok ? "" : " · ?"))));
     pick.appendChild(label);
     pick.appendChild(el("span", "picker-caret", "▾"));
     pick.addEventListener("click", function () {
@@ -1164,9 +1172,13 @@
     var nBody = el("tbody");
     DATA.students.forEach(function (st) {
       var tr = el("tr", "crow");
-      tr.appendChild(el("td", "pname" +
-        (DATA.config.admin === st.id ? " admin" : "") +
-        (leader === st.id ? " leader" : ""), st.name));
+      var cell = el("td", "pname");
+      var box = el("span", "name-box");
+      box.appendChild(el("span", "nm", st.name));
+      if (DATA.config.admin === st.id) box.appendChild(el("i", "badge-admin", "◆"));
+      if (leader === st.id) box.appendChild(el("i", "badge-leader", "♛"));
+      cell.appendChild(box);
+      tr.appendChild(cell);
       nBody.appendChild(tr);
     });
     names.appendChild(nBody);
@@ -1188,11 +1200,12 @@
     var hr = el("tr");
     problems.forEach(function (p) {
       var t = typeById(p.type);
+      var ok = typed(p);
       var cell = el("th");
       var box = el("div", "phead");
-      box.appendChild(el("div", "phead-id", p.id));
+      box.appendChild(el("div", "phead-id" + (ok ? "" : " untyped"), p.id));
       var rule = el("div", "phead-rule");
-      rule.style.background = "var(--s" + (t ? t.slot : 1) + ")";
+      rule.style.background = ok ? "var(--s" + t.slot + ")" : "var(--axis)";
       box.appendChild(rule);
       cell.appendChild(box);
       hr.appendChild(cell);
@@ -1315,13 +1328,17 @@
         var line = el("div", "subline");
         line.appendChild(el("span", "subline-name", s.name));
 
-        if (state.confirmSub === key) {
-          var used = subUsage(t.id, s.id);
+        /* Спрашиваем дважды: задачи удалённого подраздела остаются без темы и
+           выпадают из рейтинга, пока им не выберут тему заново. */
+        if (state.confirmSub === key || state.confirmSub === key + "!") {
+          var second = state.confirmSub === key + "!";
           var box = el("span", "confirm");
-          box.appendChild(el("span", "confirm-text",
-            used ? "стоит у " + withNum(used, "задачи", "задач", "задач") + ". Удалить?"
-              : "удалить?"));
+          box.appendChild(el("span", "confirm-text", second ? "точно?" : "удалить?"));
           box.appendChild(button("да", "mini-btn danger", function () {
+            if (!second) {
+              state.confirmSub = key + "!";
+              return render();
+            }
             var draft = editTypes();
             var cat = draft.filter(function (x) { return x.id === t.id; })[0];
             cat.subs = cat.subs.filter(function (x) { return x.id !== s.id; });

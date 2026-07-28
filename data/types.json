@@ -52,6 +52,11 @@
     "id": "numbers",
     "name": "Теория чисел",
     "slot": 7,
-    "subs": []
+    "subs": [
+      {
+        "id": "klassika-2",
+        "name": "Классика"
+      }
+    ]
   }
 ]

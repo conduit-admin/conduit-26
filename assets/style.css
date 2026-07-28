@@ -668,19 +668,30 @@ table.conduit tfoot td.pname {
   color: var(--ink-muted);
 }
 
-/* Админ кондуита помечен знаком, а не цветом: цвет отдан первому месту,
-   иначе две разные вещи спорили бы за одно средство. */
-.admin::after {
-  content: "◆";
-  margin-left: 6px;
-  font-size: 0.8em;
-  color: var(--admin);
+/* Имя со значками: сам текст ужимается, значки — никогда. Оба значка могут
+   стоять рядом, если админ вышел на первое место. */
+.name-box {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  min-width: 0;
 }
 
-/* Правило столбца фамилий задаёт цвет и перебивает .leader по весу селектора,
-   поэтому лидер прописан здесь отдельно — иначе в кондуите он оставался белым. */
-.leader,
-table.conduit tbody td.pname.leader { color: var(--leader); font-weight: 600; }
+.name-box .nm {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.badge-admin, .badge-leader {
+  flex: none;
+  font-style: normal;
+  font-size: 0.82em;
+  line-height: 1;
+}
+
+.badge-admin { color: var(--admin); }
+.badge-leader { color: var(--leader); font-size: 0.95em; }
 
 table.conduit thead th {
   background: var(--surface);
@@ -703,6 +714,9 @@ table.conduit thead th {
   color: var(--ink-2);
   letter-spacing: -0.02em;
 }
+
+/* задача без темы: номер приглушён, полоска под ним серая */
+.phead-id.untyped { color: var(--ink-muted); }
 
 .phead-rule {
   width: 20px;
@@ -792,51 +806,6 @@ table.conduit tfoot tr.weights td { color: var(--ink-2); font-weight: 560; }
 .section-title { font-size: 16px; font-weight: 600; white-space: nowrap; }
 
 .section-note { font-size: 12.5px; color: var(--ink-muted); }
-
-/* та же маленькая кнопка, что «все» и «последние 5» */
-.back-btn {
-  appearance: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--ink-2);
-  border-radius: 999px;
-  font: inherit;
-  font-size: 12px;
-  line-height: 1;
-  padding: 7px 13px 7px 11px;
-  cursor: pointer;
-  margin-bottom: 10px;
-}
-
-/* Стрелка нарисована рамками, а не взята символом: символьные стрелки на части
-   телефонных шрифтов выпадают в пустой квадрат, а эта везде одинакова. */
-.back-btn::before {
-  content: "";
-  width: 6px;
-  height: 6px;
-  border-left: 1.6px solid currentColor;
-  border-bottom: 1.6px solid currentColor;
-  transform: rotate(45deg);
-  transition: transform .18s cubic-bezier(.2, .8, .3, 1);
-}
-
-.back-btn:hover {
-  background: var(--wash);
-  border-color: var(--border-strong);
-  color: var(--ink);
-}
-
-.back-btn:hover::before { transform: rotate(45deg) translate(2px, -2px); }
-.back-btn.tap::before { animation: nudgeBack .32s cubic-bezier(.2, .8, .3, 1); }
-
-@keyframes nudgeBack {
-  0% { transform: rotate(45deg); }
-  45% { transform: rotate(45deg) translate(3px, -3px); }
-  100% { transform: rotate(45deg); }
-}
 
 .type-name { display: inline-flex; align-items: center; gap: 8px; }
 
@@ -1037,14 +1006,12 @@ td .date { margin-left: 8px; font-size: 12px; }
 .tile:hover { transform: translateY(-1px); border-color: var(--border-strong); }
 .smini { transition: background-color .14s ease, border-color .14s ease; }
 .smini:hover { border-color: var(--border-strong); background: var(--wash); }
-.back-btn { transition: opacity .14s ease; }
-.back-btn:hover { opacity: .7; }
 .delta { transition: color .16s ease; }
 
 /* Отклик на касание. На телефоне подсветка касания погашена нарочно, поэтому
    без этого кнопки кажутся мёртвыми: нажал — и ничего. Сжатие берём
    преобразованием, оно не трогает разметку и ничего не сдвигает вокруг. */
-.chip, .ghost-btn, .primary-btn, .icon-btn, .mini-btn, .back-btn,
+.chip, .ghost-btn, .primary-btn, .icon-btn, .mini-btn,
 .tab, .cal-day, .cal-nav, .banner-close, .picker-btn {
   transition: background-color .14s ease, color .14s ease,
               border-color .14s ease, opacity .14s ease;
@@ -1267,6 +1234,7 @@ body.is-editor .brand::after {
   margin-top: 14px;
 }
 
+.savecard.center { justify-content: center; flex-wrap: wrap; }
 .savecard-main { flex: 1; min-width: 0; }
 .savecard-title { font-size: 14px; }
 .savecard-note { font-size: 12.5px; color: var(--ink-muted); margin-top: 2px; }

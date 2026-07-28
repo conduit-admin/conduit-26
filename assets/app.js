@@ -67,15 +67,30 @@
 
   function isAdmin(id) { return DATA.config.admin && id === DATA.config.admin; }
 
+  /* Имя со значками. Значки — настоящие элементы, а не псевдоэлемент: их может
+     быть два сразу, у каждого свой цвет, и порядок важен — сначала редактор,
+     потом корона. Имя обрезается, значки — никогда. */
   function nameCell(tag, cls, student) {
-    return el(tag, cls +
-      (isAdmin(student.id) ? " admin" : "") +
-      (isLeader(student.id) ? " leader" : ""), student.name);
+    var node = el(tag, cls);
+    var box = el("span", "name-box");
+    box.appendChild(el("span", "nm", student.name));
+    if (isAdmin(student.id)) box.appendChild(el("i", "badge-admin", "◆"));
+    if (isLeader(student.id)) box.appendChild(el("i", "badge-leader", "♛"));
+    node.appendChild(box);
+    return node;
   }
 
   // ── подготовка данных ───────────────────────────────────
 
   function leafKey(catId, subId) { return catId + "/" + (subId || ""); }
+
+  /* Задача, чей подраздел удалили из списка тем, остаётся без темы: лист под
+     неё не заводится, и в рейтинг она не идёт, пока ей не выберут тему заново.
+     В кондуите она при этом видна — с серой полоской вместо цветной. */
+  function unitLeaf(p) {
+    var key = leafKey(p.type, p.sub);
+    return LEAF[key] ? key : null;
+  }
 
   /* Гробарий — задачи вне серий: они не привязаны ко дню и потому не попадают
      под отбор по сериям, зато включаются и выключаются отдельным признаком. */
@@ -89,13 +104,6 @@
     CAT = {};
     DATA.types.forEach(function (t) { CAT[t.id] = t; });
 
-    // какие пары раздел+подраздел реально встречаются в данных
-    var seen = {};
-    DATA.series.forEach(function (s) {
-      s.problems.forEach(function (p) { seen[leafKey(p.type, p.sub)] = true; });
-    });
-    graves().forEach(function (p) { seen[leafKey(p.type, p.sub)] = true; });
-
     LEAVES = [];
     LEAF = {};
     DATA.types.forEach(function (t) {
@@ -105,17 +113,6 @@
       });
       // раздел без подразбиения — один лист на весь раздел
       if (!subs.length) add(t, null, null, t.name);
-    });
-
-    /* Подраздел мог появиться в данных раньше, чем в types.json (например,
-       файл серии уехал, а список тем — ещё нет). Заводим лист по факту данных,
-       иначе такие задачи молча выпали бы из рейтинга. */
-    Object.keys(seen).forEach(function (key) {
-      if (LEAF[key]) return;
-      var parts = key.split("/");
-      var cat = CAT[parts[0]] || { id: parts[0], name: parts[0], slot: 8 };
-      var subId = parts[1] || null;
-      add(cat, subId, subId, cat.name + (subId ? " · " + subId : ""));
     });
 
     function add(t, subId, subName, label) {
@@ -143,7 +140,7 @@
         UNITS.push({
           sn: s.n,
           id: p.id,
-          leafKey: leafKey(p.type, p.sub),
+          leafKey: unitLeaf(p),
           catId: p.type,
           kind: p.exercise ? "exercise" : "problem",
           solvers: solvers,
@@ -161,7 +158,7 @@
       UNITS.push({
         sn: null,
         id: p.id,
-        leafKey: leafKey(p.type, p.sub),
+        leafKey: unitLeaf(p),
         catId: p.type,
         kind: "grave",
         solvers: solvers,
@@ -514,12 +511,12 @@
     var hr = el("tr");
     problems.forEach(function (p) {
       var leaf = LEAF[leafKey(p.type, p.sub)];
-      var slot = leaf ? leaf.slot : (CAT[p.type] ? CAT[p.type].slot : 1);
       var cell = el("th");
       var box = el("div", "phead");
-      box.appendChild(el("div", "phead-id", p.id));
+      box.appendChild(el("div", "phead-id" + (leaf ? "" : " untyped"), p.id));
       var rule = el("div", "phead-rule");
-      rule.style.background = "var(--s" + slot + ")";
+      // без темы — серая полоска: задача видна, но в рейтинг не идёт
+      rule.style.background = leaf ? "var(--s" + leaf.slot + ")" : "var(--axis)";
       box.appendChild(rule);
       cell.appendChild(box);
       hr.appendChild(cell);
@@ -653,11 +650,6 @@
   // ── вид: ученики ────────────────────────────────────────
 
   function viewStudentCard(host, id) {
-    var back = el("button", "back-btn", "К рейтингу");
-    back.type = "button";
-    back.addEventListener("click", function () { state.openStudent = null; render(); });
-    host.appendChild(back);
-
     var student = DATA.students.filter(function (s) { return s.id === id; })[0];
     var f = filtered();
     var row = f.rows.filter(function (r) { return r.id === id; })[0];

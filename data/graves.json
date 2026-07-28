@@ -3,7 +3,7 @@
     {
       "id": "Г1",
       "type": "numbers",
-      "sub": null
+      "sub": "klassika-2"
     },
     {
       "id": "Г2",
@@ -23,7 +23,7 @@
     {
       "id": "Г5",
       "type": "numbers",
-      "sub": null
+      "sub": "klassika-2"
     }
   ],
   "solved": {
