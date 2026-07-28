@@ -48,8 +48,8 @@
   --meter-off: #c9c6b7;
 
   --admin: #a1245e;
-  --leader: #4f6b00;
-  /* отметка достижения — старое золото лидера, оно освободилось */
+  /* золото — и корона первого, и отметка достижения */
+  --leader: #9a7000;
   --accent-hi: #8a6400;
   --accent-wash: rgba(138, 100, 0, 0.07);
 
@@ -94,7 +94,7 @@
     --meter-off: #454440;
 
     --admin: #f08fb8;
-    --leader: #c9f24f;
+    --leader: #f0c34c;
     --accent-hi: #e3b23c;
     --accent-wash: rgba(227, 178, 60, 0.12);
   }
@@ -672,7 +672,7 @@ table.conduit tfoot td.pname {
    стоять рядом, если админ вышел на первое место. */
 .name-box {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 5px;
   min-width: 0;
 }
@@ -683,15 +683,24 @@ table.conduit tfoot td.pname {
   white-space: nowrap;
 }
 
-.badge-admin, .badge-leader {
+.badge-admin {
   flex: none;
   font-style: normal;
   font-size: 0.82em;
   line-height: 1;
+  color: var(--admin);
 }
 
-.badge-admin { color: var(--admin); }
-.badge-leader { color: var(--leader); font-size: 0.95em; }
+/* Корона нарисована обрезкой прямоугольника, а не взята символом: символьные
+   короны есть не во всех телефонных шрифтах и выпадают в пустой квадрат.
+   Силуэт простой — пять зубцов, читается на 9 пикселях. */
+.badge-leader {
+  flex: none;
+  width: 11px;
+  height: 9px;
+  background: var(--leader);
+  clip-path: polygon(0 100%, 0 20%, 25% 52%, 50% 0, 75% 52%, 100% 20%, 100% 100%);
+}
 
 table.conduit thead th {
   background: var(--surface);
@@ -843,7 +852,6 @@ table.conduit tfoot tr.weights td { color: var(--ink-2); font-weight: 560; }
   white-space: nowrap;
 }
 
-.confirm-text { color: var(--ink); font-size: 12.5px; }
 .mini-btn.danger { color: var(--bad); border-color: var(--bad); }
 
 /* Шкала решаемости — ряд мелких блоков вместо одной широкой заливки: крупную
@@ -1001,11 +1009,9 @@ td .date { margin-left: 8px; font-size: 12px; }
 
 .banner { animation: rise .2s ease-out both; }
 
+/* Плитки и плашки в статистике ученика — данные, а не кнопки: ни отклика на
+   касание, ни подъёма под курсором, чтобы не звали нажать. */
 .card { transition: border-color .16s ease; }
-.tile { transition: transform .16s ease, border-color .16s ease; }
-.tile:hover { transform: translateY(-1px); border-color: var(--border-strong); }
-.smini { transition: background-color .14s ease, border-color .14s ease; }
-.smini:hover { border-color: var(--border-strong); background: var(--wash); }
 .delta { transition: color .16s ease; }
 
 /* Отклик на касание. На телефоне подсветка касания погашена нарочно, поэтому
@@ -1041,7 +1047,6 @@ tr.clickable.tap td { animation: tapRow .4s ease-out; }
 
 table.conduit.edit .mark { transition: background-color .14s ease; }
 
-.smini { transition: background-color .14s ease, border-color .14s ease; }
 
 table.data tbody tr { transition: background-color .12s ease; }
 .mark { transition: background-color .14s ease; }
@@ -1135,6 +1140,33 @@ select.input { padding-right: 6px; }
 }
 
 .icon-btn:hover { color: var(--bad); border-color: var(--bad); }
+
+/* подтверждение удаления — красный крестик слева */
+.icon-btn.danger { color: var(--bad); border-color: var(--bad); }
+
+/* «передумал» — стрелка назад, нарисованная рамками, а не символом */
+.icon-btn.back { position: relative; color: var(--ink-2); }
+.icon-btn.back:hover { color: var(--ink); border-color: var(--border-strong); }
+
+.icon-btn.back::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 6px;
+  height: 6px;
+  margin: -3px 0 0 -2px;
+  border-left: 1.6px solid currentColor;
+  border-bottom: 1.6px solid currentColor;
+  transform: rotate(45deg);
+}
+
+/* кнопка добавления — плюс тем же боксом, что и крестик */
+.icon-btn.add { color: var(--ink-2); font-size: 19px; }
+.icon-btn.add:hover { color: var(--ink); border-color: var(--border-strong); }
+
+/* поле ввода занимает строку, кнопка стоит с краю */
+.frow.gap > .input { flex: 1; min-width: 0; }
 
 .prow-wrap { padding: 7px 0; border-bottom: 1px solid var(--grid); }
 

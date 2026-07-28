@@ -1176,7 +1176,7 @@
       var box = el("span", "name-box");
       box.appendChild(el("span", "nm", st.name));
       if (DATA.config.admin === st.id) box.appendChild(el("i", "badge-admin", "◆"));
-      if (leader === st.id) box.appendChild(el("i", "badge-leader", "♛"));
+      if (leader === st.id) box.appendChild(el("i", "badge-leader"));
       cell.appendChild(box);
       tr.appendChild(cell);
       nBody.appendChild(tr);
@@ -1317,10 +1317,6 @@
       nameBox.appendChild(dot(t.slot));
       nameBox.appendChild(el("b", null, t.name));
       head.appendChild(nameBox);
-      head.appendChild(el("span", "type-val",
-        (t.subs || []).length
-          ? withNum(t.subs.length, "подраздел", "подраздела", "подразделов")
-          : "без подразбиения"));
       block.appendChild(head);
 
       (t.subs || []).forEach(function (s) {
@@ -1328,30 +1324,25 @@
         var line = el("div", "subline");
         line.appendChild(el("span", "subline-name", s.name));
 
-        /* Спрашиваем дважды: задачи удалённого подраздела остаются без темы и
-           выпадают из рейтинга, пока им не выберут тему заново. */
-        if (state.confirmSub === key || state.confirmSub === key + "!") {
-          var second = state.confirmSub === key + "!";
+        /* Удалить можно только двумя нажатиями: первое раздваивает крестик на
+           «удалить» и «передумал». Задачи удалённого подраздела остаются без
+           темы и выпадают из рейтинга, пока им не выберут тему заново. */
+        if (state.confirmSub === key) {
           var box = el("span", "confirm");
-          box.appendChild(el("span", "confirm-text", second ? "точно?" : "удалить?"));
-          box.appendChild(button("да", "mini-btn danger", function () {
-            if (!second) {
-              state.confirmSub = key + "!";
-              return render();
-            }
+          box.appendChild(button("×", "icon-btn danger", function () {
             var draft = editTypes();
             var cat = draft.filter(function (x) { return x.id === t.id; })[0];
             cat.subs = cat.subs.filter(function (x) { return x.id !== s.id; });
             state.confirmSub = null;
             render();
           }));
-          box.appendChild(button("нет", "mini-btn", function () {
+          box.appendChild(button("", "icon-btn back", function () {
             state.confirmSub = null;
             render();
           }));
           line.appendChild(box);
         } else {
-          line.appendChild(button("убрать", "mini-btn", function () {
+          line.appendChild(button("×", "icon-btn", function () {
             state.confirmSub = key;
             render();
           }));
@@ -1364,7 +1355,7 @@
       input.className = "input";
       input.placeholder = "новый подраздел";
       add.appendChild(input);
-      add.appendChild(button("добавить", "ghost-btn", function () {
+      add.appendChild(button("+", "icon-btn add", function () {
         var name = String(input.value).trim();
         if (!name) return;
         var draft = editTypes();
@@ -1414,7 +1405,7 @@
         slotSel.appendChild(b);
       })(i);
     }
-    row.appendChild(button("добавить", "ghost-btn", function () {
+    row.appendChild(button("+", "icon-btn add", function () {
       var name = String(nameIn.value).trim();
       if (!name || !chosen.slot) return;
       var draft = editTypes();
@@ -1624,7 +1615,7 @@
   /* Как на сайте: отклик на касание — классом и анимацией, а не :active,
      который на телефоне для быстрого тапа не успевает примениться. Клетки
      кондуита исключены — у них своя анимация плюса. */
-  var TAPPABLE = "button:not(.mark), .chip, a.ghost-btn, .smini";
+  var TAPPABLE = "button:not(.mark), .chip, a.ghost-btn";
 
   document.addEventListener("DOMContentLoaded", function () {
     document.addEventListener("pointerdown", function (e) {

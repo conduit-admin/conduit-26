@@ -75,7 +75,7 @@
     var box = el("span", "name-box");
     box.appendChild(el("span", "nm", student.name));
     if (isAdmin(student.id)) box.appendChild(el("i", "badge-admin", "◆"));
-    if (isLeader(student.id)) box.appendChild(el("i", "badge-leader", "♛"));
+    if (isLeader(student.id)) box.appendChild(el("i", "badge-leader"));
     node.appendChild(box);
     return node;
   }
@@ -927,7 +927,7 @@
      касание — не начало прокрутки, и на быстром тапе состояние успевает
      появиться и исчезнуть за несколько миллисекунд. Анимация же, раз начавшись,
      доигрывает до конца независимо от того, как долго держали палец. */
-  var TAPPABLE = "button:not(.mark), .chip, a.ghost-btn, tr.clickable, .smini";
+  var TAPPABLE = "button:not(.mark), .chip, a.ghost-btn, tr.clickable";
 
   function enableTapFeedback() {
     document.addEventListener("pointerdown", function (e) {
