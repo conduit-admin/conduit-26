@@ -14,5 +14,5 @@
     "branch": "main"
   },
   "build": "202607292227",
-  "egg": true
+  "egg": false
 }
