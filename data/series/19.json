@@ -1,0 +1,70 @@
+{
+  "n": 19,
+  "date": "2026-07-29",
+  "kind": "series",
+  "title": "Серия 19",
+  "problems": [
+    {
+      "id": "1",
+      "type": "algebra",
+      "sub": "inequalities",
+      "exercise": false
+    },
+    {
+      "id": "2",
+      "type": "algebra",
+      "sub": "inequalities",
+      "exercise": false
+    },
+    {
+      "id": "3",
+      "type": "geometry",
+      "sub": "planimetry",
+      "exercise": false
+    }
+  ],
+  "solved": {
+    "aksenova-elizaveta": [
+      "1",
+      "2",
+      "3"
+    ],
+    "afanasev-igor": [
+      "1",
+      "2",
+      "3"
+    ],
+    "budyanskiy-mihail": [
+      "1",
+      "3"
+    ],
+    "velichko-platon": [],
+    "boyko-gleb": [],
+    "gulev-maksim": [
+      "2"
+    ],
+    "zarechnyuk-georgiy": [],
+    "karonov-mihail": [
+      "1",
+      "2"
+    ],
+    "karev-denis": [
+      "3"
+    ],
+    "kovalev-artem": [],
+    "kostylev-konstantin": [],
+    "larionova-natalya": [],
+    "lyubimov-slaven": [],
+    "mahrov-aleksandr": [],
+    "novoselov-maksim": [],
+    "osipova-viktoriya": [],
+    "pogorelov-denis": [],
+    "rudakova-vasilisa": [],
+    "strelkov-sergey": [],
+    "titov-viktor": [],
+    "titov-dmitriy": [],
+    "celikov-aleksandr": [],
+    "shipilov-andrey": [],
+    "shirtanova-valeriya": []
+  }
+}
