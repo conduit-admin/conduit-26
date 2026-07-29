@@ -2,8 +2,8 @@
   "problems": [
     {
       "id": "Г1",
-      "type": "numbers",
-      "sub": "klassika-2"
+      "type": "algebra",
+      "sub": "inequalities"
     },
     {
       "id": "Г2",
