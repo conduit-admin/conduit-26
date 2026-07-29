@@ -443,6 +443,11 @@
     return m ? Number(m[1]) : 0;
   }
 
+  /* Упражнение — не тема, а вид задания, и отдельной пометки ему не нужно:
+     упражнения идут под нулевым номером, так что номер и есть признак.
+     Ставится он тем же полем, что и у прочих задач. */
+  function isExercise(p) { return numPrefix(p.id) === 0; }
+
   function addProblem() {
     var max = 0;
     state.series.problems.forEach(function (p) {
@@ -455,37 +460,6 @@
       type: first.id,
       sub: first.subs && first.subs.length ? first.subs[0].id : null
     });
-    touch();
-  }
-
-  /* Упражнение — не тема, а вид задания: идёт под нулевым номером, тоже может
-     иметь пункты и на сайте фильтруется отдельно от тем. */
-  function addExercise() {
-    var ps = state.series.problems;
-    var first = types()[0];
-    var family = ps.filter(function (p) { return numPrefix(p.id) === 0; });
-
-    if (!family.length) {
-      ps.unshift({
-        id: "0",
-        type: first.id,
-        sub: first.subs && first.subs.length ? first.subs[0].id : null,
-        exercise: true
-      });
-    } else {
-      var sample = family[family.length - 1];
-      if (family.length === 1 && String(sample.id) === "0") {
-        renameProblem("0", "0" + LETTERS[0]);
-        insertAfter(sample, {
-          id: "0" + LETTERS[1], type: sample.type, sub: sample.sub, exercise: true
-        });
-      } else {
-        var letter = LETTERS[family.length] || LETTERS[LETTERS.length - 1];
-        insertAfter(sample, {
-          id: "0" + letter, type: sample.type, sub: sample.sub, exercise: true
-        });
-      }
-    }
     touch();
   }
 
@@ -547,7 +521,7 @@
           id: String(p.id).trim(),
           type: p.type,
           sub: p.sub || null,
-          exercise: !!p.exercise
+          exercise: isExercise(p)
         };
       }),
       solved: {}
@@ -927,7 +901,7 @@
     }));
 
     wrap.appendChild(row);
-    if (open) wrap.appendChild(themeChooser(p, false, touchGraves));
+    if (open) wrap.appendChild(themeChooser(p, touchGraves));
     return wrap;
   }
 
@@ -1240,7 +1214,6 @@
       var actions = el("div", "frow gap");
       actions.appendChild(button("+ задача", "ghost-btn", function () { addProblem(); render(); }));
       actions.appendChild(button("+ пункт", "ghost-btn", function () { addPart(); render(); }));
-      actions.appendChild(button("+ упражнение", "ghost-btn", function () { addExercise(); render(); }));
       pcard.appendChild(actions);
       host.appendChild(pcard);
 
@@ -1374,7 +1347,7 @@
     pick.type = "button";
     var label = el("span", "picker-label");
     label.appendChild(ok ? dot(t.slot) : greyDot());
-    if (p.exercise) label.appendChild(el("span", "badge", "упр."));
+    if (isExercise(p)) label.appendChild(el("span", "badge", "упр."));
     label.appendChild(document.createTextNode(
       !t ? "тема?" : t.name + (sub ? " · " + sub.name : (ok ? "" : " · ?"))));
     pick.appendChild(label);
@@ -1398,33 +1371,14 @@
     }));
 
     wrap.appendChild(row);
-    if (open) wrap.appendChild(themeChooser(p, true, touch));
+    if (open) wrap.appendChild(themeChooser(p, touch));
     return wrap;
   }
 
-  /* Один и тот же выбор темы для задачи серии и для гроба. У гроба нет выбора
-     «задача или упражнение», и правка помечает другой файл — отсюда два
-     параметра. */
-  function themeChooser(p, withKind, touch) {
+  /* Один и тот же выбор темы для задачи серии и для гроба: правка помечает
+     разные файлы, отсюда второй параметр. */
+  function themeChooser(p, touch) {
     var box = el("div", "chooser");
-
-    if (withKind) {
-      // вид задания — признак, не связанный с темой
-      var kinds = el("div", "chips");
-      [[false, "Задача"], [true, "Упражнение"]].forEach(function (pair) {
-        var b = el("button", "chip pick", pair[1]);
-        b.type = "button";
-        b.setAttribute("aria-pressed", !!p.exercise === pair[0] ? "true" : "false");
-        b.addEventListener("click", function () {
-          p.exercise = pair[0];
-          touch();
-          render();
-        });
-        kinds.appendChild(b);
-      });
-      box.appendChild(kinds);
-      box.appendChild(el("div", "chooser-sep"));
-    }
 
     var cats = el("div", "chips");
     types().forEach(function (t) {

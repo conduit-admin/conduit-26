@@ -165,7 +165,8 @@
           id: p.id,
           leafKey: unitLeaf(p),
           catId: p.type,
-          kind: p.exercise ? "exercise" : "problem",
+          // упражнения идут под нулевым номером — по нему они и отличаются
+          kind: /^0/.test(String(p.id)) || p.exercise ? "exercise" : "problem",
           solvers: solvers,
           solverSet: new Set(solvers),
           weight: DATA.config.students_total - solvers.length

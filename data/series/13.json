@@ -1,61 +1,245 @@
 {
   "n": 13,
-  "date": "2026-05-14",
-  "title": "Серия 13",
+  "series": 10,
+  "date": "2026-08-20",
+  "kind": "series",
+  "title": "Серия 10",
   "problems": [
     {
-      "id": "0",
+      "id": "0а",
+      "type": "comb",
+      "sub": "graphs",
+      "exercise": true
+    },
+    {
+      "id": "0б",
+      "type": "comb",
+      "sub": "graphs",
+      "exercise": true
+    },
+    {
+      "id": "1",
+      "type": "comb",
+      "sub": "games",
+      "exercise": false
+    },
+    {
+      "id": "2",
+      "type": "geometry",
+      "sub": "stereometry",
+      "exercise": false
+    },
+    {
+      "id": "3",
+      "type": "comb",
+      "sub": "games",
+      "exercise": false
+    },
+    {
+      "id": "4а",
+      "type": "geometry",
+      "sub": "planimetry",
+      "exercise": false
+    },
+    {
+      "id": "4б",
+      "type": "geometry",
+      "sub": "planimetry",
+      "exercise": false
+    },
+    {
+      "id": "5",
+      "type": "comb",
+      "sub": "graphs",
+      "exercise": false
+    },
+    {
+      "id": "6а",
+      "type": "geometry",
+      "sub": "stereometry",
+      "exercise": false
+    },
+    {
+      "id": "6б",
+      "type": "geometry",
+      "sub": "stereometry",
+      "exercise": false
+    },
+    {
+      "id": "7",
       "type": "algebra",
       "sub": "inequalities",
-      "exercise": true
+      "exercise": false
     }
   ],
   "solved": {
     "aksenova-elizaveta": [
-      "0"
+      "0б",
+      "1",
+      "2",
+      "3",
+      "4б",
+      "5",
+      "7"
     ],
-    "afanasev-igor": [],
-    "budyanskiy-mihail": [],
-    "velichko-platon": [],
+    "afanasev-igor": [
+      "0а",
+      "0б",
+      "1",
+      "2",
+      "3",
+      "4а",
+      "4б",
+      "5",
+      "6а",
+      "7"
+    ],
+    "budyanskiy-mihail": [
+      "0а",
+      "0б",
+      "2",
+      "3",
+      "4а",
+      "4б",
+      "5",
+      "7"
+    ],
+    "velichko-platon": [
+      "0а",
+      "0б",
+      "1",
+      "2",
+      "4а",
+      "4б"
+    ],
     "boyko-gleb": [
-      "0"
+      "0а",
+      "0б",
+      "1",
+      "2",
+      "7"
     ],
-    "gulev-maksim": [],
-    "zarechnyuk-georgiy": [],
+    "gulev-maksim": [
+      "0а",
+      "0б",
+      "1",
+      "3",
+      "4а"
+    ],
+    "zarechnyuk-georgiy": [
+      "0а",
+      "0б",
+      "2",
+      "3"
+    ],
     "karonov-mihail": [
-      "0"
+      "0б",
+      "1",
+      "2"
     ],
     "karev-denis": [
-      "0"
+      "0а",
+      "0б",
+      "1",
+      "5"
     ],
-    "kovalev-artem": [],
-    "kostylev-konstantin": [],
-    "larionova-natalya": [],
-    "lyubimov-slaven": [],
+    "kovalev-artem": [
+      "0а",
+      "0б",
+      "2",
+      "3"
+    ],
+    "kostylev-konstantin": [
+      "0а",
+      "0б",
+      "1",
+      "2",
+      "3",
+      "4а",
+      "4б"
+    ],
+    "larionova-natalya": [
+      "0а",
+      "0б",
+      "1",
+      "2",
+      "4а",
+      "4б",
+      "5",
+      "6б"
+    ],
+    "lyubimov-slaven": [
+      "0б",
+      "2",
+      "3"
+    ],
     "mahrov-aleksandr": [
-      "0"
+      "0а",
+      "3"
     ],
     "novoselov-maksim": [
-      "0"
+      "0а",
+      "1"
     ],
     "osipova-viktoriya": [
-      "0"
+      "0а",
+      "0б",
+      "2",
+      "5"
     ],
     "pogorelov-denis": [
-      "0"
+      "0а",
+      "0б",
+      "1",
+      "2",
+      "5"
     ],
-    "rudakova-vasilisa": [],
-    "strelkov-sergey": [],
+    "rudakova-vasilisa": [
+      "0б",
+      "2",
+      "3",
+      "4а",
+      "5"
+    ],
+    "strelkov-sergey": [
+      "0а",
+      "0б",
+      "1",
+      "2",
+      "4а"
+    ],
     "titov-viktor": [
-      "0"
+      "0а",
+      "0б",
+      "2",
+      "3",
+      "4а",
+      "4б"
     ],
     "titov-dmitriy": [
-      "0"
+      "1",
+      "5"
     ],
     "celikov-aleksandr": [
-      "0"
+      "0а",
+      "0б",
+      "1",
+      "2",
+      "3",
+      "4б"
     ],
-    "shipilov-andrey": [],
-    "shirtanova-valeriya": []
+    "shipilov-andrey": [
+      "0б",
+      "1",
+      "5"
+    ],
+    "shirtanova-valeriya": [
+      "0а",
+      "0б",
+      "1",
+      "2",
+      "3",
+      "7"
+    ]
   }
 }

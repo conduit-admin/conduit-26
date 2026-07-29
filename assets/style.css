@@ -401,9 +401,8 @@ input[type="number"]::-webkit-inner-spin-button {
 /* Номер стоит только у серии; выходной и матбой помечены буквой — В и М. Цвет
    при них остаётся, но уже не как единственный признак: приглушённый серый
    выходного читался как «выключено», поэтому взят синий — он такой же
-   полновесный, как оранжевый у боя. Дата стоит подписью всегда. */
-.chip.day.off, .chip.day.battle { border-style: dotted; }
-
+   полновесный, как оранжевый у боя. Дата стоит подписью всегда. Обводка у всех
+   дней одна: вид дня показан буквой, обводке его дублировать незачем. */
 .chip.day b { color: var(--ink); }
 .chip.day.off b { color: var(--s1); }
 .chip.day.battle b { color: var(--s2); }
@@ -1360,12 +1359,6 @@ body.is-editor .brand::after {
 }
 
 .chooser .subs-row { margin-top: 8px; }
-
-.chooser-sep {
-  height: 1px;
-  background: var(--grid);
-  margin: 10px 0;
-}
 
 .datefield { position: relative; min-width: 190px; }
 

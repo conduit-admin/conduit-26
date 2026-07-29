@@ -1,33 +1,230 @@
 {
   "n": 17,
-  "date": "2026-07-29",
-  "kind": "off",
-  "title": "Выходной",
-  "problems": [],
+  "series": 14,
+  "date": "2026-08-24",
+  "kind": "series",
+  "title": "Серия 14",
+  "problems": [
+    {
+      "id": "0",
+      "type": "comb",
+      "sub": "graphs",
+      "exercise": true
+    },
+    {
+      "id": "1а",
+      "type": "comb",
+      "sub": "graphs",
+      "exercise": false
+    },
+    {
+      "id": "1б",
+      "type": "comb",
+      "sub": "graphs",
+      "exercise": false
+    },
+    {
+      "id": "2",
+      "type": "comb",
+      "sub": "cells",
+      "exercise": false
+    },
+    {
+      "id": "3",
+      "type": "geometry",
+      "sub": "stereometry",
+      "exercise": false
+    },
+    {
+      "id": "4",
+      "type": "numbers",
+      "sub": "klassika-2",
+      "exercise": false
+    },
+    {
+      "id": "5",
+      "type": "numbers",
+      "sub": "klassika-2",
+      "exercise": false
+    },
+    {
+      "id": "6",
+      "type": "geometry",
+      "sub": "stereometry",
+      "exercise": false
+    },
+    {
+      "id": "7а",
+      "type": "numbers",
+      "sub": "klassika-2",
+      "exercise": false
+    },
+    {
+      "id": "7б",
+      "type": "numbers",
+      "sub": "klassika-2",
+      "exercise": false
+    }
+  ],
   "solved": {
-    "aksenova-elizaveta": [],
-    "afanasev-igor": [],
-    "budyanskiy-mihail": [],
-    "velichko-platon": [],
-    "boyko-gleb": [],
-    "gulev-maksim": [],
-    "zarechnyuk-georgiy": [],
-    "karonov-mihail": [],
-    "karev-denis": [],
-    "kovalev-artem": [],
-    "kostylev-konstantin": [],
-    "larionova-natalya": [],
-    "lyubimov-slaven": [],
-    "mahrov-aleksandr": [],
-    "novoselov-maksim": [],
-    "osipova-viktoriya": [],
-    "pogorelov-denis": [],
-    "rudakova-vasilisa": [],
-    "strelkov-sergey": [],
-    "titov-viktor": [],
-    "titov-dmitriy": [],
-    "celikov-aleksandr": [],
-    "shipilov-andrey": [],
-    "shirtanova-valeriya": []
+    "aksenova-elizaveta": [
+      "0",
+      "1а",
+      "1б",
+      "2",
+      "3",
+      "4",
+      "5",
+      "7а",
+      "7б"
+    ],
+    "afanasev-igor": [
+      "0",
+      "1а",
+      "1б",
+      "2",
+      "3",
+      "4",
+      "6"
+    ],
+    "budyanskiy-mihail": [
+      "0",
+      "1а",
+      "1б",
+      "2",
+      "4",
+      "5"
+    ],
+    "velichko-platon": [
+      "1а",
+      "1б",
+      "2",
+      "3",
+      "4",
+      "5"
+    ],
+    "boyko-gleb": [
+      "1б",
+      "3"
+    ],
+    "gulev-maksim": [
+      "0",
+      "7а"
+    ],
+    "zarechnyuk-georgiy": [
+      "0",
+      "1а",
+      "2",
+      "4",
+      "5"
+    ],
+    "karonov-mihail": [
+      "0",
+      "1а",
+      "1б",
+      "2",
+      "3",
+      "4"
+    ],
+    "karev-denis": [
+      "0",
+      "2"
+    ],
+    "kovalev-artem": [
+      "1б",
+      "2",
+      "5"
+    ],
+    "kostylev-konstantin": [
+      "0",
+      "1а",
+      "1б",
+      "2",
+      "4",
+      "5",
+      "7б"
+    ],
+    "larionova-natalya": [
+      "0",
+      "1а",
+      "1б",
+      "2",
+      "4",
+      "5",
+      "6"
+    ],
+    "lyubimov-slaven": [
+      "0",
+      "4",
+      "5"
+    ],
+    "mahrov-aleksandr": [
+      "0",
+      "1а",
+      "2",
+      "7а"
+    ],
+    "novoselov-maksim": [
+      "0",
+      "2"
+    ],
+    "osipova-viktoriya": [
+      "0",
+      "1а",
+      "4"
+    ],
+    "pogorelov-denis": [
+      "0",
+      "1а",
+      "1б",
+      "2",
+      "3",
+      "4"
+    ],
+    "rudakova-vasilisa": [
+      "0",
+      "1а",
+      "3"
+    ],
+    "strelkov-sergey": [
+      "0",
+      "1а",
+      "1б",
+      "2",
+      "3"
+    ],
+    "titov-viktor": [
+      "0",
+      "1а",
+      "1б",
+      "2",
+      "3",
+      "4",
+      "6",
+      "7б"
+    ],
+    "titov-dmitriy": [
+      "0",
+      "1а",
+      "1б"
+    ],
+    "celikov-aleksandr": [
+      "1а",
+      "1б",
+      "4",
+      "5"
+    ],
+    "shipilov-andrey": [
+      "0",
+      "3",
+      "5"
+    ],
+    "shirtanova-valeriya": [
+      "0",
+      "1а",
+      "2",
+      "3",
+      "6"
+    ]
   }
 }
