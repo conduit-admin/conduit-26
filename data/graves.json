@@ -14,16 +14,6 @@
       "id": "Г3",
       "type": "algebra",
       "sub": "inequalities"
-    },
-    {
-      "id": "Г4",
-      "type": "geometry",
-      "sub": "klassika"
-    },
-    {
-      "id": "Г5",
-      "type": "numbers",
-      "sub": "klassika-2"
     }
   ],
   "solved": {
@@ -38,40 +28,31 @@
       "Г3"
     ],
     "budyanskiy-mihail": [
-      "Г2",
-      "Г5"
+      "Г2"
     ],
     "velichko-platon": [
       "Г1"
     ],
     "boyko-gleb": [
-      "Г1",
-      "Г4",
-      "Г5"
+      "Г1"
     ],
     "gulev-maksim": [
-      "Г2",
-      "Г4"
+      "Г2"
     ],
-    "zarechnyuk-georgiy": [
-      "Г4"
-    ],
+    "zarechnyuk-georgiy": [],
     "karonov-mihail": [
-      "Г3",
-      "Г4"
+      "Г3"
     ],
     "karev-denis": [
       "Г1"
     ],
     "kovalev-artem": [
       "Г1",
-      "Г3",
-      "Г4"
+      "Г3"
     ],
     "kostylev-konstantin": [],
     "larionova-natalya": [
-      "Г2",
-      "Г4"
+      "Г2"
     ],
     "lyubimov-slaven": [],
     "mahrov-aleksandr": [
@@ -87,19 +68,15 @@
       "Г3"
     ],
     "rudakova-vasilisa": [
-      "Г1",
-      "Г4"
+      "Г1"
     ],
-    "strelkov-sergey": [
-      "Г4"
-    ],
+    "strelkov-sergey": [],
     "titov-viktor": [
       "Г2"
     ],
     "titov-dmitriy": [
       "Г1",
-      "Г3",
-      "Г4"
+      "Г3"
     ],
     "celikov-aleksandr": [
       "Г2"
