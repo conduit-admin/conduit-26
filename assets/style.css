@@ -168,11 +168,10 @@ body {
 
 .brand-sub {
   color: var(--ink-muted);
-  font-size: 11.5px;
-  font-weight: 500;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  margin-top: 4px;
+  font-size: 12.5px;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  margin-top: 3px;
 }
 
 .spacer { flex: 1; }
@@ -192,45 +191,14 @@ body {
 
 .ghost-btn:hover { background: var(--wash); }
 
-/* «К сайту» в шапке редактора: заметнее обычной ghost-кнопки, со стрелкой,
-   которая отъезжает при наведении и нажатии — маленький намёк на переход */
-.topbar .ghost-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 8px 15px;
-  min-height: 36px;
-  font-size: 13px;
-  font-weight: 560;
-  color: var(--ink);
-  border-color: var(--border-strong);
-  text-decoration: none;
-}
+/* Поле числа без стрелок-крутилок: номер дня вводят с клавиатуры, а на узком
+   поле крутилки съедают половину ширины. */
+input[type="number"] { -moz-appearance: textfield; }
 
-.topbar .ghost-btn::after {
-  content: "→";
-  font-size: 14px;
-  line-height: 1;
-  color: var(--ink-muted);
-  transition: transform .18s cubic-bezier(.2, .8, .3, 1), color .18s ease;
-}
-
-.topbar .ghost-btn:hover {
-  border-color: var(--ink);
-  background: var(--wash);
-}
-
-.topbar .ghost-btn:hover::after {
-  transform: translateX(3px);
-  color: var(--ink);
-}
-
-.topbar .ghost-btn.tap::after { animation: nudge .32s cubic-bezier(.2, .8, .3, 1); }
-
-@keyframes nudge {
-  0% { transform: translateX(0); }
-  45% { transform: translateX(5px); }
-  100% { transform: translateX(0); }
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 
 .tabs {
@@ -1244,6 +1212,12 @@ select.input { padding-right: 6px; }
 }
 
 .chip.day.new { border-style: dashed; }
+
+/* день заведён здесь и на сайт ещё не уехал */
+.chip.day.local { border-style: dashed; border-color: var(--accent-hi); }
+.chip.day.local b { color: var(--accent-hi); }
+
+.ghost-btn.danger:hover { background: var(--wash); }
 .chip.day.new b { font-size: 15px; }
 
 table.conduit thead th:not(.pname):not(.pcount) {

@@ -14,11 +14,14 @@
   var TOKEN = null;
   var SENT = {};        // "01" -> когда сохранено; сайт обновляется не мгновенно
 
+  /* Дни правятся не по одному: state.days держит рабочую копию каждого дня,
+     который завели или тронули. Поэтому добавленный день сразу виден в списке,
+     а переключение между днями ничего не теряет. state.series — указатель на
+     открытую копию, она же лежит в state.days. */
   var state = {
     view: "series",
-    series: null,       // открытая серия {n, date, problems, solved}
-    isNew: false,
-    dirty: false,
+    days: {},           // номер -> рабочая копия дня
+    series: null,       // открытый день, он же элемент days
     graves: null,       // правка гробария, пока не сохранена
     typesEdit: null,    // правка тем, пока не сохранена
     busy: false,
@@ -26,6 +29,7 @@
     noteKind: "",       // good | bad | ""
     confirmSub: null,
     confirmDelete: false,
+    confirmRevert: false,
     pickTheme: null,    // id задачи, у которой открыт выбор темы
     pickDate: false
   };
@@ -33,7 +37,7 @@
   /* Что уже отправлено. Нужен потому, что сайт переразворачивается не сразу:
      сравнивать правку с данными сайта нельзя — минуту после сохранения они
      ещё старые, и всё выглядело бы несохранённым. */
-  var SAVED = { types: null, graves: null };
+  var SAVED = { types: null, graves: null, days: {} };
 
   /* Виды дня: обычная серия, выходной и математический бой. Два последних
      занимают номер и дату, но задач не несут. */
@@ -218,29 +222,41 @@
   function nextNumber() {
     var max = 0;
     DATA.series.forEach(function (s) { if (s.n > max) max = s.n; });
+    Object.keys(state.days).forEach(function (k) { if (Number(k) > max) max = Number(k); });
     Object.keys(SENT).forEach(function (k) { if (Number(k) > max) max = Number(k); });
     return max + 1;
   }
 
-  function openSeries(n) {
-    var s = seriesByNumber(n);
-    state.isNew = !s;
-    if (s) {
-      state.series = JSON.parse(JSON.stringify({
-        n: s.n, date: s.date, kind: s.kind || "series",
-        problems: s.problems, solved: s.solved
-      }));
-      DATA.students.forEach(function (st) {
-        if (!state.series.solved[st.id]) state.series.solved[st.id] = [];
-      });
-    } else {
-      var solved = {};
-      DATA.students.forEach(function (st) { solved[st.id] = []; });
-      state.series = {
-        n: n, date: todayISO(), kind: "series", problems: [], solved: solved
-      };
+  function blankDay(n) {
+    var solved = {};
+    DATA.students.forEach(function (st) { solved[st.id] = []; });
+    return { n: n, date: todayISO(), kind: "series", problems: [], solved: solved };
+  }
+
+  function copyDay(s) {
+    var d = JSON.parse(JSON.stringify({
+      n: s.n, date: s.date, kind: s.kind || "series",
+      problems: s.problems || [], solved: s.solved || {}
+    }));
+    DATA.students.forEach(function (st) {
+      if (!d.solved[st.id]) d.solved[st.id] = [];
+    });
+    return d;
+  }
+
+  /* Открываем рабочую копию. Если её ещё нет — берём с сайта или заводим
+     пустую; в обоих случаях копия остаётся в state.days, поэтому правка
+     переживает переход на другой день. */
+  function workingDay(n) {
+    if (!state.days[n]) {
+      var s = seriesByNumber(n);
+      state.days[n] = s ? copyDay(s) : blankDay(n);
     }
-    state.dirty = false;
+    return state.days[n];
+  }
+
+  function openSeries(n) {
+    state.series = workingDay(n);
     state.note = "";
     state.noteKind = "";
     state.pickTheme = null;
@@ -249,25 +265,27 @@
     render();
   }
 
+  // список дней для ленты: и то, что на сайте, и заведённое здесь
+  function allDays() {
+    var map = {};
+    DATA.series.forEach(function (s) {
+      map[s.n] = { n: s.n, date: s.date, kind: s.kind || "series" };
+    });
+    Object.keys(state.days).forEach(function (k) {
+      var d = state.days[k];
+      map[d.n] = { n: d.n, date: d.date, kind: d.kind, local: !seriesByNumber(d.n) };
+    });
+    Object.keys(SENT).forEach(function (k) {
+      var n = Number(k);
+      if (!map[n]) map[n] = { n: n, pending: true };
+    });
+    return Object.keys(map).map(function (k) { return map[k]; })
+      .sort(function (a, b) { return a.n - b.n; });
+  }
+
   function touch() {
-    state.dirty = true;
     state.note = "";
     state.noteKind = "";
-  }
-
-  function solvedCount(pid) {
-    var c = 0;
-    DATA.students.forEach(function (s) {
-      var list = state.series.solved[s.id];
-      if (list && list.indexOf(pid) !== -1) c += 1;
-    });
-    return c;
-  }
-
-  function totalPluses() {
-    return DATA.students.reduce(function (a, s) {
-      return a + ((state.series.solved[s.id] || []).length);
-    }, 0);
   }
 
   function renameProblem(oldId, newId) {
@@ -359,8 +377,8 @@
     state.series.problems.splice(i === -1 ? state.series.problems.length : i + 1, 0, item);
   }
 
-  function validate() {
-    var d = state.series;
+  function validate(d) {
+    d = d || state.series;
     if (!d) return "нечего сохранять";
     if (!/^\d{4}-\d{2}-\d{2}$/.test(d.date)) return "не указана дата";
     if (d.kind !== "series") return null;   // в выходной и в матбой задач нет
@@ -381,19 +399,15 @@
     return numPrefix(a) - numPrefix(b) || String(a).localeCompare(String(b), "ru");
   }
 
-  /* Отправка одного файла. Ничего не рисует и не переключает состояние занятости
-     — этим ведает saveAll: за одно нажатие может уехать и серия, и гробарий, и
-     темы. */
-  function putSeriesFile() {
-    var d = state.series;
-    var file = "data/series/" + pad2(d.n) + ".json";
-    var plain = d.kind !== "series";     // выходной и матбой задач не несут
+  // то, что уедет в файл: по нему же определяется, изменился ли день
+  function dayPayload(d) {
+    var plain = (d.kind || "series") !== "series";   // выходной и матбой без задач
     var payload = {
       n: d.n,
       date: d.date,
-      kind: d.kind,
+      kind: d.kind || "series",
       title: plain ? DAY_NAME[d.kind] : "Серия " + d.n,
-      problems: plain ? [] : d.problems.map(function (p) {
+      problems: plain ? [] : (d.problems || []).map(function (p) {
         return {
           id: String(p.id).trim(),
           type: p.type,
@@ -404,25 +418,54 @@
       solved: {}
     };
     DATA.students.forEach(function (s) {
-      payload.solved[s.id] = plain ? [] : (d.solved[s.id] || []).slice().sort(cmpIds);
+      payload.solved[s.id] = plain
+        ? [] : ((d.solved || {})[s.id] || []).slice().sort(cmpIds);
     });
-    var pluses = totalPluses();
+    return payload;
+  }
 
-    return getFile(file)
-      .then(function (cur) {
-        return putFile(file, JSON.stringify(payload, null, 2) + "\n",
-          plain
-            ? DAY_NAME[d.kind] + " " + d.n + " (" + shortDate(d.date) + ")"
-            : "Серия " + d.n + " (" + shortDate(d.date) + "): " +
-              withNum(payload.problems.length, "задача", "задачи", "задач") + ", " +
-              withNum(pluses, "плюс", "плюса", "плюсов"),
-          cur && cur.sha);
-      })
-      .then(function () { return ensureManifest(pad2(d.n) + ".json"); })
-      .then(function () {
-        markSent(d.n);
-        state.dirty = false;
-      });
+  function dayDirty(d) {
+    var now = JSON.stringify(dayPayload(d));
+    if (SAVED.days[d.n]) return now !== SAVED.days[d.n];
+    var s = seriesByNumber(d.n);
+    return !s || now !== JSON.stringify(dayPayload(s));
+  }
+
+  function dirtyDays() {
+    return Object.keys(state.days)
+      .map(function (k) { return state.days[k]; })
+      .filter(dayDirty)
+      .sort(function (a, b) { return a.n - b.n; });
+  }
+
+  /* Отправка одного файла. Ничего не рисует и не переключает состояние занятости
+     — этим ведает saveAll: за одно нажатие может уехать несколько дней, гробарий
+     и темы. */
+  function putDayFile(d) {
+    return function () {
+      var file = "data/series/" + pad2(d.n) + ".json";
+      var payload = dayPayload(d);
+      var plain = payload.kind !== "series";
+      var pluses = DATA.students.reduce(function (a, s) {
+        return a + payload.solved[s.id].length;
+      }, 0);
+
+      return getFile(file)
+        .then(function (cur) {
+          return putFile(file, JSON.stringify(payload, null, 2) + "\n",
+            plain
+              ? DAY_NAME[payload.kind] + " " + d.n + " (" + shortDate(d.date) + ")"
+              : "Серия " + d.n + " (" + shortDate(d.date) + "): " +
+                withNum(payload.problems.length, "задача", "задачи", "задач") + ", " +
+                withNum(pluses, "плюс", "плюса", "плюсов"),
+            cur && cur.sha);
+        })
+        .then(function () { return ensureManifest(pad2(d.n) + ".json"); })
+        .then(function () {
+          markSent(d.n);
+          SAVED.days[d.n] = JSON.stringify(payload);
+        });
+    };
   }
 
   /* Одна кнопка на всё несохранённое. Порядок важен: темы уходят первыми,
@@ -433,7 +476,7 @@
 
     var jobs = [];
     if (typesDirty()) jobs.push(putTypesFile);
-    if (state.dirty) jobs.push(putSeriesFile);
+    dirtyDays().forEach(function (d) { jobs.push(putDayFile(d)); });
     if (gravesDirty()) jobs.push(putGravesFile);
     if (!jobs.length) return;
 
@@ -489,9 +532,10 @@
       .then(function () {
         delete SENT[pad2(n)];
         lsSet(LS_SENT, JSON.stringify(SENT));
+        delete state.days[n];
+        delete SAVED.days[n];
         state.busy = false;
         state.series = null;
-        state.dirty = false;
         state.confirmDelete = false;
         state.note = "День " + n + " удалён";
         state.noteKind = "good";
@@ -912,18 +956,18 @@
   function viewSeries(host) {
     var picker = el("div", "card");
     var chips = el("div", "chips");
-    DATA.series.forEach(function (s) {
-      var kind = s.kind || "series";
-      chips.appendChild(dayChip(s.n,
-        kind === "off" ? "вых" : kind === "battle" ? "бой" : shortDate(s.date),
-        false, s.n, kind));
-    });
-    Object.keys(SENT).sort().forEach(function (k) {
-      var n = Number(k);
-      if (seriesByNumber(n)) return;
-      chips.appendChild(dayChip(n, "ждём", true, n));
+    allDays().forEach(function (d) {
+      if (d.pending) {
+        chips.appendChild(dayChip(d.n, "ждём", true, d.n));
+        return;
+      }
+      chips.appendChild(dayChip(d.n,
+        d.kind === "off" ? "вых" : d.kind === "battle" ? "бой" : shortDate(d.date),
+        false, d.n, d.kind, d.local));
     });
 
+    /* День заводится этой кнопкой и сразу встаёт в ленту — как подраздел в
+       темах. В репозиторий он уедет позже, из вкладки «Сохранение». */
     var add = el("button", "chip day new");
     add.type = "button";
     add.setAttribute("aria-pressed", "false");
@@ -957,10 +1001,16 @@
     /* Занятый номер не принимаем: иначе правка молча уехала бы поверх чужой
        серии. Свой собственный номер, разумеется, занятым не считается. */
     numInput.addEventListener("change", function () {
+      var was = state.series.n;
       var v = parseInt(numInput.value, 10);
-      var taken = v !== state.series.n && (seriesByNumber(v) || SENT[pad2(v)]);
-      if (!v || v < 1 || taken) { numInput.value = state.series.n; return; }
+      var taken = v !== was &&
+        (seriesByNumber(v) || SENT[pad2(v)] || state.days[v]);
+      if (!v || v < 1 || taken) { numInput.value = was; return; }
+      // рабочая копия лежит под своим номером — переносим её на новый
+      delete state.days[was];
       state.series.n = v;
+      state.days[v] = state.series;
+      lastSeriesN = v;
       touch();
       render();
     });
@@ -1009,12 +1059,13 @@
       }
     }
 
-    if (!state.isNew) host.appendChild(deleteBar());
+    // удалять с сайта нечего, пока день туда не уехал
+    if (seriesByNumber(state.series.n)) host.appendChild(deleteBar());
   }
 
-  function dayChip(n, label, waiting, open, kind) {
+  function dayChip(n, label, waiting, open, kind, local) {
     var b = el("button", "chip day" + (waiting ? " pending" : "") +
-      (kind && kind !== "series" ? " " + kind : ""));
+      (kind && kind !== "series" ? " " + kind : "") + (local ? " local" : ""));
     b.type = "button";
     b.setAttribute("aria-pressed",
       state.series && state.series.n === n ? "true" : "false");
@@ -1467,22 +1518,43 @@
   function untypedTasks() {
     var found = [];
 
-    DATA.series.forEach(function (s) {
-      if (state.series && state.series.n === s.n) return;   // её проверим ниже
-      var bad = (s.problems || []).filter(function (p) { return !typed(p); });
-      if (bad.length) found.push(["День " + s.n, bad]);
-    });
+    // у дня с рабочей копией смотрим копию, у остального — то, что на сайте
+    var days = {};
+    DATA.series.forEach(function (s) { days[s.n] = s; });
+    Object.keys(state.days).forEach(function (k) { days[k] = state.days[k]; });
 
-    if (state.series && state.series.kind === "series") {
-      var mine = state.series.problems.filter(function (p) { return !typed(p); });
-      if (mine.length) found.push(["День " + state.series.n, mine]);
-    }
+    Object.keys(days).map(Number).sort(function (a, b) { return a - b; })
+      .forEach(function (n) {
+        var d = days[n];
+        if ((d.kind || "series") !== "series") return;
+        var bad = (d.problems || []).filter(function (p) { return !typed(p); });
+        if (bad.length) found.push(["День " + n, bad]);
+      });
 
     var gr = (state.graves || DATA.graves).problems || [];
     var badGraves = gr.filter(function (p) { return !typed(p); });
     if (badGraves.length) found.push(["Гробарий", badGraves]);
 
     return found;
+  }
+
+  /* Возврат к тому, что на сайте: рабочие копии дней, правка тем и гробария
+     просто выбрасываются. Открытый день переоткрывается заново, если он на
+     сайте есть, иначе экран остаётся без открытого дня. */
+  function revertAll() {
+    var n = state.series ? state.series.n : null;
+    state.days = {};
+    SAVED.days = {};
+    state.typesEdit = null;
+    SAVED.types = null;
+    state.graves = null;
+    SAVED.graves = null;
+    state.series = null;
+    state.confirmRevert = false;
+    state.confirmSub = null;
+    lastSeriesN = null;
+    if (n !== null && seriesByNumber(n)) openSeries(n);
+    else render();
   }
 
   function viewSave(host) {
@@ -1501,14 +1573,20 @@
       host.appendChild(warn);
     }
 
+    var days = dirtyDays();
     var items = [];
     if (typesDirty()) items.push("Темы");
-    if (state.dirty) {
-      items.push("День " + state.series.n +
-        (state.series.kind === "series" ? "" : " · " + DAY_NAME[state.series.kind]));
-    }
+    days.forEach(function (d) {
+      items.push("День " + d.n +
+        (d.kind === "series" ? "" : " · " + DAY_NAME[d.kind]));
+    });
     if (gravesDirty()) items.push("Гробарий");
-    var problem = state.dirty ? validate() : null;
+
+    var problem = null;
+    for (var i = 0; i < days.length && !problem; i++) {
+      var bad = validate(days[i]);
+      if (bad) problem = "День " + days[i].n + ": " + bad;
+    }
 
     var card = el("div", "card savecard");
     var left = el("div", "savecard-main");
@@ -1521,6 +1599,25 @@
     save.disabled = state.busy || !items.length || !!problem;
     card.appendChild(save);
     host.appendChild(card);
+
+    /* Откат всего несохранённого. Спрашиваем вторым нажатием: правки живут
+       только в памяти страницы, вернуть их после отката неоткуда. */
+    if (items.length) {
+      var rev = el("div", "card savecard center");
+      if (state.confirmRevert) {
+        rev.appendChild(button("Отменить всё", "primary-btn danger", revertAll));
+        rev.appendChild(button("", "icon-btn back", function () {
+          state.confirmRevert = false;
+          render();
+        }));
+      } else {
+        rev.appendChild(button("Отменить изменения", "ghost-btn danger", function () {
+          state.confirmRevert = true;
+          render();
+        }));
+      }
+      host.appendChild(rev);
+    }
 
     var sh = el("div", "section-head");
     sh.appendChild(el("span", "section-title", "Доступ"));
@@ -1667,6 +1764,16 @@
     return loadFromFiles().then(function (d) {
       DATA = d;
       pruneSent();
+      // рабочую копию дня, догнавшую сайт, держать больше незачем
+      Object.keys(state.days).forEach(function (k) {
+        var day = state.days[k];
+        if (day === state.series) return;
+        var s = seriesByNumber(day.n);
+        if (s && JSON.stringify(dayPayload(day)) === JSON.stringify(dayPayload(s))) {
+          delete state.days[k];
+          delete SAVED.days[k];
+        }
+      });
       /* Правку держим в памяти, пока сайт не догонит: иначе сразу после
          сохранения экран показал бы старые данные, будто правка потерялась. */
       if (state.typesEdit &&
@@ -1690,6 +1797,7 @@
   var TAPPABLE = "button:not(.mark), .chip, a.ghost-btn";
 
   document.addEventListener("DOMContentLoaded", function () {
+    document.title = "Статистика — редактор";
     document.addEventListener("pointerdown", function (e) {
       var node = e.target.closest && e.target.closest(TAPPABLE);
       if (!node || node.disabled) return;
