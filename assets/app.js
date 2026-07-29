@@ -278,7 +278,7 @@
      не выглядела сломанной. */
   function viewEmpty(host) {
     var card = el("div", "card");
-    card.appendChild(el("div", "section-title", "Серий пока нет"));
+    card.appendChild(el("div", "section-title", "Дней пока нет"));
     host.appendChild(card);
 
     var sh = el("div", "section-head");
@@ -393,13 +393,12 @@
     r3.appendChild(c3);
     card.appendChild(r3);
 
-    // серии
-    // выходные и матбои сюда не попадают: считать в них нечего
+    // дни; выходные и матбои сюда не попадают — считать в них нечего
     var days = realSeries();
 
     var r2 = el("div", "filter-row");
     var h2 = el("div", "filter-head");
-    h2.appendChild(el("span", "filter-title", "Серии"));
+    h2.appendChild(el("span", "filter-title", "Дни"));
     h2.appendChild(mini("все", function () {
       state.series = new Set(days.map(function (s) { return s.n; }));
       render();
@@ -579,7 +578,7 @@
   function viewSeries(host) {
     if (!DATA.series.length && !graves().length) {
       var none = el("div", "card");
-      none.appendChild(el("div", "section-title", "Кондуитов пока нет"));
+      none.appendChild(el("div", "section-title", "Дней пока нет"));
       host.appendChild(none);
       return;
     }
@@ -623,7 +622,7 @@
     var kind = dayKind(s);
     var sh = el("div", "section-head");
     sh.appendChild(el("span", "section-title",
-      kind === "series" ? "Серия " + s.n : DAY_NAME[kind]));
+      kind === "series" ? "День " + s.n : DAY_NAME[kind] + " · день " + s.n));
     sh.appendChild(el("span", "section-note", prettyDate(s.date)));
     host.appendChild(sh);
 
@@ -702,7 +701,7 @@
     var best = bestProblem(id);
     tiles.appendChild(tile("Самый ценный плюс", best ? "+" + best.weight : "—",
       best ? (best.sn === null ? "гроб " + best.id
-        : "серия " + best.sn + ", задача " + best.id) : null));
+        : "день " + best.sn + ", задача " + best.id) : null));
     host.appendChild(tiles);
 
     var sh2 = el("div", "section-head");
@@ -756,7 +755,7 @@
     }
 
     var sh4 = el("div", "section-head");
-    sh4.appendChild(el("span", "section-title", "По сериям"));
+    sh4.appendChild(el("span", "section-title", "По дням"));
     host.appendChild(sh4);
     host.appendChild(seriesTable(id));
   }
@@ -783,7 +782,7 @@
 
     var thead = el("thead");
     var hr = el("tr");
-    hr.appendChild(th("Серия", "left"));
+    hr.appendChild(th("День", "left"));
     hr.appendChild(th("Задачи"));
     hr.appendChild(th("Очки"));
     thead.appendChild(hr);

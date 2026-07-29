@@ -493,7 +493,7 @@
         state.series = null;
         state.dirty = false;
         state.confirmDelete = false;
-        state.note = "Серия " + n + " удалена";
+        state.note = "День " + n + " удалён";
         state.noteKind = "good";
         return reload();
       })
@@ -911,10 +911,6 @@
 
   function viewSeries(host) {
     var picker = el("div", "card");
-    var head = el("div", "filter-head");
-    head.appendChild(el("span", "filter-title", "Какую серию правим"));
-    picker.appendChild(head);
-
     var chips = el("div", "chips");
     DATA.series.forEach(function (s) {
       var kind = s.kind || "series";
@@ -932,7 +928,7 @@
     add.type = "button";
     add.setAttribute("aria-pressed", "false");
     add.appendChild(el("b", null, "+"));
-    add.appendChild(el("small", null, "новая"));
+    add.appendChild(el("small", null, "день"));
     add.addEventListener("click", function () { openSeries(nextNumber()); });
     chips.appendChild(add);
 
@@ -1026,7 +1022,7 @@
     b.appendChild(el("small", null, label));
     b.addEventListener("click", function () {
       if (waiting) {
-        state.note = "Серия " + n + " сохранена";
+        state.note = "День " + n + " сохранён";
         state.noteKind = "good";
         return render();
       }
@@ -1042,7 +1038,7 @@
 
     if (state.confirmDelete) {
       card.appendChild(el("div", "savecard-title",
-        "Удалить серию " + state.series.n + " вместе со всеми плюсами?"));
+        "Удалить день " + state.series.n + " вместе со всеми плюсами?"));
       var yes = button(state.busy ? "…" : "Удалить", "primary-btn danger", deleteSeries);
       yes.disabled = state.busy;
       card.appendChild(yes);
@@ -1051,7 +1047,7 @@
         render();
       }));
     } else {
-      card.appendChild(button("Удалить серию", "primary-btn danger", function () {
+      card.appendChild(button("Удалить день", "primary-btn danger", function () {
         state.confirmDelete = true;
         render();
       }));
@@ -1474,12 +1470,12 @@
     DATA.series.forEach(function (s) {
       if (state.series && state.series.n === s.n) return;   // её проверим ниже
       var bad = (s.problems || []).filter(function (p) { return !typed(p); });
-      if (bad.length) found.push(["Серия " + s.n, bad]);
+      if (bad.length) found.push(["День " + s.n, bad]);
     });
 
     if (state.series && state.series.kind === "series") {
       var mine = state.series.problems.filter(function (p) { return !typed(p); });
-      if (mine.length) found.push(["Серия " + state.series.n, mine]);
+      if (mine.length) found.push(["День " + state.series.n, mine]);
     }
 
     var gr = (state.graves || DATA.graves).problems || [];
@@ -1508,8 +1504,8 @@
     var items = [];
     if (typesDirty()) items.push("Темы");
     if (state.dirty) {
-      items.push((state.series.kind === "series"
-        ? "Серия " : DAY_NAME[state.series.kind] + " ") + state.series.n);
+      items.push("День " + state.series.n +
+        (state.series.kind === "series" ? "" : " · " + DAY_NAME[state.series.kind]));
     }
     if (gravesDirty()) items.push("Гробарий");
     var problem = state.dirty ? validate() : null;
