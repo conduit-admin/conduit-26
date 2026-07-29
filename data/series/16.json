@@ -1,8 +1,8 @@
 {
   "n": 16,
   "date": "2026-07-29",
-  "kind": "battle",
-  "title": "Математический бой",
+  "kind": "off",
+  "title": "Выходной",
   "problems": [],
   "solved": {
     "aksenova-elizaveta": [],
