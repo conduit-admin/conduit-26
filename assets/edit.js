@@ -165,7 +165,10 @@
           if (res.status === 403) msg = "нет прав — нужен доступ Contents: Read and write";
           if (res.status === 404) msg = "не найдено — проверь ник, имя репозитория и права токена";
           if (res.status === 409) msg = "файл изменился на сервере — обнови страницу и повтори";
-          throw new Error(msg);
+          if (res.status === 422) msg = "GitHub не принял файл: " + msg;
+          /* Код и путь в конце — чтобы по одному снимку экрана было понятно,
+             что именно и на каком файле не прошло. */
+          throw new Error(msg + " [" + res.status + " " + path.split("?")[0] + "]");
         }
         return j;
       });
@@ -460,7 +463,6 @@
                 withNum(pluses, "плюс", "плюса", "плюсов"),
             cur && cur.sha);
         })
-        .then(function () { return ensureManifest(pad2(d.n) + ".json"); })
         .then(function () {
           markSent(d.n);
           SAVED.days[d.n] = JSON.stringify(payload);
@@ -474,11 +476,19 @@
     if (state.busy) return;
     if (!TOKEN) return needToken();
 
+    var days = dirtyDays();
     var jobs = [];
     if (typesDirty()) jobs.push(putTypesFile);
-    dirtyDays().forEach(function (d) { jobs.push(putDayFile(d)); });
+    days.forEach(function (d) { jobs.push(putDayFile(d)); });
     if (gravesDirty()) jobs.push(putGravesFile);
     if (!jobs.length) return;
+
+    // список дней дописываем последним и одной записью
+    jobs.push(function () {
+      return ensureManifest(manifestNames(days.map(function (d) {
+        return pad2(d.n) + ".json";
+      })));
+    });
 
     state.busy = true;
     state.note = "";
@@ -549,32 +559,63 @@
       });
   }
 
+  var MANIFEST = "data/series/manifest.json";
+
+  /* Список дней разбирается строго. Раньше нечитаемый список молча считался
+     пустым, и следующая же запись оставила бы в нём один файл — то есть стёрла
+     бы с сайта все остальные дни. Лучше отказать с внятной причиной. */
+  function readManifest(cur) {
+    if (!cur) return [];
+    var list;
+    try { list = JSON.parse(cur.text).series; } catch (e) { list = null; }
+    if (!Array.isArray(list)) {
+      throw new Error("список дней (manifest.json) испорчен — правь его вручную");
+    }
+    return list.slice();
+  }
+
   function dropFromManifest(name) {
-    var path = "data/series/manifest.json";
-    return getFile(path).then(function (cur) {
+    return getFile(MANIFEST).then(function (cur) {
       if (!cur) return null;
-      var list = [];
-      try { list = (JSON.parse(cur.text).series || []).slice(); } catch (e) { list = []; }
+      var list = readManifest(cur);
       var next = list.filter(function (f) { return f !== name; });
       if (next.length === list.length) return null;
-      return putFile(path, JSON.stringify({ series: next }, null, 2) + "\n",
-        "Список серий: убрана " + name, cur.sha);
+      return putFile(MANIFEST, JSON.stringify({ series: next }, null, 2) + "\n",
+        "Список дней: убран " + name, cur.sha);
     });
   }
 
-  function ensureManifest(name) {
-    var path = "data/series/manifest.json";
-    return getFile(path).then(function (cur) {
-      var list = [];
-      if (cur) {
-        try { list = (JSON.parse(cur.text).series || []).slice(); } catch (e) { list = []; }
-      }
-      if (list.indexOf(name) !== -1) return null;
-      list.push(name);
-      list.sort();
-      return putFile(path, JSON.stringify({ series: list }, null, 2) + "\n",
-        "Список серий: добавлена " + name, cur && cur.sha);
+  /* Список дней дописывается один раз за сохранение, а не при каждом дне.
+     Причина в GitHub: сразу после записи файла он ещё какое-то время отдаёт
+     прежнюю метку версии, и вторая запись подряд отклоняется как устаревшая.
+     Отсюда был случай, когда файл дня записался, а в списке его не оказалось.
+     На всякий случай одна попытка повтора: метку перечитываем заново. */
+  function ensureManifest(names, retry) {
+    return getFile(MANIFEST).then(function (cur) {
+      var list = readManifest(cur);
+      var add = names.filter(function (n) { return list.indexOf(n) === -1; });
+      if (!add.length) return null;
+
+      var next = list.concat(add).sort();
+      return putFile(MANIFEST, JSON.stringify({ series: next }, null, 2) + "\n",
+        "Список дней: " + add.join(", "), cur && cur.sha)
+        .catch(function (err) {
+          if (retry || !/изменился на сервере/.test(err.message)) throw err;
+          return ensureManifest(names, true);
+        });
     });
+  }
+
+  /* Всё, что должно быть в списке: сохранённое сейчас плюс отправленное раньше.
+     Второе слагаемое чинит прошлые сбои — день, уехавший файлом мимо списка,
+     попадёт в него при ближайшем сохранении. */
+  function manifestNames(justSaved) {
+    var names = justSaved.slice();
+    Object.keys(SENT).forEach(function (k) {
+      var name = k + ".json";
+      if (names.indexOf(name) === -1) names.push(name);
+    });
+    return names;
   }
 
   function needToken() {
@@ -1088,8 +1129,7 @@
       }
     }
 
-    // удалять с сайта нечего, пока день туда не уехал
-    if (seriesByNumber(state.series.n)) host.appendChild(deleteBar());
+    host.appendChild(deleteBar());
   }
 
   function dayChip(n, label, waiting, open, kind, local) {
@@ -1111,18 +1151,32 @@
     return b;
   }
 
+  // день, которого на сайте ещё нет, убирается прямо здесь — без сети
+  function dropDay() {
+    var n = state.series.n;
+    delete state.days[n];
+    delete SAVED.days[n];
+    state.series = null;
+    state.confirmDelete = false;
+    lastSeriesN = null;
+    render();
+  }
+
   /* Кнопка стоит по центру: слева от неё ничего нет, и прижатая к правому краю
      она смотрелась брошенной. */
   function deleteBar() {
+    var saved = !!seriesByNumber(state.series.n);
     var card = el("div", "card savecard center");
 
     if (state.confirmDelete) {
-      card.appendChild(el("div", "savecard-title",
-        "Удалить день " + state.series.n + " вместе со всеми плюсами?"));
-      var yes = button(state.busy ? "…" : "Удалить", "primary-btn danger", deleteSeries);
+      card.appendChild(el("div", "savecard-title", saved
+        ? "Удалить день " + state.series.n + " вместе со всеми плюсами?"
+        : "Убрать день " + state.series.n + "?"));
+      var yes = button(state.busy ? "…" : "Удалить", "primary-btn danger",
+        saved ? deleteSeries : dropDay);
       yes.disabled = state.busy;
       card.appendChild(yes);
-      card.appendChild(button("Отмена", "ghost-btn", function () {
+      card.appendChild(backButton(function () {
         state.confirmDelete = false;
         render();
       }));

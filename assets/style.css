@@ -1157,21 +1157,18 @@ select.input { padding-right: 6px; }
 
 .icon-btn:hover { color: var(--bad); border-color: var(--bad); }
 
-/* Кнопка удаления красная сразу, а не только под курсором: на телефоне
-   наведения нет вовсе, и до нажатия она ничем не отличалась от прочих. */
-.icon-btn.del {
-  color: var(--bad);
-  border-color: var(--bad);
-}
-
-/* подтверждение — уже сплошная заливка: дальше пути назад нет */
-.icon-btn.danger {
+/* Кнопки удаления залиты красным целиком — как «Удалить день». На телефоне
+   наведения нет вовсе, поэтому цвет должен быть виден сразу, до нажатия. */
+.icon-btn.del, .icon-btn.danger {
   background: var(--bad);
   border-color: var(--bad);
   color: #fff;
 }
 
-.icon-btn.danger:hover { color: #fff; }
+.icon-btn.del:hover, .icon-btn.danger:hover {
+  color: #fff;
+  filter: brightness(1.08);
+}
 
 /* «передумал» — стрелка нарисована в svg, а не рамками и не символом:
    и рамочная, и шрифтовая на части телефонов не показывались вовсе */
@@ -1290,7 +1287,19 @@ body.is-editor .brand::after {
   margin-top: 14px;
 }
 
-.savecard.center { justify-content: center; flex-wrap: wrap; }
+/* Карточка не должна менять размер, когда одна кнопка сменяется двумя: обычная
+   кнопка ниже основной на восемь пикселей, и от этого карточка подпрыгивала. */
+.savecard.center {
+  justify-content: center;
+  flex-wrap: wrap;
+  min-height: 68px;
+}
+
+.savecard.center .ghost-btn {
+  min-height: 40px;
+  padding: 9px 18px;
+  font-size: 14px;
+}
 .savecard-main { flex: 1; min-width: 0; }
 .savecard-title { font-size: 14px; }
 .savecard-note { font-size: 12.5px; color: var(--ink-muted); margin-top: 2px; }
