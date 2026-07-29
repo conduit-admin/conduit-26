@@ -398,12 +398,18 @@ input[type="number"]::-webkit-inner-spin-button {
   color: var(--ink-muted);
 }
 
-/* день без серии: выходной и матбой видно по подписи и приглушённому виду */
+/* Вид дня показан цветом номера, а не подписью вместо даты: дата нужна всегда.
+   Три состояния — серия чёрным, выходной приглушённым, матбой оранжевым; у
+   выбранного дня подложка тёмная, поэтому цвета там задаются отдельно. */
 .chip.day.off, .chip.day.battle { border-style: dotted; }
-.chip.day.off small, .chip.day.battle small { opacity: 1; font-weight: 600; }
-.chip.day.off b, .chip.day.battle b { opacity: .55; }
-.chip.day.battle small { color: var(--s2); }
-.chip[aria-pressed="true"].day.battle small { color: inherit; }
+
+.chip.day b { color: var(--ink); }
+.chip.day.off b { color: var(--ink-muted); }
+.chip.day.battle b { color: var(--s2); }
+
+.chip[aria-pressed="true"].day b { color: inherit; }
+.chip[aria-pressed="true"].day.off b { color: var(--axis); }
+.chip[aria-pressed="true"].day.battle b { color: var(--s2); }
 
 /* темы: раздел и его подразделы */
 .tgroup {
@@ -822,20 +828,24 @@ table.conduit tfoot tr.weights td { color: var(--ink-2); font-weight: 560; }
 
 .section-note { font-size: 12.5px; color: var(--ink-muted); }
 
-.type-name { display: inline-flex; align-items: center; gap: 8px; }
+.type-name { display: inline-flex; align-items: center; gap: 9px; }
+.type-name b { font-weight: 620; }
+.tblock { padding-bottom: 4px; }
 
 /* блок темы: заголовок, полоса, строки подразделов */
 .tblock { padding: 11px 0; border-bottom: 1px solid var(--grid); }
 .tblock:first-child { padding-top: 2px; }
 .tblock:last-child { border-bottom: 0; padding-bottom: 2px; }
 
+/* Вкладка тем — единственное место, где текст мелким быть не должен: по нему
+   тыкают пальцем и по нему же сверяют разметку задач. */
 .tblock-head {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: 10px;
-  margin-bottom: 7px;
-  font-size: 14px;
+  margin-bottom: 10px;
+  font-size: 17px;
 }
 
 .subline {
@@ -843,9 +853,9 @@ table.conduit tfoot tr.weights td { color: var(--ink-2); font-weight: 560; }
   grid-template-columns: 1fr auto;
   align-items: center;
   gap: 10px;
-  padding: 4px 0 0;
-  font-size: 12.5px;
-  color: var(--ink-2);
+  padding: 6px 0 0;
+  font-size: 15px;
+  color: var(--ink);
 }
 
 .subline-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -1147,25 +1157,27 @@ select.input { padding-right: 6px; }
 
 .icon-btn:hover { color: var(--bad); border-color: var(--bad); }
 
-/* подтверждение удаления — красный крестик слева */
-.icon-btn.danger { color: var(--bad); border-color: var(--bad); }
-
-/* «передумал» — стрелка назад, нарисованная рамками, а не символом */
-.icon-btn.back { position: relative; color: var(--ink-2); }
-.icon-btn.back:hover { color: var(--ink); border-color: var(--border-strong); }
-
-.icon-btn.back::before {
-  content: "";
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 6px;
-  height: 6px;
-  margin: -3px 0 0 -2px;
-  border-left: 1.6px solid currentColor;
-  border-bottom: 1.6px solid currentColor;
-  transform: rotate(45deg);
+/* Кнопка удаления красная сразу, а не только под курсором: на телефоне
+   наведения нет вовсе, и до нажатия она ничем не отличалась от прочих. */
+.icon-btn.del {
+  color: var(--bad);
+  border-color: var(--bad);
 }
+
+/* подтверждение — уже сплошная заливка: дальше пути назад нет */
+.icon-btn.danger {
+  background: var(--bad);
+  border-color: var(--bad);
+  color: #fff;
+}
+
+.icon-btn.danger:hover { color: #fff; }
+
+/* «передумал» — стрелка нарисована в svg, а не рамками и не символом:
+   и рамочная, и шрифтовая на части телефонов не показывались вовсе */
+.icon-btn.back { color: var(--ink-2); }
+.icon-btn.back:hover { color: var(--ink); border-color: var(--border-strong); }
+.icon-btn svg { display: block; margin: 0 auto; }
 
 /* кнопка добавления — плюс тем же боксом, что и крестик */
 .icon-btn.add { color: var(--ink-2); font-size: 19px; }

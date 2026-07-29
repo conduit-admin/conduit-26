@@ -760,7 +760,7 @@
     });
     row.appendChild(pick);
 
-    row.appendChild(button("×", "icon-btn", function () {
+    row.appendChild(button("×", "icon-btn del", function () {
       removeGrave(p.id);
       render();
     }));
@@ -846,6 +846,37 @@
     var d = el("span", "dot");
     d.style.background = "var(--axis)";
     return d;
+  }
+
+  /* Стрелка «назад» рисуется в svg. Ни шрифтовой символ, ни фигура из рамок
+     на телефоне не показывались: у первого не оказалось глифа, вторая терялась
+     на дробной толщине. У svg нет ни той, ни другой зависимости. */
+  function backArrow() {
+    var NS = "http://www.w3.org/2000/svg";
+    var svg = document.createElementNS(NS, "svg");
+    svg.setAttribute("viewBox", "0 0 16 16");
+    svg.setAttribute("width", "15");
+    svg.setAttribute("height", "15");
+    svg.setAttribute("aria-hidden", "true");
+
+    var path = document.createElementNS(NS, "path");
+    path.setAttribute("d", "M9.5 3.5 5 8l4.5 4.5");
+    path.setAttribute("fill", "none");
+    path.setAttribute("stroke", "currentColor");
+    path.setAttribute("stroke-width", "2");
+    path.setAttribute("stroke-linecap", "round");
+    path.setAttribute("stroke-linejoin", "round");
+
+    svg.appendChild(path);
+    return svg;
+  }
+
+  function backButton(fn) {
+    var b = el("button", "icon-btn back");
+    b.type = "button";
+    b.appendChild(backArrow());
+    b.addEventListener("click", fn);
+    return b;
   }
 
   function button(text, cls, fn) {
@@ -961,9 +992,7 @@
         chips.appendChild(dayChip(d.n, "ждём", true, d.n));
         return;
       }
-      chips.appendChild(dayChip(d.n,
-        d.kind === "off" ? "вых" : d.kind === "battle" ? "бой" : shortDate(d.date),
-        false, d.n, d.kind, d.local));
+      chips.appendChild(dayChip(d.n, shortDate(d.date), false, d.n, d.kind, d.local));
     });
 
     /* День заводится этой кнопкой и сразу встаёт в ленту — как подраздел в
@@ -1143,7 +1172,7 @@
     });
     row.appendChild(pick);
 
-    row.appendChild(button("×", "icon-btn", function () {
+    row.appendChild(button("×", "icon-btn del", function () {
       removeProblem(p.id);
       touch();
       render();
@@ -1417,13 +1446,13 @@
             state.confirmSub = null;
             render();
           }));
-          box.appendChild(button("", "icon-btn back", function () {
+          box.appendChild(backButton(function () {
             state.confirmSub = null;
             render();
           }));
           line.appendChild(box);
         } else {
-          line.appendChild(button("×", "icon-btn", function () {
+          line.appendChild(button("×", "icon-btn del", function () {
             state.confirmSub = key;
             render();
           }));
@@ -1606,7 +1635,7 @@
       var rev = el("div", "card savecard center");
       if (state.confirmRevert) {
         rev.appendChild(button("Отменить всё", "primary-btn danger", revertAll));
-        rev.appendChild(button("", "icon-btn back", function () {
+        rev.appendChild(backButton(function () {
           state.confirmRevert = false;
           render();
         }));

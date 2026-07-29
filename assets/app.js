@@ -266,10 +266,9 @@
       (kind === "series" ? "" : " " + kind));
     b.type = "button";
     b.setAttribute("aria-pressed", pressed ? "true" : "false");
+    // дата стоит всегда, вид дня показан цветом номера
     b.appendChild(el("b", null, s.n));
-    // у дня без серии важнее вид дня, чем дата: дату видно в заголовке
-    b.appendChild(el("small", null,
-      kind === "off" ? "вых" : kind === "battle" ? "бой" : prettyDate(s.date, true)));
+    b.appendChild(el("small", null, prettyDate(s.date, true)));
     b.addEventListener("click", onClick);
     return b;
   }
