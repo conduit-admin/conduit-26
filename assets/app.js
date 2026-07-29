@@ -940,13 +940,17 @@
       get("config.json"), get("types.json"), get("students.json"),
       get("series/manifest.json"), soft
     ]).then(function (res) {
-      return Promise.all(res[3].series.map(function (f) { return get("series/" + f); }))
-        .then(function (series) {
-          return {
-            config: res[0], types: res[1], students: res[2],
-            series: series, graves: res[4]
-          };
-        });
+      /* Пропавший файл дня не должен ронять страницу целиком: раз в списке
+         осталась запись без файла, показываем остальные дни, а не пустой
+         экран с ошибкой. */
+      return Promise.all(res[3].series.map(function (f) {
+        return get("series/" + f).catch(function () { return null; });
+      })).then(function (series) {
+        return {
+          config: res[0], types: res[1], students: res[2],
+          series: series.filter(Boolean), graves: res[4]
+        };
+      });
     });
   }
 

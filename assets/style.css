@@ -1226,6 +1226,11 @@ select.input { padding-right: 6px; }
 .chip.day.local { border-style: dashed; border-color: var(--accent-hi); }
 .chip.day.local b { color: var(--accent-hi); }
 
+/* день помечен к удалению: уедет с ближайшим сохранением, касание возвращает */
+.chip.day.gone { border-color: var(--bad); border-style: dashed; }
+.chip.day.gone b { color: var(--bad); text-decoration: line-through; }
+.chip.day.gone small { color: var(--bad); opacity: 1; }
+
 .ghost-btn.danger:hover { background: var(--wash); }
 .chip.day.new b { font-size: 15px; }
 

@@ -21,6 +21,7 @@
   var state = {
     view: "series",
     days: {},           // номер -> рабочая копия дня
+    removed: {},        // номера дней, помеченных к удалению
     series: null,       // открытый день, он же элемент days
     graves: null,       // правка гробария, пока не сохранена
     typesEdit: null,    // правка тем, пока не сохранена
@@ -46,6 +47,27 @@
 
   var LS_TOKEN = "conduit-token";
   var LS_SENT = "conduit-sent";
+  var LS_SAVED_AT = "conduit-saved-at";
+
+  /* Пауза между сохранениями. Держит от случайной очереди отправок: сайт
+     переразворачивается около минуты, и частые записи подряд наступают друг
+     другу на пятки. Отметка лежит в localStorage, поэтому перезагрузка
+     страницы её не обходит. */
+  var COOLDOWN = 2 * 60 * 1000;
+
+  function markSaveTime() { lsSet(LS_SAVED_AT, String(Date.now())); }
+
+  function cooldownLeft() {
+    var at = Number(lsGet(LS_SAVED_AT, 0));
+    if (!at) return 0;
+    var left = at + COOLDOWN - Date.now();
+    return left > 0 ? left : 0;
+  }
+
+  function mmss(ms) {
+    var s = Math.ceil(ms / 1000);
+    return Math.floor(s / 60) + ":" + pad2(s % 60);
+  }
   var LETTERS = "абвгде";
 
   var MONTHS = ["января", "февраля", "марта", "апреля", "мая", "июня",
@@ -282,8 +304,16 @@
       var n = Number(k);
       if (!map[n]) map[n] = { n: n, pending: true };
     });
+    Object.keys(state.removed).forEach(function (k) {
+      if (map[k]) map[k].removed = true;
+    });
     return Object.keys(map).map(function (k) { return map[k]; })
       .sort(function (a, b) { return a.n - b.n; });
+  }
+
+  function removedNumbers() {
+    return Object.keys(state.removed).map(Number)
+      .sort(function (a, b) { return a - b; });
   }
 
   function touch() {
@@ -476,18 +506,22 @@
     if (state.busy) return;
     if (!TOKEN) return needToken();
 
+    if (cooldownLeft() > 0) return;
+
     var days = dirtyDays();
+    var gone = removedNumbers();
     var jobs = [];
     if (typesDirty()) jobs.push(putTypesFile);
     days.forEach(function (d) { jobs.push(putDayFile(d)); });
+    gone.forEach(function (n) { jobs.push(dropDayFile(n)); });
     if (gravesDirty()) jobs.push(putGravesFile);
     if (!jobs.length) return;
 
-    // список дней дописываем последним и одной записью
+    // список дней правим последним и одной записью
     jobs.push(function () {
-      return ensureManifest(manifestNames(days.map(function (d) {
-        return pad2(d.n) + ".json";
-      })));
+      return syncManifest(
+        manifestAdds(days.map(function (d) { return pad2(d.n) + ".json"; })),
+        gone.map(function (n) { return pad2(n) + ".json"; }));
     });
 
     state.busy = true;
@@ -502,6 +536,7 @@
         state.busy = false;
         state.note = "Сохранено";
         state.noteKind = "good";
+        markSaveTime();
         return reload();
       })
       .catch(function (err) {
@@ -512,51 +547,29 @@
       });
   }
 
-  /* Удаление серии: файл и строка в списке серий. */
-  function deleteSeries() {
-    if (state.busy || !state.series) return;
-    if (!TOKEN) return needToken();
-
-    var n = state.series.n;
-    var name = pad2(n) + ".json";
-    var file = "data/series/" + name;
-
-    state.busy = true;
-    state.note = "";
-    state.noteKind = "";
-    render();
-
-    getFile(file)
-      .then(function (cur) {
+  /* Удаление файла дня. Как и запись, происходит только по кнопке сохранения:
+     до неё день лишь помечен к удалению и вычеркнут в ленте. */
+  function dropDayFile(n) {
+    return function () {
+      var file = "data/series/" + pad2(n) + ".json";
+      return getFile(file).then(function (cur) {
         if (!cur) return null;
         return api("/contents/" + file, {
           method: "DELETE",
           body: JSON.stringify({
-            message: "Серия " + n + " удалена",
+            message: "День " + n + " удалён",
             sha: cur.sha,
             branch: repo().branch || "main"
           })
         });
-      })
-      .then(function () { return dropFromManifest(name); })
-      .then(function () {
+      }).then(function () {
         delete SENT[pad2(n)];
         lsSet(LS_SENT, JSON.stringify(SENT));
         delete state.days[n];
         delete SAVED.days[n];
-        state.busy = false;
-        state.series = null;
-        state.confirmDelete = false;
-        state.note = "День " + n + " удалён";
-        state.noteKind = "good";
-        return reload();
-      })
-      .catch(function (err) {
-        state.busy = false;
-        state.note = "Не удалилось: " + err.message;
-        state.noteKind = "bad";
-        render();
+        delete state.removed[n];
       });
+    };
   }
 
   var MANIFEST = "data/series/manifest.json";
@@ -574,42 +587,35 @@
     return list.slice();
   }
 
-  function dropFromManifest(name) {
-    return getFile(MANIFEST).then(function (cur) {
-      if (!cur) return null;
-      var list = readManifest(cur);
-      var next = list.filter(function (f) { return f !== name; });
-      if (next.length === list.length) return null;
-      return putFile(MANIFEST, JSON.stringify({ series: next }, null, 2) + "\n",
-        "Список дней: убран " + name, cur.sha);
-    });
-  }
+  /* Список дней приводится в порядок один раз за сохранение, одной записью:
+     добавляется всё записанное, убирается всё удалённое. Раньше каждый день
+     правил список сам, а GitHub после записи какое-то время отдаёт прежнюю
+     метку версии — вторая правка подряд либо отклонялась, либо (при удалении)
+     молча ничего не делала. Отсюда были и день без строки в списке, и строка
+     без файла, от которой сайт переставал открываться.
 
-  /* Список дней дописывается один раз за сохранение, а не при каждом дне.
-     Причина в GitHub: сразу после записи файла он ещё какое-то время отдаёт
-     прежнюю метку версии, и вторая запись подряд отклоняется как устаревшая.
-     Отсюда был случай, когда файл дня записался, а в списке его не оказалось.
-     На всякий случай одна попытка повтора: метку перечитываем заново. */
-  function ensureManifest(names, retry) {
+     Одна попытка повтора — на случай, если метка всё же оказалась старой. */
+  function syncManifest(add, drop, retry) {
     return getFile(MANIFEST).then(function (cur) {
       var list = readManifest(cur);
-      var add = names.filter(function (n) { return list.indexOf(n) === -1; });
-      if (!add.length) return null;
+      var next = list.filter(function (f) { return drop.indexOf(f) === -1; });
+      add.forEach(function (f) { if (next.indexOf(f) === -1) next.push(f); });
+      next.sort();
+      if (JSON.stringify(next) === JSON.stringify(list)) return null;
 
-      var next = list.concat(add).sort();
       return putFile(MANIFEST, JSON.stringify({ series: next }, null, 2) + "\n",
-        "Список дней: " + add.join(", "), cur && cur.sha)
+        "Список дней обновлён", cur && cur.sha)
         .catch(function (err) {
           if (retry || !/изменился на сервере/.test(err.message)) throw err;
-          return ensureManifest(names, true);
+          return syncManifest(add, drop, true);
         });
     });
   }
 
-  /* Всё, что должно быть в списке: сохранённое сейчас плюс отправленное раньше.
+  /* Что должно быть в списке: записанное сейчас плюс отправленное раньше.
      Второе слагаемое чинит прошлые сбои — день, уехавший файлом мимо списка,
      попадёт в него при ближайшем сохранении. */
-  function manifestNames(justSaved) {
+  function manifestAdds(justSaved) {
     var names = justSaved.slice();
     Object.keys(SENT).forEach(function (k) {
       var name = k + ".json";
@@ -1029,6 +1035,10 @@
     var picker = el("div", "card");
     var chips = el("div", "chips");
     allDays().forEach(function (d) {
+      if (d.removed) {
+        chips.appendChild(removedChip(d));
+        return;
+      }
       if (d.pending) {
         chips.appendChild(dayChip(d.n, "ждём", true, d.n));
         return;
@@ -1132,6 +1142,20 @@
     host.appendChild(deleteBar());
   }
 
+  // вычеркнутый день возвращается повторным касанием — тупика быть не должно
+  function removedChip(d) {
+    var b = el("button", "chip day gone");
+    b.type = "button";
+    b.setAttribute("aria-pressed", "false");
+    b.appendChild(el("b", null, d.n));
+    b.appendChild(el("small", null, "удалить"));
+    b.addEventListener("click", function () {
+      delete state.removed[d.n];
+      render();
+    });
+    return b;
+  }
+
   function dayChip(n, label, waiting, open, kind, local) {
     var b = el("button", "chip day" + (waiting ? " pending" : "") +
       (kind && kind !== "series" ? " " + kind : "") + (local ? " local" : ""));
@@ -1151,9 +1175,12 @@
     return b;
   }
 
-  // день, которого на сайте ещё нет, убирается прямо здесь — без сети
+  /* Удаление дня меняет только экран редактора. День, которого на сайте ещё
+     нет, просто выбрасывается из памяти; записанный — помечается к удалению и
+     уедет с ближайшим сохранением. */
   function dropDay() {
     var n = state.series.n;
+    if (seriesByNumber(n)) state.removed[n] = true;
     delete state.days[n];
     delete SAVED.days[n];
     state.series = null;
@@ -1172,10 +1199,7 @@
       card.appendChild(el("div", "savecard-title", saved
         ? "Удалить день " + state.series.n + " вместе со всеми плюсами?"
         : "Убрать день " + state.series.n + "?"));
-      var yes = button(state.busy ? "…" : "Удалить", "primary-btn danger",
-        saved ? deleteSeries : dropDay);
-      yes.disabled = state.busy;
-      card.appendChild(yes);
+      card.appendChild(button("Удалить", "primary-btn danger", dropDay));
       card.appendChild(backButton(function () {
         state.confirmDelete = false;
         render();
@@ -1624,9 +1648,29 @@
   /* Возврат к тому, что на сайте: рабочие копии дней, правка тем и гробария
      просто выбрасываются. Открытый день переоткрывается заново, если он на
      сайте есть, иначе экран остаётся без открытого дня. */
+  /* Обратный счёт правит только надпись на кнопке. Перерисовывать весь экран
+     раз в секунду нельзя: под кнопкой поле токена, оно теряло бы ввод. */
+  var cdTimer = null;
+
+  function countdown(btn, active) {
+    clearInterval(cdTimer);
+    cdTimer = setInterval(function () {
+      var left = cooldownLeft();
+      if (left <= 0) {
+        clearInterval(cdTimer);
+        cdTimer = null;
+        btn.textContent = "Сохранить";
+        btn.disabled = !active;
+        return;
+      }
+      btn.textContent = mmss(left);
+    }, 1000);
+  }
+
   function revertAll() {
     var n = state.series ? state.series.n : null;
     state.days = {};
+    state.removed = {};
     SAVED.days = {};
     state.typesEdit = null;
     SAVED.types = null;
@@ -1657,12 +1701,14 @@
     }
 
     var days = dirtyDays();
+    var gone = removedNumbers();
     var items = [];
     if (typesDirty()) items.push("Темы");
     days.forEach(function (d) {
       items.push("День " + d.n +
         (d.kind === "series" ? "" : " · " + DAY_NAME[d.kind]));
     });
+    gone.forEach(function (n) { items.push("День " + n + " · удалить"); });
     if (gravesDirty()) items.push("Гробарий");
 
     var problem = null;
@@ -1671,17 +1717,24 @@
       if (bad) problem = "День " + days[i].n + ": " + bad;
     }
 
+    var left = cooldownLeft();
     var card = el("div", "card savecard");
-    var left = el("div", "savecard-main");
-    left.appendChild(el("div", "savecard-title",
+    var main = el("div", "savecard-main");
+    main.appendChild(el("div", "savecard-title",
       items.length ? items.join(" · ") : "Изменений нет"));
-    if (problem) left.appendChild(el("div", "savecard-note", problem));
-    card.appendChild(left);
+    if (problem) main.appendChild(el("div", "savecard-note", problem));
+    else if (left && items.length) {
+      main.appendChild(el("div", "savecard-note", "перерыв между сохранениями"));
+    }
+    card.appendChild(main);
 
-    var save = button(state.busy ? "…" : "Сохранить", "primary-btn", saveAll);
-    save.disabled = state.busy || !items.length || !!problem;
+    var save = button(state.busy ? "…" : (left ? mmss(left) : "Сохранить"),
+      "primary-btn", saveAll);
+    save.disabled = state.busy || !items.length || !!problem || !!left;
     card.appendChild(save);
     host.appendChild(card);
+
+    if (left) countdown(save, items.length && !problem);
 
     /* Откат всего несохранённого. Спрашиваем вторым нажатием: правки живут
        только в памяти страницы, вернуть их после отката неоткуда. */
@@ -1694,7 +1747,7 @@
           render();
         }));
       } else {
-        rev.appendChild(button("Отменить изменения", "ghost-btn danger", function () {
+        rev.appendChild(button("Отменить изменения", "primary-btn danger", function () {
           state.confirmRevert = true;
           render();
         }));
@@ -1765,6 +1818,8 @@
   function render() {
     var main = document.getElementById("main");
     clear(main);
+    clearInterval(cdTimer);
+    cdTimer = null;
 
     Array.prototype.forEach.call(document.querySelectorAll(".tab"), function (t) {
       t.setAttribute("aria-selected", t.dataset.view === state.view ? "true" : "false");
@@ -1828,8 +1883,12 @@
       get("config.json"), get("types.json"), get("students.json"),
       get("series/manifest.json"), soft
     ]).then(function (res) {
-      return Promise.all(res[3].series.map(function (f) { return get("series/" + f); }))
-        .then(function (series) {
+      // пропавший файл дня не должен мешать открыть редактор
+      return Promise.all(res[3].series.map(function (f) {
+        return get("series/" + f).catch(function () { return null; });
+      }))
+        .then(function (all) {
+          var series = all.filter(Boolean);
           series.sort(function (a, b) { return a.n - b.n; });
           return {
             config: res[0], types: res[1], students: res[2],
