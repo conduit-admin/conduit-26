@@ -593,15 +593,14 @@ table.data tr.clickable { cursor: pointer; }
 
 .muted { color: var(--ink-muted); }
 
-/* подпись в самом низу карточки: её ищут, а не замечают */
+/* подпись в самом низу карточки — тем же шрифтом, что и всё остальное */
 .egg {
   margin: 26px 0 8px;
   text-align: center;
-  font-size: 12px;
-  font-style: italic;
-  letter-spacing: 0.08em;
+  font-size: 13.5px;
+  letter-spacing: 0.06em;
   color: var(--ink);
-  opacity: 0.22;
+  opacity: 0.5;
 }
 
 .delta {
@@ -1342,7 +1341,7 @@ body.is-editor .brand::after {
   transition: color .16s ease, border-color .16s ease;
 }
 
-.egg-btn[aria-pressed="true"] { color: var(--admin); border-color: var(--admin); }
+.egg-btn[aria-pressed="true"] { color: var(--ink); border-color: var(--border-strong); }
 .egg-btn svg { display: block; }
 
 /* свои выпадающие меню вместо системных */

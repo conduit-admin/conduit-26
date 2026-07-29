@@ -1918,15 +1918,20 @@
     b.setAttribute("aria-label", "Подпись");
 
     var NS = "http://www.w3.org/2000/svg";
+    /* Значок нарочно ничего не означает: пустой кружок против залитого. */
     var svg = document.createElementNS(NS, "svg");
     svg.setAttribute("viewBox", "0 0 16 16");
     svg.setAttribute("width", "14");
     svg.setAttribute("height", "14");
     svg.setAttribute("aria-hidden", "true");
-    var path = document.createElementNS(NS, "path");
-    path.setAttribute("d", "M8 14S2 10.4 2 6.3A3.3 3.3 0 0 1 8 4.4 3.3 3.3 0 0 1 14 6.3C14 10.4 8 14 8 14z");
-    path.setAttribute("fill", "currentColor");
-    svg.appendChild(path);
+    var circle = document.createElementNS(NS, "circle");
+    circle.setAttribute("cx", "8");
+    circle.setAttribute("cy", "8");
+    circle.setAttribute("r", "4.6");
+    circle.setAttribute("fill", eggOn() ? "currentColor" : "none");
+    circle.setAttribute("stroke", "currentColor");
+    circle.setAttribute("stroke-width", "1.6");
+    svg.appendChild(circle);
     b.appendChild(svg);
 
     b.addEventListener("click", function () {
