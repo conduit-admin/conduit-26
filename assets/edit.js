@@ -12,16 +12,21 @@
 
   var DATA = null;      // {config, types, students, series}
   var TOKEN = null;
-  var SENT = {};        // "01" -> когда сохранено; сайт обновляется не мгновенно
+  var SENT = {};        // "01" -> что сохранено; сайт обновляется не мгновенно
+  var GONE = {};        // "01" -> когда удалено; сайт ещё показывает старое
 
   /* Дни правятся не по одному: state.days держит рабочую копию каждого дня,
      который завели или тронули. Поэтому добавленный день сразу виден в списке,
      а переключение между днями ничего не теряет. state.series — указатель на
-     открытую копию, она же лежит в state.days. */
+     открытую копию, она же лежит в state.days.
+
+     Ключ дня — слот: он же имя файла и он же ключ в state.days. Номер серии
+     живёт отдельным полем и слоту не равен: выходной и матбой номера не
+     получают, поэтому нумерация серий сплошная, а слоты идут своим чередом. */
   var state = {
     view: "series",
-    days: {},           // номер -> рабочая копия дня
-    removed: {},        // номера дней, помеченных к удалению
+    days: {},           // слот -> рабочая копия дня
+    removed: {},        // слот -> подпись дня, помеченного к удалению
     series: null,       // открытый день, он же элемент days
     graves: null,       // правка гробария, пока не сохранена
     typesEdit: null,    // правка тем, пока не сохранена
@@ -31,6 +36,8 @@
     confirmSub: null,
     confirmDelete: false,
     confirmRevert: false,
+    confirmProblem: null,   // id задачи, у которой спрошено удаление
+    confirmGrave: null,     // то же для гроба
     pickTheme: null,    // id задачи, у которой открыт выбор темы
     pickDate: false
   };
@@ -40,13 +47,16 @@
      ещё старые, и всё выглядело бы несохранённым. */
   var SAVED = { types: null, graves: null, days: {} };
 
-  /* Виды дня: обычная серия, выходной и математический бой. Два последних
-     занимают номер и дату, но задач не несут. */
+  /* Виды дня: обычная серия, выходной и математический бой. Номер есть только
+     у серии — это её собственный номер. Выходной и матбой стоят в ленте по
+     дате и помечены буквой. */
   var DAY_KINDS = [["series", "Серия"], ["off", "Выходной"], ["battle", "Матбой"]];
   var DAY_NAME = { off: "Выходной", battle: "Математический бой" };
+  var DAY_MARK = { off: "В", battle: "М" };
 
   var LS_TOKEN = "conduit-token";
   var LS_SENT = "conduit-sent";
+  var LS_GONE = "conduit-gone";
   var LS_SAVED_AT = "conduit-saved-at";
 
   /* Пауза между сохранениями. Держит от случайной очереди отправок: сайт
@@ -222,45 +232,115 @@
 
   function loadSent() {
     try { SENT = JSON.parse(lsGet(LS_SENT, "{}")) || {}; } catch (e) { SENT = {}; }
+    try { GONE = JSON.parse(lsGet(LS_GONE, "{}")) || {}; } catch (e) { GONE = {}; }
   }
 
-  /* Сайт переразворачивается не мгновенно, поэтому только что сохранённая серия
-     ещё минуту не видна в данных. Помним такие номера, иначе «+ новая» предложит
-     занятый номер и следующая серия затрёт предыдущую. */
-  function markSent(n) {
-    SENT[pad2(n)] = new Date().toISOString();
+  /* Сайт переразворачивается не мгновенно, поэтому только что сохранённый день
+     ещё минуту не виден в данных. Помним, что уехало: иначе «+ день» займёт
+     чужой слот, а номер серии выдастся уже занятый. Заодно из этой записи
+     рисуется кнопка дня, пока сайт не догнал. */
+  function markSent(d) {
+    SENT[pad2(d.n)] = {
+      at: new Date().toISOString(),
+      kind: d.kind || "series",
+      series: d.kind === "series" ? seriesNo(d) : null,
+      date: d.date
+    };
     lsSet(LS_SENT, JSON.stringify(SENT));
+  }
+
+  function sentInfo(k) {
+    var v = SENT[k];
+    return v && typeof v === "object" ? v : {};
+  }
+
+  /* Удалённый день исчезает из данных так же не сразу. Пока сайт его показывает,
+     кнопка стоит в ленте запертой — иначе день, который только что убрали, снова
+     выглядел бы обычным и его можно было бы открыть на правку. */
+  function markGone(n) {
+    GONE[pad2(n)] = new Date().toISOString();
+    lsSet(LS_GONE, JSON.stringify(GONE));
   }
 
   function pruneSent() {
     var changed = false;
     Object.keys(SENT).forEach(function (k) {
-      if (seriesByNumber(Number(k))) { delete SENT[k]; changed = true; }
+      if (dayBySlot(Number(k))) { delete SENT[k]; changed = true; }
     });
     if (changed) lsSet(LS_SENT, JSON.stringify(SENT));
+
+    var gchanged = false;
+    Object.keys(GONE).forEach(function (k) {
+      if (!dayBySlot(Number(k))) { delete GONE[k]; gchanged = true; }
+    });
+    if (gchanged) lsSet(LS_GONE, JSON.stringify(GONE));
   }
 
-  function seriesByNumber(n) {
+  function dayBySlot(n) {
     return DATA.series.filter(function (s) { return s.n === n; })[0] || null;
   }
 
-  function nextNumber() {
+  /* Номер серии. У старых файлов отдельного поля нет — там слот и был номером,
+     поэтому он и служит запасным значением. */
+  function seriesNo(d) {
+    return d.series === undefined || d.series === null ? d.n : d.series;
+  }
+
+  function dayMark(d) {
+    return (d.kind || "series") === "series" ? String(seriesNo(d)) : DAY_MARK[d.kind];
+  }
+
+  function dayLabel(d) {
+    var kind = d.kind || "series";
+    if (kind === "series") return "Серия " + seriesNo(d);
+    return DAY_NAME[kind] + (d.date ? " " + shortDate(d.date) : "");
+  }
+
+  // слот — ключ файла, наружу не показывается
+  function nextSlot() {
     var max = 0;
     DATA.series.forEach(function (s) { if (s.n > max) max = s.n; });
     Object.keys(state.days).forEach(function (k) { if (Number(k) > max) max = Number(k); });
     Object.keys(SENT).forEach(function (k) { if (Number(k) > max) max = Number(k); });
+    Object.keys(GONE).forEach(function (k) { if (Number(k) > max) max = Number(k); });
     return max + 1;
   }
 
-  function blankDay(n) {
+  /* Номера серий идут подряд и не зависят от того, сколько было выходных и
+     боёв: они номера не занимают. Удалённые дни из счёта тоже выбывают. */
+  function seriesNumbers(exceptSlot) {
+    var out = {};
+    allDays().forEach(function (d) {
+      if (d.removed || d.gone || d.n === exceptSlot) return;
+      if ((d.kind || "series") !== "series") return;
+      if (d.series === null || d.series === undefined) return;
+      out[d.series] = true;
+    });
+    return out;
+  }
+
+  /* Следующий номер — за последним, а не первый свободный: серии идут подряд
+     во времени, и новая с номером из старой дыры встала бы посреди списка. */
+  function nextSeriesNo(exceptSlot) {
+    var max = 0;
+    Object.keys(seriesNumbers(exceptSlot)).forEach(function (k) {
+      if (Number(k) > max) max = Number(k);
+    });
+    return max + 1;
+  }
+
+  function blankDay(slot) {
     var solved = {};
     DATA.students.forEach(function (st) { solved[st.id] = []; });
-    return { n: n, date: todayISO(), kind: "series", problems: [], solved: solved };
+    return {
+      n: slot, series: nextSeriesNo(slot), date: todayISO(),
+      kind: "series", problems: [], solved: solved
+    };
   }
 
   function copyDay(s) {
     var d = JSON.parse(JSON.stringify({
-      n: s.n, date: s.date, kind: s.kind || "series",
+      n: s.n, series: seriesNo(s), date: s.date, kind: s.kind || "series",
       problems: s.problems || [], solved: s.solved || {}
     }));
     DATA.students.forEach(function (st) {
@@ -274,7 +354,7 @@
      переживает переход на другой день. */
   function workingDay(n) {
     if (!state.days[n]) {
-      var s = seriesByNumber(n);
+      var s = dayBySlot(n);
       state.days[n] = s ? copyDay(s) : blankDay(n);
     }
     return state.days[n];
@@ -287,28 +367,49 @@
     state.pickTheme = null;
     state.pickDate = false;
     state.confirmDelete = false;
+    state.confirmProblem = null;
     render();
   }
 
-  // список дней для ленты: и то, что на сайте, и заведённое здесь
+  /* Список дней для ленты: и то, что на сайте, и заведённое здесь. Порядок —
+     по дате: номера теперь принадлежат сериям и ленту не выстраивают. */
   function allDays() {
     var map = {};
-    DATA.series.forEach(function (s) {
-      map[s.n] = { n: s.n, date: s.date, kind: s.kind || "series" };
-    });
+    function entry(d, extra) {
+      var kind = d.kind || "series";
+      var e = {
+        n: d.n, date: d.date, kind: kind,
+        series: kind === "series" ? seriesNo(d) : null
+      };
+      Object.keys(extra || {}).forEach(function (k) { e[k] = extra[k]; });
+      return e;
+    }
+
+    DATA.series.forEach(function (s) { map[s.n] = entry(s); });
     Object.keys(state.days).forEach(function (k) {
       var d = state.days[k];
-      map[d.n] = { n: d.n, date: d.date, kind: d.kind, local: !seriesByNumber(d.n) };
+      map[d.n] = entry(d, { local: !dayBySlot(d.n) });
     });
     Object.keys(SENT).forEach(function (k) {
       var n = Number(k);
-      if (!map[n]) map[n] = { n: n, pending: true };
+      if (map[n]) return;
+      var info = sentInfo(k);
+      map[n] = {
+        n: n, date: info.date || null, kind: info.kind || "series",
+        series: info.series === undefined ? null : info.series, pending: true
+      };
+    });
+    Object.keys(GONE).forEach(function (k) {
+      if (map[k]) map[k].gone = true;
     });
     Object.keys(state.removed).forEach(function (k) {
       if (map[k]) map[k].removed = true;
     });
     return Object.keys(map).map(function (k) { return map[k]; })
-      .sort(function (a, b) { return a.n - b.n; });
+      .sort(function (a, b) {
+        return String(a.date || "9999").localeCompare(String(b.date || "9999")) ||
+          a.n - b.n;
+      });
   }
 
   function removedNumbers() {
@@ -437,9 +538,10 @@
     var plain = (d.kind || "series") !== "series";   // выходной и матбой без задач
     var payload = {
       n: d.n,
+      series: plain ? null : seriesNo(d),
       date: d.date,
       kind: d.kind || "series",
-      title: plain ? DAY_NAME[d.kind] : "Серия " + d.n,
+      title: plain ? DAY_NAME[d.kind] : "Серия " + seriesNo(d),
       problems: plain ? [] : (d.problems || []).map(function (p) {
         return {
           id: String(p.id).trim(),
@@ -460,7 +562,7 @@
   function dayDirty(d) {
     var now = JSON.stringify(dayPayload(d));
     if (SAVED.days[d.n]) return now !== SAVED.days[d.n];
-    var s = seriesByNumber(d.n);
+    var s = dayBySlot(d.n);
     return !s || now !== JSON.stringify(dayPayload(s));
   }
 
@@ -468,7 +570,9 @@
     return Object.keys(state.days)
       .map(function (k) { return state.days[k]; })
       .filter(dayDirty)
-      .sort(function (a, b) { return a.n - b.n; });
+      .sort(function (a, b) {
+        return String(a.date).localeCompare(String(b.date)) || a.n - b.n;
+      });
   }
 
   /* Отправка одного файла. Ничего не рисует и не переключает состояние занятости
@@ -487,14 +591,14 @@
         .then(function (cur) {
           return putFile(file, JSON.stringify(payload, null, 2) + "\n",
             plain
-              ? DAY_NAME[payload.kind] + " " + d.n + " (" + shortDate(d.date) + ")"
-              : "Серия " + d.n + " (" + shortDate(d.date) + "): " +
+              ? DAY_NAME[payload.kind] + " (" + shortDate(d.date) + ")"
+              : "Серия " + seriesNo(d) + " (" + shortDate(d.date) + "): " +
                 withNum(payload.problems.length, "задача", "задачи", "задач") + ", " +
                 withNum(pluses, "плюс", "плюса", "плюсов"),
             cur && cur.sha);
         })
         .then(function () {
-          markSent(d.n);
+          markSent(d);
           SAVED.days[d.n] = JSON.stringify(payload);
         });
     };
@@ -548,16 +652,19 @@
   }
 
   /* Удаление файла дня. Как и запись, происходит только по кнопке сохранения:
-     до неё день лишь помечен к удалению и вычеркнут в ленте. */
+     до неё день лишь помечен к удалению и вычеркнут в ленте. После удаления
+     день ещё минуту виден в данных сайта — на это время он запирается, как
+     только что сохранённый, и исчезает сам, когда сайт догонит. */
   function dropDayFile(n) {
     return function () {
       var file = "data/series/" + pad2(n) + ".json";
+      var label = state.removed[n];
       return getFile(file).then(function (cur) {
         if (!cur) return null;
         return api("/contents/" + file, {
           method: "DELETE",
           body: JSON.stringify({
-            message: "День " + n + " удалён",
+            message: (typeof label === "string" ? label : "День") + " — удалено",
             sha: cur.sha,
             branch: repo().branch || "main"
           })
@@ -565,6 +672,7 @@
       }).then(function () {
         delete SENT[pad2(n)];
         lsSet(LS_SENT, JSON.stringify(SENT));
+        markGone(n);
         delete state.days[n];
         delete SAVED.days[n];
         delete state.removed[n];
@@ -759,8 +867,9 @@
   }
 
   function graveRow(p) {
+    var asking = state.confirmGrave === p.id;
     var wrap = el("div", "prow-wrap");
-    var row = el("div", "prow grave");
+    var row = el("div", "prow grave" + (asking ? " asking" : ""));
 
     /* Правится только число: буква Г стоит рядом как подпись, чтобы не искать
        кириллицу на телефонной клавиатуре. */
@@ -807,8 +916,13 @@
     });
     row.appendChild(pick);
 
-    row.appendChild(button("×", "icon-btn del", function () {
+    row.appendChild(deleteCell(asking, function () {
+      state.confirmGrave = p.id;
+      state.pickTheme = null;
+      render();
+    }, function () {
       removeGrave(p.id);
+      state.confirmGrave = null;
       render();
     }));
 
@@ -1035,15 +1149,8 @@
     var picker = el("div", "card");
     var chips = el("div", "chips");
     allDays().forEach(function (d) {
-      if (d.removed) {
-        chips.appendChild(removedChip(d));
-        return;
-      }
-      if (d.pending) {
-        chips.appendChild(dayChip(d.n, "ждём", true, d.n));
-        return;
-      }
-      chips.appendChild(dayChip(d.n, shortDate(d.date), false, d.n, d.kind, d.local));
+      if (d.removed) chips.appendChild(removedChip(d));
+      else chips.appendChild(dayChip(d));
     });
 
     /* День заводится этой кнопкой и сразу встаёт в ленту — как подраздел в
@@ -1053,7 +1160,7 @@
     add.setAttribute("aria-pressed", "false");
     add.appendChild(el("b", null, "+"));
     add.appendChild(el("small", null, "день"));
-    add.addEventListener("click", function () { openSeries(nextNumber()); });
+    add.addEventListener("click", function () { openSeries(nextSlot()); });
     chips.appendChild(add);
 
     picker.appendChild(chips);
@@ -1072,29 +1179,28 @@
     var meta = el("div", "card");
     var mrow = el("div", "frow top");
 
-    var numInput = el("input");
-    numInput.type = "number";
-    numInput.inputMode = "numeric";
-    numInput.min = "1";
-    numInput.value = state.series.n;
-    numInput.className = "input short";
-    /* Занятый номер не принимаем: иначе правка молча уехала бы поверх чужой
-       серии. Свой собственный номер, разумеется, занятым не считается. */
-    numInput.addEventListener("change", function () {
-      var was = state.series.n;
-      var v = parseInt(numInput.value, 10);
-      var taken = v !== was &&
-        (seriesByNumber(v) || SENT[pad2(v)] || state.days[v]);
-      if (!v || v < 1 || taken) { numInput.value = was; return; }
-      // рабочая копия лежит под своим номером — переносим её на новый
-      delete state.days[was];
-      state.series.n = v;
-      state.days[v] = state.series;
-      lastSeriesN = v;
-      touch();
-      render();
-    });
-    mrow.appendChild(field("Номер дня", numInput));
+    /* Номер есть только у серии: выходной и матбой номеров не занимают. Занятый
+       номер не принимаем — иначе две серии носили бы один номер. */
+    if (state.series.kind === "series") {
+      var numInput = el("input");
+      numInput.type = "number";
+      numInput.inputMode = "numeric";
+      numInput.min = "1";
+      numInput.value = seriesNo(state.series);
+      numInput.className = "input short";
+      numInput.addEventListener("change", function () {
+        var was = seriesNo(state.series);
+        var v = parseInt(numInput.value, 10);
+        if (!v || v < 1 || (v !== was && seriesNumbers(state.series.n)[v])) {
+          numInput.value = was;
+          return;
+        }
+        state.series.series = v;
+        touch();
+        render();
+      });
+      mrow.appendChild(field("Номер серии", numInput));
+    }
     mrow.appendChild(field("Дата", dateField()));
     meta.appendChild(mrow);
 
@@ -1106,6 +1212,13 @@
       b.setAttribute("aria-pressed", state.series.kind === pair[0] ? "true" : "false");
       b.addEventListener("click", function () {
         state.series.kind = pair[0];
+        /* Возврат к серии: номер мог уйти другой серии, пока этот день был
+           выходным, — тогда берём ближайший свободный. */
+        if (pair[0] === "series" &&
+            seriesNumbers(state.series.n)[seriesNo(state.series)]) {
+          state.series.series = nextSeriesNo(state.series.n);
+        }
+        state.confirmProblem = null;
         touch();
         render();
       });
@@ -1147,7 +1260,7 @@
     var b = el("button", "chip day gone");
     b.type = "button";
     b.setAttribute("aria-pressed", "false");
-    b.appendChild(el("b", null, d.n));
+    b.appendChild(el("b", null, dayMark(d)));
     b.appendChild(el("small", null, "удалить"));
     b.addEventListener("click", function () {
       delete state.removed[d.n];
@@ -1156,21 +1269,30 @@
     return b;
   }
 
-  function dayChip(n, label, waiting, open, kind, local) {
+  /* Кнопка дня: у серии — её номер, у выходного и матбоя — буква. Дата стоит
+     подписью всегда, по ней же лента и выстроена.
+
+     Заперты две кнопки: только что сохранённая и только что удалённая. Обе
+     ждут, пока сайт переразвернётся: правка по ним ушла бы мимо данных. */
+  function dayChip(d) {
+    var kind = d.kind || "series";
+    var waiting = d.pending || d.gone;
     var b = el("button", "chip day" + (waiting ? " pending" : "") +
-      (kind && kind !== "series" ? " " + kind : "") + (local ? " local" : ""));
+      (kind === "series" ? "" : " " + kind) + (d.local ? " local" : ""));
     b.type = "button";
     b.setAttribute("aria-pressed",
-      state.series && state.series.n === n ? "true" : "false");
-    b.appendChild(el("b", null, n));
-    b.appendChild(el("small", null, label));
+      state.series && state.series.n === d.n ? "true" : "false");
+    b.appendChild(el("b", null, d.series === null || d.series === undefined
+      ? (DAY_MARK[kind] || "?") : dayMark(d)));
+    b.appendChild(el("small", null,
+      d.gone ? "удалён" : (d.pending && !d.date ? "ждём" : shortDate(d.date))));
     b.addEventListener("click", function () {
       if (waiting) {
-        state.note = "День " + n + " сохранён";
+        state.note = d.gone ? "День удалён" : "День сохранён";
         state.noteKind = "good";
         return render();
       }
-      openSeries(open);
+      openSeries(d.n);
     });
     return b;
   }
@@ -1180,7 +1302,7 @@
      уедет с ближайшим сохранением. */
   function dropDay() {
     var n = state.series.n;
-    if (seriesByNumber(n)) state.removed[n] = true;
+    if (dayBySlot(n)) state.removed[n] = dayLabel(state.series);
     delete state.days[n];
     delete SAVED.days[n];
     state.series = null;
@@ -1190,15 +1312,12 @@
   }
 
   /* Кнопка стоит по центру: слева от неё ничего нет, и прижатая к правому краю
-     она смотрелась брошенной. */
+     она смотрелась брошенной. Второе нажатие и есть предупреждение — словами
+     оно ничего не добавляет. */
   function deleteBar() {
-    var saved = !!seriesByNumber(state.series.n);
     var card = el("div", "card savecard center");
 
     if (state.confirmDelete) {
-      card.appendChild(el("div", "savecard-title", saved
-        ? "Удалить день " + state.series.n + " вместе со всеми плюсами?"
-        : "Убрать день " + state.series.n + "?"));
       card.appendChild(button("Удалить", "primary-btn danger", dropDay));
       card.appendChild(backButton(function () {
         state.confirmDelete = false;
@@ -1213,9 +1332,26 @@
     return card;
   }
 
+  /* Крестик, который спрашивает второй раз: первое нажатие раздваивает его на
+     «удалить» и «передумал». Один и тот же для задачи, гроба и подраздела —
+     удаление везде необратимо и стоит одинаково дорого. */
+  function deleteCell(asking, ask, drop) {
+    if (!asking) return button("×", "icon-btn del", ask);
+    var box = el("span", "confirm");
+    box.appendChild(button("×", "icon-btn danger", drop));
+    box.appendChild(backButton(function () {
+      state.confirmProblem = null;
+      state.confirmGrave = null;
+      state.confirmSub = null;
+      render();
+    }));
+    return box;
+  }
+
   function problemRow(p) {
+    var asking = state.confirmProblem === p.id;
     var wrap = el("div", "prow-wrap");
-    var row = el("div", "prow");
+    var row = el("div", "prow" + (asking ? " asking" : ""));
 
     var idIn = el("input");
     idIn.className = "input tiny";
@@ -1250,8 +1386,13 @@
     });
     row.appendChild(pick);
 
-    row.appendChild(button("×", "icon-btn del", function () {
+    row.appendChild(deleteCell(asking, function () {
+      state.confirmProblem = p.id;
+      state.pickTheme = null;
+      render();
+    }, function () {
       removeProblem(p.id);
+      state.confirmProblem = null;
       touch();
       render();
     }));
@@ -1512,29 +1653,18 @@
         var line = el("div", "subline");
         line.appendChild(el("span", "subline-name", s.name));
 
-        /* Удалить можно только двумя нажатиями: первое раздваивает крестик на
-           «удалить» и «передумал». Задачи удалённого подраздела остаются без
-           темы и выпадают из рейтинга, пока им не выберут тему заново. */
-        if (state.confirmSub === key) {
-          var box = el("span", "confirm");
-          box.appendChild(button("×", "icon-btn danger", function () {
-            var draft = editTypes();
-            var cat = draft.filter(function (x) { return x.id === t.id; })[0];
-            cat.subs = cat.subs.filter(function (x) { return x.id !== s.id; });
-            state.confirmSub = null;
-            render();
-          }));
-          box.appendChild(backButton(function () {
-            state.confirmSub = null;
-            render();
-          }));
-          line.appendChild(box);
-        } else {
-          line.appendChild(button("×", "icon-btn del", function () {
-            state.confirmSub = key;
-            render();
-          }));
-        }
+        /* Задачи удалённого подраздела остаются без темы и выпадают из
+           рейтинга, пока им не выберут тему заново. */
+        line.appendChild(deleteCell(state.confirmSub === key, function () {
+          state.confirmSub = key;
+          render();
+        }, function () {
+          var draft = editTypes();
+          var cat = draft.filter(function (x) { return x.id === t.id; })[0];
+          cat.subs = cat.subs.filter(function (x) { return x.id !== s.id; });
+          state.confirmSub = null;
+          render();
+        }));
         block.appendChild(line);
       });
 
@@ -1635,7 +1765,7 @@
         var d = days[n];
         if ((d.kind || "series") !== "series") return;
         var bad = (d.problems || []).filter(function (p) { return !typed(p); });
-        if (bad.length) found.push(["День " + n, bad]);
+        if (bad.length) found.push([dayLabel(d), bad]);
       });
 
     var gr = (state.graves || DATA.graves).problems || [];
@@ -1679,8 +1809,10 @@
     state.series = null;
     state.confirmRevert = false;
     state.confirmSub = null;
+    state.confirmProblem = null;
+    state.confirmGrave = null;
     lastSeriesN = null;
-    if (n !== null && seriesByNumber(n)) openSeries(n);
+    if (n !== null && dayBySlot(n)) openSeries(n);
     else render();
   }
 
@@ -1704,17 +1836,16 @@
     var gone = removedNumbers();
     var items = [];
     if (typesDirty()) items.push("Темы");
-    days.forEach(function (d) {
-      items.push("День " + d.n +
-        (d.kind === "series" ? "" : " · " + DAY_NAME[d.kind]));
+    days.forEach(function (d) { items.push(dayLabel(d)); });
+    gone.forEach(function (n) {
+      items.push((state.removed[n] || "День") + " · удалить");
     });
-    gone.forEach(function (n) { items.push("День " + n + " · удалить"); });
     if (gravesDirty()) items.push("Гробарий");
 
     var problem = null;
     for (var i = 0; i < days.length && !problem; i++) {
       var bad = validate(days[i]);
-      if (bad) problem = "День " + days[i].n + ": " + bad;
+      if (bad) problem = dayLabel(days[i]) + ": " + bad;
     }
 
     var left = cooldownLeft();
@@ -1859,6 +1990,10 @@
         state.note = "";
         state.noteKind = "";
         state.confirmSub = null;
+        state.confirmProblem = null;
+        state.confirmGrave = null;
+        state.confirmDelete = false;
+        state.confirmRevert = false;
         state.pickTheme = null;
         render();
       });
@@ -1889,7 +2024,10 @@
       }))
         .then(function (all) {
           var series = all.filter(Boolean);
-          series.sort(function (a, b) { return a.n - b.n; });
+          // лента идёт по датам: номер теперь принадлежит серии, а не дню
+          series.sort(function (a, b) {
+            return String(a.date).localeCompare(String(b.date)) || a.n - b.n;
+          });
           return {
             config: res[0], types: res[1], students: res[2],
             series: series,
@@ -1910,7 +2048,7 @@
       Object.keys(state.days).forEach(function (k) {
         var day = state.days[k];
         if (day === state.series) return;
-        var s = seriesByNumber(day.n);
+        var s = dayBySlot(day.n);
         if (s && JSON.stringify(dayPayload(day)) === JSON.stringify(dayPayload(s))) {
           delete state.days[k];
           delete SAVED.days[k];

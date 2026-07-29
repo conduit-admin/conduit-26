@@ -398,18 +398,19 @@ input[type="number"]::-webkit-inner-spin-button {
   color: var(--ink-muted);
 }
 
-/* Вид дня показан цветом номера, а не подписью вместо даты: дата нужна всегда.
-   Три состояния — серия чёрным, выходной приглушённым, матбой оранжевым; у
-   выбранного дня подложка тёмная, поэтому цвета там задаются отдельно. */
+/* Номер стоит только у серии; выходной и матбой помечены буквой — В и М. Цвет
+   при них остаётся, но уже не как единственный признак: приглушённый серый
+   выходного читался как «выключено», поэтому взят синий — он такой же
+   полновесный, как оранжевый у боя. Дата стоит подписью всегда. */
 .chip.day.off, .chip.day.battle { border-style: dotted; }
 
 .chip.day b { color: var(--ink); }
-.chip.day.off b { color: var(--ink-muted); }
+.chip.day.off b { color: var(--s1); }
 .chip.day.battle b { color: var(--s2); }
 
+/* У выбранного дня подложка тёмная, и цвет буквы на ней теряется. Ничего не
+   пропадает: буква и есть пометка, цвет к ней только добавка. */
 .chip[aria-pressed="true"].day b { color: inherit; }
-.chip[aria-pressed="true"].day.off b { color: var(--axis); }
-.chip[aria-pressed="true"].day.battle b { color: var(--s2); }
 
 /* темы: раздел и его подразделы */
 .tgroup {
@@ -1208,6 +1209,10 @@ select.input { padding-right: 6px; }
 /* у гроба правится только число, буква Г — подпись слева от поля */
 .prow.grave { grid-template-columns: 80px minmax(0, 1fr) 34px; }
 
+/* спрошено удаление: на месте крестика два бокса — «удалить» и «передумал» */
+.prow.asking { grid-template-columns: 62px minmax(0, 1fr) 76px; }
+.prow.grave.asking { grid-template-columns: 80px minmax(0, 1fr) 76px; }
+
 .grave-id {
   display: flex;
   align-items: center;
@@ -1474,15 +1479,22 @@ body.is-editor .brand::after {
   cursor: pointer;
 }
 
+/* День, который ждёт: только что сохранённый или только что удалённый. Сайт
+   переразворачивается около минуты, и до тех пор правка по нему ушла бы мимо
+   данных — поэтому кнопка заперта и приглушена целиком, включая букву. */
 .chip.day.pending {
   border-style: dotted;
   color: var(--ink-muted);
 }
 
+.chip.day.pending b { color: var(--ink-muted); }
+
 
 @media (max-width: 560px) {
   .prow { grid-template-columns: 48px minmax(0, 1fr) 32px; column-gap: 8px; }
   .prow.grave { grid-template-columns: 66px minmax(0, 1fr) 32px; }
+  .prow.asking { grid-template-columns: 48px minmax(0, 1fr) 76px; }
+  .prow.grave.asking { grid-template-columns: 66px minmax(0, 1fr) 76px; }
   .input.tiny { width: 48px; }
   .datefield { min-width: 0; }
 }

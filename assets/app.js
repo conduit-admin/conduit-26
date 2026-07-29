@@ -34,8 +34,20 @@
      задач не несут: они нужны, чтобы в ряду дней не было дыр и было видно ритм
      смены. */
   var DAY_NAME = { off: "Выходной", battle: "Математический бой" };
+  var DAY_MARK = { off: "В", battle: "М" };
 
   function dayKind(s) { return s.kind || "series"; }
+
+  /* Номер есть только у дня с серией, и это номер самой серии. Выходной и матбой
+     номеров не занимают — в ленте они помечены буквой. У старых файлов своего
+     поля нет: там номер дня и был номером серии. */
+  function seriesNo(s) {
+    return s.series === undefined || s.series === null ? s.n : s.series;
+  }
+
+  function dayMark(s) {
+    return dayKind(s) === "series" ? String(seriesNo(s)) : DAY_MARK[dayKind(s)];
+  }
 
   function hasTasks(s) { return dayKind(s) === "series" && s.problems.length > 0; }
 
@@ -266,8 +278,8 @@
       (kind === "series" ? "" : " " + kind));
     b.type = "button";
     b.setAttribute("aria-pressed", pressed ? "true" : "false");
-    // дата стоит всегда, вид дня показан цветом номера
-    b.appendChild(el("b", null, s.n));
+    // дата стоит всегда, а сверху — номер серии либо буква дня
+    b.appendChild(el("b", null, dayMark(s)));
     b.appendChild(el("small", null, prettyDate(s.date, true)));
     b.addEventListener("click", onClick);
     return b;
@@ -621,7 +633,7 @@
     var kind = dayKind(s);
     var sh = el("div", "section-head");
     sh.appendChild(el("span", "section-title",
-      kind === "series" ? "День " + s.n : DAY_NAME[kind] + " · день " + s.n));
+      kind === "series" ? "Серия " + seriesNo(s) : DAY_NAME[kind]));
     sh.appendChild(el("span", "section-note", prettyDate(s.date)));
     host.appendChild(sh);
 
@@ -781,7 +793,7 @@
 
     var thead = el("thead");
     var hr = el("tr");
-    hr.appendChild(th("День", "left"));
+    hr.appendChild(th("Серия", "left"));
     hr.appendChild(th("Задачи"));
     hr.appendChild(th("Очки"));
     thead.appendChild(hr);
@@ -799,7 +811,7 @@
 
       var tr = el("tr");
       var first = el("td", "left");
-      first.appendChild(el("b", null, s.n));
+      first.appendChild(el("b", null, seriesNo(s)));
       first.appendChild(el("span", "muted date", prettyDate(s.date, true)));
       tr.appendChild(first);
       tr.appendChild(el("td", null, got + " / " + total));
@@ -918,7 +930,10 @@
     DATA.graves = DATA.graves || { problems: [], solved: {} };
     DATA.graves.problems = DATA.graves.problems || [];
     DATA.graves.solved = DATA.graves.solved || {};
-    DATA.series.sort(function (a, b) { return a.n - b.n; });
+    // порядок ленты — по датам: номер принадлежит серии, а не дню смены
+    DATA.series.sort(function (a, b) {
+      return String(a.date).localeCompare(String(b.date)) || a.n - b.n;
+    });
     buildIndex();
     setupChrome();
     render();
