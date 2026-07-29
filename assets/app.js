@@ -36,6 +36,9 @@
   var DAY_NAME = { off: "Выходной", battle: "Математический бой" };
   var DAY_MARK = { off: "В", battle: "М" };
 
+  // подпись внизу одной карточки; включается переключателем в редакторе
+  var EGG_FOR = "aksenova-elizaveta";
+
   function dayKind(s) { return s.kind || "series"; }
 
   /* Номер есть только у дня с серией, и это номер самой серии. Выходной и матбой
@@ -47,6 +50,21 @@
 
   function dayMark(s) {
     return dayKind(s) === "series" ? String(seriesNo(s)) : DAY_MARK[dayKind(s)];
+  }
+
+  // единицы зачёта помнят слот дня — наружу показывается номер серии
+  function seriesNoBySlot(sn) {
+    var s = DATA.series.filter(function (x) { return x.n === sn; })[0];
+    return s ? seriesNo(s) : sn;
+  }
+
+  /* В кондуите ученики стоят по алфавиту, а не по результату дня: кондуит —
+     ведомость, в ней ищут человека, а не место. Полное имя сравнивается
+     целиком, поэтому однофамильцы идут по именам. */
+  function byName(rows) {
+    return rows.slice().sort(function (a, b) {
+      return a.name.localeCompare(b.name, "ru");
+    });
   }
 
   function hasTasks(s) { return dayKind(s) === "series" && s.problems.length > 0; }
@@ -644,8 +662,7 @@
     var byId = {};
     UNITS.forEach(function (u) { if (u.sn === s.n) byId[u.id] = u; });
 
-    // строки — в порядке результата этой серии
-    var order = computeRating(new Set([s.n]), allLeaves(), ALL_KINDS).rows;
+    var order = byName(computeRating(new Set([s.n]), allLeaves(), ALL_KINDS).rows);
 
     host.appendChild(conduitTables(s.problems, order, function (p, r) {
       return byId[p.id].solverSet.has(r.id) ? el("div", "mark on", "+") : el("div", "mark");
@@ -659,8 +676,7 @@
   }
 
   /* Гробарий в том же виде, что и день: сетка «ученики × задачи», внизу сколько
-     человек взяло гроб и сколько он стоит. Порядок строк — по гробам, а не по
-     общему рейтингу: иначе таблица не про них. */
+     человек взяло гроб и сколько он стоит. */
   function viewGraveConduit(host) {
     var list = graves();
     if (!list.length) {
@@ -677,7 +693,7 @@
     sh.appendChild(el("span", "section-title", "Гробарий"));
     host.appendChild(sh);
 
-    var order = computeRating(new Set(), allLeaves(), new Set(["grave"])).rows;
+    var order = byName(computeRating(new Set(), allLeaves(), new Set(["grave"])).rows);
 
     host.appendChild(conduitTables(list, order, function (p, r) {
       return byId[p.id].solverSet.has(r.id) ? el("div", "mark on", "+") : el("div", "mark");
@@ -713,7 +729,7 @@
     var best = bestProblem(id);
     tiles.appendChild(tile("Самый ценный плюс", best ? "+" + best.weight : "—",
       best ? (best.sn === null ? "гроб " + best.id
-        : "день " + best.sn + ", задача " + best.id) : null));
+        : "серия " + seriesNoBySlot(best.sn) + ", задача " + best.id) : null));
     host.appendChild(tiles);
 
     var sh2 = el("div", "section-head");
@@ -770,6 +786,10 @@
     sh4.appendChild(el("span", "section-title", "По дням"));
     host.appendChild(sh4);
     host.appendChild(seriesTable(id));
+
+    if (DATA.config.egg && id === EGG_FOR) {
+      host.appendChild(el("div", "egg", "Totus tuus"));
+    }
   }
 
   /* Строка «название — шкала — сколько из скольких». Ширины колонок заданы
@@ -931,6 +951,7 @@
     DATA.graves = DATA.graves || { problems: [], solved: {} };
     DATA.graves.problems = DATA.graves.problems || [];
     DATA.graves.solved = DATA.graves.solved || {};
+    DATA.students.sort(function (a, b) { return a.name.localeCompare(b.name, "ru"); });
     // порядок ленты — по датам: номер принадлежит серии, а не дню смены
     DATA.series.sort(function (a, b) {
       return String(a.date).localeCompare(String(b.date)) || a.n - b.n;

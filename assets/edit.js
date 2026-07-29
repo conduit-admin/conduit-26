@@ -38,6 +38,7 @@
     confirmRevert: false,
     confirmProblem: null,   // id задачи, у которой спрошено удаление
     confirmGrave: null,     // то же для гроба
+    egg: null,              // переключатель подписи; null — не трогали
     pickTheme: null,    // id задачи, у которой открыт выбор темы
     pickDate: false
   };
@@ -45,7 +46,7 @@
   /* Что уже отправлено. Нужен потому, что сайт переразворачивается не сразу:
      сравнивать правку с данными сайта нельзя — минуту после сохранения они
      ещё старые, и всё выглядело бы несохранённым. */
-  var SAVED = { types: null, graves: null, days: {} };
+  var SAVED = { types: null, graves: null, days: {}, egg: null };
 
   /* Виды дня: обычная серия, выходной и математический бой. Номер есть только
      у серии — это её собственный номер. Выходной и матбой стоят в ленте по
@@ -593,6 +594,7 @@
     days.forEach(function (d) { jobs.push(putDayFile(d)); });
     gone.forEach(function (n) { jobs.push(dropDayFile(n)); });
     if (gravesDirty()) jobs.push(putGravesFile);
+    if (eggDirty()) jobs.push(putConfigFile);
     if (!jobs.length) return;
 
     // список дней правим последним и одной записью
@@ -704,6 +706,33 @@
       if (names.indexOf(name) === -1) names.push(name);
     });
     return names;
+  }
+
+  /* Переключатель подписи на карточке ученика. Живёт в data/config.json —
+     значит, виден всем и переживает перезагрузку страницы. Файл читается
+     заново перед записью и меняется одним полем: в нём же лежит отметка
+     сборки, и затирать её правкой со старой страницы нельзя. */
+  function eggOn() {
+    if (state.egg !== null) return state.egg;
+    if (SAVED.egg !== null) return SAVED.egg;
+    return !!(DATA.config && DATA.config.egg);
+  }
+
+  function eggDirty() {
+    if (state.egg === null) return false;
+    var was = SAVED.egg !== null ? SAVED.egg : !!(DATA.config && DATA.config.egg);
+    return state.egg !== was;
+  }
+
+  function putConfigFile() {
+    var want = state.egg;
+    return getFile("data/config.json").then(function (cur) {
+      if (!cur) throw new Error("нет data/config.json");
+      var cfg = JSON.parse(cur.text);
+      cfg.egg = want;
+      return putFile("data/config.json", JSON.stringify(cfg, null, 2) + "\n",
+        want ? "Подпись включена" : "Подпись выключена", cur.sha);
+    }).then(function () { SAVED.egg = want; });
   }
 
   function needToken() {
@@ -1765,6 +1794,8 @@
     state.confirmSub = null;
     state.confirmProblem = null;
     state.confirmGrave = null;
+    state.egg = null;
+    SAVED.egg = null;
     lastSeriesN = null;
     if (n !== null && dayBySlot(n)) openSeries(n);
     else render();
@@ -1795,6 +1826,7 @@
       items.push((state.removed[n] || "День") + " · удалить");
     });
     if (gravesDirty()) items.push("Гробарий");
+    if (eggDirty()) items.push("Настройки");
 
     var problem = null;
     for (var i = 0; i < days.length && !problem; i++) {
@@ -1872,6 +1904,39 @@
     }));
     token.appendChild(row);
     host.appendChild(token);
+
+    host.appendChild(eggToggle());
+  }
+
+  /* Стоит особняком в самом низу и ничего не подписывает: включённое видно по
+     цвету. Как и всё прочее, уезжает только по кнопке сохранения. */
+  function eggToggle() {
+    var foot = el("div", "footrow");
+    var b = el("button", "egg-btn");
+    b.type = "button";
+    b.setAttribute("aria-pressed", eggOn() ? "true" : "false");
+    b.setAttribute("aria-label", "Подпись");
+
+    var NS = "http://www.w3.org/2000/svg";
+    var svg = document.createElementNS(NS, "svg");
+    svg.setAttribute("viewBox", "0 0 16 16");
+    svg.setAttribute("width", "14");
+    svg.setAttribute("height", "14");
+    svg.setAttribute("aria-hidden", "true");
+    var path = document.createElementNS(NS, "path");
+    path.setAttribute("d", "M8 14S2 10.4 2 6.3A3.3 3.3 0 0 1 8 4.4 3.3 3.3 0 0 1 14 6.3C14 10.4 8 14 8 14z");
+    path.setAttribute("fill", "currentColor");
+    svg.appendChild(path);
+    b.appendChild(svg);
+
+    b.addEventListener("click", function () {
+      state.egg = !eggOn();
+      state.note = "";
+      state.noteKind = "";
+      render();
+    });
+    foot.appendChild(b);
+    return foot;
   }
 
   function check() {
@@ -1972,6 +2037,9 @@
       get("config.json"), get("types.json"), get("students.json"),
       get("series/manifest.json"), soft
     ]).then(function (res) {
+      /* Ученики стоят по алфавиту: в кондуите ищут человека, а не место.
+         Сравнивается полное имя, поэтому однофамильцы идут по именам. */
+      res[2].sort(function (a, b) { return a.name.localeCompare(b.name, "ru"); });
       // пропавший файл дня не должен мешать открыть редактор
       return Promise.all(res[3].series.map(function (f) {
         return get("series/" + f).catch(function () { return null; });
@@ -2020,6 +2088,10 @@
           JSON.stringify(gravesPayload(DATA.graves))) {
         state.graves = null;
         SAVED.graves = null;
+      }
+      if (state.egg !== null && state.egg === !!DATA.config.egg) {
+        state.egg = null;
+        SAVED.egg = null;
       }
       render();
     }).catch(function () { render(); });
