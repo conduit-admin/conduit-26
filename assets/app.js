@@ -39,6 +39,14 @@
   // подпись внизу одной карточки; включается переключателем в редакторе
   var EGG_FOR = "aksenova-elizaveta";
 
+  /* Вес задачи = n − число решивших. По умолчанию n — это число учеников на
+     смене, но его можно задать отдельно из редактора: тогда цена задачи
+     считается от него, а не от состава отряда. */
+  function weightBase() {
+    var n = DATA.config.scoring && DATA.config.scoring.n;
+    return typeof n === "number" && n > 0 ? n : DATA.config.students_total;
+  }
+
   function dayKind(s) { return s.kind || "series"; }
 
   /* Номер есть только у дня с серией, и это номер самой серии. Выходной и матбой
@@ -187,7 +195,7 @@
           kind: /^0/.test(String(p.id)) || p.exercise ? "exercise" : "problem",
           solvers: solvers,
           solverSet: new Set(solvers),
-          weight: DATA.config.students_total - solvers.length
+          weight: weightBase() - solvers.length
         });
       });
     });
@@ -205,7 +213,7 @@
         kind: "grave",
         solvers: solvers,
         solverSet: new Set(solvers),
-        weight: DATA.config.students_total - solvers.length
+        weight: weightBase() - solvers.length
       });
     });
 

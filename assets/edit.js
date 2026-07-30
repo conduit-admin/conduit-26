@@ -39,6 +39,7 @@
     confirmProblem: null,   // id задачи, у которой спрошено удаление
     confirmGrave: null,     // то же для гроба
     egg: null,              // переключатель подписи; null — не трогали
+    wn: null,               // n в формуле очков; null — не трогали
     pickTheme: null,    // id задачи, у которой открыт выбор темы
     pickDate: false
   };
@@ -46,7 +47,7 @@
   /* Что уже отправлено. Нужен потому, что сайт переразворачивается не сразу:
      сравнивать правку с данными сайта нельзя — минуту после сохранения они
      ещё старые, и всё выглядело бы несохранённым. */
-  var SAVED = { types: null, graves: null, days: {}, egg: null };
+  var SAVED = { types: null, graves: null, days: {}, egg: null, wn: null };
 
   /* Виды дня: обычная серия, выходной и математический бой. Номер есть только
      у серии — это её собственный номер. Выходной и матбой стоят в ленте по
@@ -594,7 +595,7 @@
     days.forEach(function (d) { jobs.push(putDayFile(d)); });
     gone.forEach(function (n) { jobs.push(dropDayFile(n)); });
     if (gravesDirty()) jobs.push(putGravesFile);
-    if (eggDirty()) jobs.push(putConfigFile);
+    if (configDirty()) jobs.push(putConfigFile);
     if (!jobs.length) return;
 
     // список дней правим последним и одной записью
@@ -708,10 +709,10 @@
     return names;
   }
 
-  /* Переключатель подписи на карточке ученика. Живёт в data/config.json —
-     значит, виден всем и переживает перезагрузку страницы. Файл читается
-     заново перед записью и меняется одним полем: в нём же лежит отметка
-     сборки, и затирать её правкой со старой страницы нельзя. */
+  /* Настройки сайта живут в data/config.json — значит, видны всем и переживают
+     перезагрузку страницы. Файл читается заново перед записью и меняется
+     точечно: в нём же лежит отметка сборки, и затирать её правкой со старой
+     страницы нельзя. */
   function eggOn() {
     if (state.egg !== null) return state.egg;
     if (SAVED.egg !== null) return SAVED.egg;
@@ -724,15 +725,46 @@
     return state.egg !== was;
   }
 
+  /* n в формуле «вес задачи = n − число решивших». По умолчанию это число
+     учеников на смене: задачу, которую сдали все, тогда никто не считает за
+     достижение, а задача-одиночка стоит почти в цену отряда. */
+  function configN() {
+    var n = DATA.config.scoring && DATA.config.scoring.n;
+    return typeof n === "number" && n > 0 ? n : DATA.config.students_total;
+  }
+
+  function wnValue() {
+    if (state.wn !== null) return state.wn;
+    if (SAVED.wn !== null) return SAVED.wn;
+    return configN();
+  }
+
+  function wnDirty() {
+    if (state.wn === null) return false;
+    return state.wn !== (SAVED.wn !== null ? SAVED.wn : configN());
+  }
+
+  function configDirty() { return eggDirty() || wnDirty(); }
+
   function putConfigFile() {
-    var want = state.egg;
+    var egg = eggOn();
+    var n = wnValue();
+    var what = wnDirty()
+      ? "Очки: n = " + n
+      : (egg ? "Подпись включена" : "Подпись выключена");
+
     return getFile("data/config.json").then(function (cur) {
       if (!cur) throw new Error("нет data/config.json");
       var cfg = JSON.parse(cur.text);
-      cfg.egg = want;
+      cfg.egg = egg;
+      cfg.scoring = cfg.scoring || {};
+      cfg.scoring.n = n;
       return putFile("data/config.json", JSON.stringify(cfg, null, 2) + "\n",
-        want ? "Подпись включена" : "Подпись выключена", cur.sha);
-    }).then(function () { SAVED.egg = want; });
+        what, cur.sha);
+    }).then(function () {
+      SAVED.egg = egg;
+      SAVED.wn = n;
+    });
   }
 
   function needToken() {
@@ -1563,7 +1595,7 @@
     tfoot.appendChild(f1);
     var f2 = el("tr", "weights");
     problems.forEach(function (p) {
-      f2.appendChild(el("td", "colweight", DATA.config.students_total - colCount(p.id)));
+      f2.appendChild(el("td", "colweight", wnValue() - colCount(p.id)));
     });
     f2.appendChild(el("td", "pcount"));
     tfoot.appendChild(f2);
@@ -1584,7 +1616,7 @@
       problems.forEach(function (p, i) {
         var n = colCount(p.id);
         if (cols[i]) cols[i].textContent = n;
-        if (ws[i]) ws[i].textContent = DATA.config.students_total - n;
+        if (ws[i]) ws[i].textContent = wnValue() - n;
       });
       var total = table.querySelector(".total");
       if (total) total.textContent = allCount();
@@ -1606,7 +1638,7 @@
           var list = s.solved[st.id];
           return list && list.indexOf(p.id) !== -1;
         });
-        var weight = DATA.config.students_total - solvers.length;
+        var weight = wnValue() - solvers.length;
         solvers.forEach(function (st) { score[st.id] += weight; });
       });
     });
@@ -1796,6 +1828,8 @@
     state.confirmGrave = null;
     state.egg = null;
     SAVED.egg = null;
+    state.wn = null;
+    SAVED.wn = null;
     lastSeriesN = null;
     if (n !== null && dayBySlot(n)) openSeries(n);
     else render();
@@ -1826,7 +1860,7 @@
       items.push((state.removed[n] || "День") + " · удалить");
     });
     if (gravesDirty()) items.push("Гробарий");
-    if (eggDirty()) items.push("Настройки");
+    if (configDirty()) items.push("Настройки");
 
     var problem = null;
     for (var i = 0; i < days.length && !problem; i++) {
@@ -1871,6 +1905,31 @@
       }
       host.appendChild(rev);
     }
+
+    var shScore = el("div", "section-head");
+    shScore.appendChild(el("span", "section-title", "Очки"));
+    host.appendChild(shScore);
+
+    var score = el("div", "card");
+    var nIn = el("input");
+    nIn.type = "number";
+    nIn.inputMode = "numeric";
+    nIn.min = "1";
+    nIn.value = wnValue();
+    nIn.className = "input short";
+    nIn.addEventListener("change", function () {
+      var v = parseInt(nIn.value, 10);
+      if (!v || v < 1) { nIn.value = wnValue(); return; }
+      state.wn = v;
+      state.note = "";
+      state.noteKind = "";
+      render();
+    });
+    score.appendChild(field("n", nIn));
+    score.appendChild(el("div", "savecard-note",
+      "вес задачи = n − число решивших; по умолчанию n — число учеников (" +
+      DATA.students.length + ")"));
+    host.appendChild(score);
 
     var sh = el("div", "section-head");
     sh.appendChild(el("span", "section-title", "Доступ"));
@@ -2097,6 +2156,10 @@
       if (state.egg !== null && state.egg === !!DATA.config.egg) {
         state.egg = null;
         SAVED.egg = null;
+      }
+      if (state.wn !== null && state.wn === configN()) {
+        state.wn = null;
+        SAVED.wn = null;
       }
       render();
     }).catch(function () { render(); });

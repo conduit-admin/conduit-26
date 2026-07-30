@@ -5,14 +5,15 @@
   "admin": "afanasev-igor",
   "noindex": true,
   "scoring": {
-    "formula": "students_total - solvers",
-    "note": "Вес задачи = число учеников на смене минус число решивших."
+    "n": 24,
+    "formula": "n - solvers",
+    "note": "Вес задачи = n минус число решивших. По умолчанию n — число учеников на смене."
   },
   "repo": {
     "owner": "conduit-admin",
     "name": "conduit-26",
     "branch": "main"
   },
-  "build": "202607292227",
+  "build": "202607302001",
   "egg": false
 }
