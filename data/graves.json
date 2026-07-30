@@ -1,4 +1,104 @@
 {
-  "problems": [],
-  "solved": {}
+  "problems": [
+    {
+      "id": "Г1",
+      "type": "algebra",
+      "sub": "inequalities"
+    },
+    {
+      "id": "Г2",
+      "type": "comb",
+      "sub": "graphs"
+    },
+    {
+      "id": "Г3",
+      "type": "logika",
+      "sub": null
+    }
+  ],
+  "solved": {
+    "aksenova-elizaveta": [
+      "Г1",
+      "Г3"
+    ],
+    "afanasev-igor": [
+      "Г2"
+    ],
+    "boyko-gleb": [
+      "Г1",
+      "Г3"
+    ],
+    "budyanskiy-mihail": [
+      "Г2"
+    ],
+    "velichko-platon": [
+      "Г1"
+    ],
+    "gulev-maksim": [
+      "Г2",
+      "Г3"
+    ],
+    "zarechnyuk-georgiy": [
+      "Г1",
+      "Г2"
+    ],
+    "karonov-mihail": [
+      "Г1",
+      "Г3"
+    ],
+    "karev-denis": [
+      "Г1",
+      "Г2",
+      "Г3"
+    ],
+    "kovalev-artem": [
+      "Г1",
+      "Г2"
+    ],
+    "kostylev-konstantin": [],
+    "larionova-natalya": [
+      "Г2",
+      "Г3"
+    ],
+    "lyubimov-slaven": [
+      "Г2"
+    ],
+    "mahrov-aleksandr": [],
+    "novoselov-maksim": [
+      "Г1",
+      "Г3"
+    ],
+    "osipova-viktoriya": [
+      "Г1",
+      "Г3"
+    ],
+    "pogorelov-denis": [
+      "Г1"
+    ],
+    "rudakova-vasilisa": [
+      "Г1",
+      "Г2"
+    ],
+    "strelkov-sergey": [
+      "Г1",
+      "Г2",
+      "Г3"
+    ],
+    "titov-viktor": [
+      "Г1",
+      "Г3"
+    ],
+    "titov-dmitriy": [
+      "Г2",
+      "Г3"
+    ],
+    "celikov-aleksandr": [
+      "Г1"
+    ],
+    "shipilov-andrey": [
+      "Г2",
+      "Г3"
+    ],
+    "shirtanova-valeriya": []
+  }
 }
