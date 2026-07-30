@@ -466,14 +466,17 @@
      Ставится он тем же полем, что и у прочих задач. */
   function isExercise(p) { return numPrefix(p.id) === 0; }
 
+  /* Первая задача дня — упражнение: серия начинается с него. Дальше номера идут
+     обычным чередом, а если упражнение не нужно — номер правится вручную. */
   function addProblem() {
-    var max = 0;
-    state.series.problems.forEach(function (p) {
+    var ps = state.series.problems;
+    var max = -1;
+    ps.forEach(function (p) {
       var n = numPrefix(p.id);
       if (n > max) max = n;
     });
     var first = types()[0];
-    state.series.problems.push({
+    ps.push({
       id: String(max + 1),
       type: first.id,
       sub: first.subs && first.subs.length ? first.subs[0].id : null
@@ -481,19 +484,35 @@
     touch();
   }
 
+  // семья пунктов последней задачи: 5 → [5], 5а/5б → [5а, 5б]
+  function lastFamily() {
+    var ps = state.series.problems;
+    if (!ps.length) return [];
+    var lastNum = numPrefix(ps[ps.length - 1].id);
+    return ps.filter(function (p) { return numPrefix(p.id) === lastNum; });
+  }
+
+  // букв ровно шесть: после «е» новый пункт совпал бы с прежним по номеру
+  function canAddPart() {
+    return lastFamily().length < LETTERS.length;
+  }
+
   function addPart() {
     var ps = state.series.problems;
     if (!ps.length) return addProblem();
+    if (!canAddPart()) return;
+
     var lastNum = numPrefix(ps[ps.length - 1].id);
-    var family = ps.filter(function (p) { return numPrefix(p.id) === lastNum; });
+    var family = lastFamily();
     var sample = family[family.length - 1];
 
     if (family.length === 1 && String(sample.id) === String(lastNum)) {
       renameProblem(sample.id, lastNum + LETTERS[0]);
       insertAfter(sample, { id: lastNum + LETTERS[1], type: sample.type, sub: sample.sub });
     } else {
-      var letter = LETTERS[family.length] || LETTERS[LETTERS.length - 1];
-      insertAfter(sample, { id: lastNum + letter, type: sample.type, sub: sample.sub });
+      insertAfter(sample, {
+        id: lastNum + LETTERS[family.length], type: sample.type, sub: sample.sub
+      });
     }
     touch();
   }
@@ -1356,7 +1375,10 @@
 
       var actions = el("div", "frow gap");
       actions.appendChild(button("+ задача", "ghost-btn", function () { addProblem(); render(); }));
-      actions.appendChild(button("+ пункт", "ghost-btn", function () { addPart(); render(); }));
+      var part = button("+ пункт", "ghost-btn", function () { addPart(); render(); });
+      // дошли до «е» — дальше пункт совпал бы с уже существующим
+      part.disabled = state.series.problems.length > 0 && !canAddPart();
+      actions.appendChild(part);
       pcard.appendChild(actions);
       host.appendChild(pcard);
 

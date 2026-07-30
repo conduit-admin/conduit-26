@@ -190,6 +190,8 @@ body {
 }
 
 .ghost-btn:hover { background: var(--wash); }
+.ghost-btn:disabled { opacity: .4; cursor: default; }
+.ghost-btn:disabled:hover { background: var(--surface); }
 
 /* Поле числа без стрелок-крутилок: номер дня вводят с клавиатуры, а на узком
    поле крутилки съедают половину ширины. */

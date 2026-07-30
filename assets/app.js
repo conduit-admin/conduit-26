@@ -445,6 +445,10 @@
 
     // дни; выходные и матбои сюда не попадают — считать в них нечего
     var days = realSeries();
+    if (!days.length) {   // отбирать нечего: до первой серии строка пуста
+      host.appendChild(card);
+      return filtered();
+    }
 
     var r2 = el("div", "filter-row");
     var h2 = el("div", "filter-head");
@@ -635,19 +639,22 @@
 
     var picker = el("div", "card");
 
-    var r1 = el("div", "filter-row");
-    var head = el("div", "filter-head");
-    head.appendChild(el("span", "filter-title", "День"));
-    r1.appendChild(head);
-    var chips = el("div", "chips");
-    DATA.series.forEach(function (s) {
-      chips.appendChild(dayChip(s, s.n === state.openSeries, "pick", function () {
-        state.openSeries = s.n;
-        render();
-      }));
-    });
-    r1.appendChild(chips);
-    picker.appendChild(r1);
+    // до первого дня строка выбора пуста — показывать её незачем
+    if (DATA.series.length) {
+      var r1 = el("div", "filter-row");
+      var head = el("div", "filter-head");
+      head.appendChild(el("span", "filter-title", "День"));
+      r1.appendChild(head);
+      var chips = el("div", "chips");
+      DATA.series.forEach(function (s) {
+        chips.appendChild(dayChip(s, s.n === state.openSeries, "pick", function () {
+          state.openSeries = s.n;
+          render();
+        }));
+      });
+      r1.appendChild(chips);
+      picker.appendChild(r1);
+    }
 
     // гробарий — не день смены, поэтому стоит отдельной строкой, а не в их ряду
     var r2 = el("div", "filter-row");
