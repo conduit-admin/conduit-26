@@ -36,8 +36,21 @@
   var DAY_NAME = { off: "Выходной", battle: "Математический бой" };
   var DAY_MARK = { off: "В", battle: "М" };
 
-  // подпись внизу одной карточки; включается переключателем в редакторе
-  var EGG_FOR = "aksenova-elizaveta";
+  /* Упражнение — не тема, а вид задания: узнаётся по нулевому номеру (0, 0а).
+     То же правило в редакторе — одно на оба места, иначе задача считалась бы
+     упражнением на сайте и задачей в редакторе. */
+  function numPrefix(id) {
+    var m = String(id).match(/^(\d+)/);
+    return m ? Number(m[1]) : 0;
+  }
+
+  function isExercise(p) { return numPrefix(p.id) === 0; }
+
+  // подпись внизу карточки ученика: и кому, и что — из настроек
+  function signature(id) {
+    var s = DATA.config.signature;
+    return s && s.on && s.student === id && s.text ? s.text : null;
+  }
 
   /* Вес задачи = n − число решивших. По умолчанию n — это число учеников на
      смене, но его можно задать отдельно из редактора: тогда цена задачи
@@ -191,8 +204,7 @@
           id: p.id,
           leafKey: unitLeaf(p),
           catId: p.type,
-          // упражнения идут под нулевым номером — по нему они и отличаются
-          kind: /^0/.test(String(p.id)) || p.exercise ? "exercise" : "problem",
+          kind: isExercise(p) ? "exercise" : "problem",
           solvers: solvers,
           solverSet: new Set(solvers),
           weight: weightBase() - solvers.length
@@ -795,9 +807,8 @@
     host.appendChild(sh4);
     host.appendChild(seriesTable(id));
 
-    if (DATA.config.egg && id === EGG_FOR) {
-      host.appendChild(el("div", "egg", "Totus tuus"));
-    }
+    var sign = signature(id);
+    if (sign) host.appendChild(el("div", "egg", sign));
   }
 
   /* Строка «название — шкала — сколько из скольких». Ширины колонок заданы
@@ -981,14 +992,19 @@
     var soft = get("graves.json").catch(function () {
       return { problems: [], solved: {} };
     });
+    /* И список дней тоже: без него страница покажет отряд и гробарий, но
+       откроется. Сайт читают дети, чинить его посреди смены некому — пусть
+       любая порча данных отнимает часть, а не всё. */
+    var days = get("series/manifest.json").catch(function () { return null; });
+
     return Promise.all([
-      get("config.json"), get("types.json"), get("students.json"),
-      get("series/manifest.json"), soft
+      get("config.json"), get("types.json"), get("students.json"), days, soft
     ]).then(function (res) {
+      var files = res[3] && Array.isArray(res[3].series) ? res[3].series : [];
       /* Пропавший файл дня не должен ронять страницу целиком: раз в списке
          осталась запись без файла, показываем остальные дни, а не пустой
          экран с ошибкой. */
-      return Promise.all(res[3].series.map(function (f) {
+      return Promise.all(files.map(function (f) {
         return get("series/" + f).catch(function () { return null; });
       })).then(function (series) {
         return {

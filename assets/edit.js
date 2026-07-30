@@ -38,7 +38,7 @@
     confirmRevert: false,
     confirmProblem: null,   // id задачи, у которой спрошено удаление
     confirmGrave: null,     // то же для гроба
-    egg: null,              // переключатель подписи; null — не трогали
+    sig: null,              // переключатель подписи; null — не трогали
     wn: null,               // n в формуле очков; null — не трогали
     pickTheme: null,    // id задачи, у которой открыт выбор темы
     pickDate: false
@@ -47,7 +47,7 @@
   /* Что уже отправлено. Нужен потому, что сайт переразворачивается не сразу:
      сравнивать правку с данными сайта нельзя — минуту после сохранения они
      ещё старые, и всё выглядело бы несохранённым. */
-  var SAVED = { types: null, graves: null, days: {}, egg: null, wn: null };
+  var SAVED = { types: null, graves: null, days: {}, sig: null, wn: null };
 
   /* Виды дня: обычная серия, выходной и математический бой. Номер есть только
      у серии — это её собственный номер. Выходной и матбой стоят в ленте по
@@ -55,6 +55,8 @@
   var DAY_KINDS = [["series", "Серия"], ["off", "Выходной"], ["battle", "Матбой"]];
   var DAY_NAME = { off: "Выходной", battle: "Математический бой" };
   var DAY_MARK = { off: "В", battle: "М" };
+
+  var tokenDraft = "";  // набранный, но ещё не запомненный токен: живёт до ухода
 
   var LS_TOKEN = "conduit-token";
   var LS_SENT = "conduit-sent";
@@ -288,8 +290,13 @@
     return d.series === undefined || d.series === null ? d.n : d.series;
   }
 
+  /* Что написано на кнопке дня: у серии — её номер, у прочих — буква. Номера
+     может не быть только у записи о недавно отправленном дне, снятой со старой
+     страницы, — там честнее вопрос, чем чужое число. */
   function dayMark(d) {
-    return (d.kind || "series") === "series" ? String(seriesNo(d)) : DAY_MARK[d.kind];
+    var kind = d.kind || "series";
+    if (kind !== "series") return DAY_MARK[kind] || "?";
+    return d.series === null || d.series === undefined ? "?" : String(d.series);
   }
 
   function dayLabel(d) {
@@ -341,8 +348,12 @@
   }
 
   function copyDay(s) {
+    var kind = s.kind || "series";
     var d = JSON.parse(JSON.stringify({
-      n: s.n, series: seriesNo(s), date: s.date, kind: s.kind || "series",
+      n: s.n,
+      // у выходного и матбоя номера нет: запасной ход seriesNo дал бы слот файла
+      series: kind === "series" ? seriesNo(s) : null,
+      date: s.date, kind: kind,
       problems: s.problems || [], solved: s.solved || {}
     }));
     DATA.students.forEach(function (st) {
@@ -401,11 +412,16 @@
         series: info.series === undefined ? null : info.series, pending: true
       };
     });
+    /* Ключи здесь с ведущим нулём («03»), а карта дней — по самому слоту («3»).
+       Без Number() день с однозначным слотом не запирался после удаления: его
+       можно было открыть и сохранить, то есть создать заново. */
     Object.keys(GONE).forEach(function (k) {
-      if (map[k]) map[k].gone = true;
+      var n = Number(k);
+      if (map[n]) map[n].gone = true;
     });
     Object.keys(state.removed).forEach(function (k) {
-      if (map[k]) map[k].removed = true;
+      var n = Number(k);
+      if (map[n]) map[n].removed = true;
     });
     return Object.keys(map).map(function (k) { return map[k]; })
       .sort(function (a, b) {
@@ -563,8 +579,19 @@
         return a + payload.solved[s.id].length;
       }, 0);
 
+      /* День, о котором редактор не знает, но файл под его именем есть, — это
+         всегда чужие данные: список дней не прочитался, или страница открыта со
+         старым списком. Записать поверх — потерять день целиком, поэтому
+         отказываемся. Свой день узнаётся по данным сайта, по отметке отправки
+         или по тому, что мы уже писали его в этот заход. */
+      var known = !!dayBySlot(d.n) || !!SENT[pad2(d.n)] || !!SAVED.days[d.n];
+
       return getFile(file)
         .then(function (cur) {
+          if (cur && !known) {
+            throw new Error("файл " + pad2(d.n) +
+              ".json уже есть в репозитории — обнови страницу");
+          }
           return putFile(file, JSON.stringify(payload, null, 2) + "\n",
             plain
               ? DAY_NAME[payload.kind] + " (" + shortDate(d.date) + ")"
@@ -601,8 +628,14 @@
     // список дней правим последним и одной записью
     jobs.push(function () {
       return syncManifest(
-        manifestAdds(days.map(function (d) { return pad2(d.n) + ".json"; })),
-        gone.map(function (n) { return pad2(n) + ".json"; }));
+        days.map(function (d) { return pad2(d.n) + ".json"; }),
+        gone.map(function (n) { return pad2(n) + ".json"; })
+      ).then(function () {
+        /* Пометка удаления снимается только теперь. Раньше её снимало само
+           удаление файла — и если запись списка потом срывалась, о висячей
+           строке никто уже не помнил. */
+        gone.forEach(function (n) { delete state.removed[n]; });
+      });
     });
 
     state.busy = true;
@@ -652,7 +685,6 @@
         markGone(n);
         delete state.days[n];
         delete SAVED.days[n];
-        delete state.removed[n];
       });
     };
   }
@@ -672,65 +704,85 @@
     return list.slice();
   }
 
-  /* Список дней приводится в порядок один раз за сохранение, одной записью:
-     добавляется всё записанное, убирается всё удалённое. Раньше каждый день
-     правил список сам, а GitHub после записи какое-то время отдаёт прежнюю
-     метку версии — вторая правка подряд либо отклонялась, либо (при удалении)
-     молча ничего не делала. Отсюда были и день без строки в списке, и строка
-     без файла, от которой сайт переставал открываться.
-
-     Одна попытка повтора — на случай, если метка всё же оказалась старой. */
-  function syncManifest(add, drop, retry) {
-    return getFile(MANIFEST).then(function (cur) {
-      var list = readManifest(cur);
-      var next = list.filter(function (f) { return drop.indexOf(f) === -1; });
-      add.forEach(function (f) { if (next.indexOf(f) === -1) next.push(f); });
-      next.sort();
-      if (JSON.stringify(next) === JSON.stringify(list)) return null;
-
-      return putFile(MANIFEST, JSON.stringify({ series: next }, null, 2) + "\n",
-        "Список дней обновлён", cur && cur.sha)
-        .catch(function (err) {
-          if (retry || !/изменился на сервере/.test(err.message)) throw err;
-          return syncManifest(add, drop, true);
-        });
-    });
+  /* Настоящий список файлов дня — из самого репозитория. Считать список по
+     памяти страницы нельзя: любая осечка (не прошла запись, оборвалась связь,
+     правили с двух устройств) навсегда оставляла в нём либо лишнюю строку, либо
+     дыру, а вычислить это заново было неоткуда. */
+  function listSeriesFiles() {
+    return api("/contents/data/series?ref=" + (repo().branch || "main"))
+      .then(function (list) {
+        if (!Array.isArray(list)) throw new Error("не читается папка data/series");
+        return list.filter(function (f) {
+          return f.type === "file" && /^\d+\.json$/.test(f.name);
+        }).map(function (f) { return f.name; });
+      });
   }
 
-  /* Что должно быть в списке: записанное сейчас плюс отправленное раньше.
-     Второе слагаемое чинит прошлые сбои — день, уехавший файлом мимо списка,
-     попадёт в него при ближайшем сохранении. */
-  function manifestAdds(justSaved) {
-    var names = justSaved.slice();
-    Object.keys(SENT).forEach(function (k) {
-      var name = k + ".json";
-      if (names.indexOf(name) === -1) names.push(name);
+  /* Список дней пишется один раз за сохранение и целиком: он равен тому, что
+     лежит в папке. Только что записанное добавляется, только что удалённое
+     вычитается — на случай, если GitHub отдаст ещё не обновившуюся папку (после
+     записи он какое-то время показывает прежнее состояние; отсюда и были
+     когда-то день без строки в списке, и строка без файла).
+
+     Из-за этого же порядок самолечащийся: любое прошлое расхождение уходит при
+     ближайшем сохранении, даже если о нём никто не помнит.
+
+     Одна попытка повтора — на случай устаревшей метки версии. */
+  function syncManifest(add, drop, retry) {
+    return listSeriesFiles().then(function (files) {
+      var next = files.filter(function (f) { return drop.indexOf(f) === -1; });
+      add.forEach(function (f) { if (next.indexOf(f) === -1) next.push(f); });
+      next.sort();
+
+      return getFile(MANIFEST).then(function (cur) {
+        var list = readManifest(cur);
+        if (JSON.stringify(next) === JSON.stringify(list)) return null;
+
+        /* Пустой список равносилен стёртому сайту. Своим ходом он получиться
+           не может: если дни не удаляли, а считать нечего — что-то не так с
+           ответом GitHub, и писать это в репозиторий нельзя. */
+        if (!next.length && list.length && !drop.length) {
+          throw new Error("список дней вышел пустым — сохранение отменено");
+        }
+
+        return putFile(MANIFEST, JSON.stringify({ series: next }, null, 2) + "\n",
+          "Список дней обновлён", cur && cur.sha)
+          .catch(function (err) {
+            if (retry || !/изменился на сервере/.test(err.message)) throw err;
+            return syncManifest(add, drop, true);
+          });
+      });
     });
-    return names;
   }
 
   /* Настройки сайта живут в data/config.json — значит, видны всем и переживают
      перезагрузку страницы. Файл читается заново перед записью и меняется
      точечно: в нём же лежит отметка сборки, и затирать её правкой со старой
      страницы нельзя. */
-  function eggOn() {
-    if (state.egg !== null) return state.egg;
-    if (SAVED.egg !== null) return SAVED.egg;
-    return !!(DATA.config && DATA.config.egg);
+  function sigOn() {
+    if (state.sig !== null) return state.sig;
+    if (SAVED.sig !== null) return SAVED.sig;
+    return !!(DATA.config.signature && DATA.config.signature.on);
   }
 
-  function eggDirty() {
-    if (state.egg === null) return false;
-    var was = SAVED.egg !== null ? SAVED.egg : !!(DATA.config && DATA.config.egg);
-    return state.egg !== was;
+  function sigDirty() {
+    if (state.sig === null) return false;
+    var was = SAVED.sig !== null
+      ? SAVED.sig : !!(DATA.config.signature && DATA.config.signature.on);
+    return state.sig !== was;
   }
 
   /* n в формуле «вес задачи = n − число решивших». По умолчанию это число
      учеников на смене: задачу, которую сдали все, тогда никто не считает за
      достижение, а задача-одиночка стоит почти в цену отряда. */
+  function defaultN() {
+    var t = DATA.config.students_total;
+    return typeof t === "number" && t > 0 ? t : DATA.students.length;
+  }
+
   function configN() {
     var n = DATA.config.scoring && DATA.config.scoring.n;
-    return typeof n === "number" && n > 0 ? n : DATA.config.students_total;
+    return typeof n === "number" && n > 0 ? n : defaultN();
   }
 
   function wnValue() {
@@ -744,26 +796,36 @@
     return state.wn !== (SAVED.wn !== null ? SAVED.wn : configN());
   }
 
-  function configDirty() { return eggDirty() || wnDirty(); }
+  function configDirty() { return sigDirty() || wnDirty(); }
 
+  /* Пишем только то, что правили. Обе настройки разом писать нельзя: значение
+     нетронутой берётся из памяти страницы, а она устаревает — правка одной
+     настройки откатывала бы чужое изменение другой. */
   function putConfigFile() {
-    var egg = eggOn();
-    var n = wnValue();
-    var what = wnDirty()
-      ? "Очки: n = " + n
-      : (egg ? "Подпись включена" : "Подпись выключена");
+    var sig = state.sig;
+    var n = state.wn;
+    var wantSig = sigDirty();
+    var wantN = wnDirty();
+    var what = [];
+    if (wantN) what.push("очки: n = " + n);
+    if (wantSig) what.push(sig ? "подпись включена" : "подпись выключена");
 
     return getFile("data/config.json").then(function (cur) {
       if (!cur) throw new Error("нет data/config.json");
       var cfg = JSON.parse(cur.text);
-      cfg.egg = egg;
-      cfg.scoring = cfg.scoring || {};
-      cfg.scoring.n = n;
+      if (wantSig) {
+        cfg.signature = cfg.signature || {};
+        cfg.signature.on = sig;
+      }
+      if (wantN) {
+        cfg.scoring = cfg.scoring || {};
+        cfg.scoring.n = n;
+      }
       return putFile("data/config.json", JSON.stringify(cfg, null, 2) + "\n",
-        what, cur.sha);
+        "Настройки: " + what.join(", "), cur.sha);
     }).then(function () {
-      SAVED.egg = egg;
-      SAVED.wn = n;
+      if (wantSig) SAVED.sig = sig;
+      if (wantN) SAVED.wn = n;
     });
   }
 
@@ -880,6 +942,9 @@
   }
 
   function viewGraves(host) {
+    // не прочитался — не показываем пустой список: правка ушла бы поверх него
+    if (!DATA.gravesOk) return host.appendChild(brokenCard("гробарий"));
+
     var g = ensureGraves();
 
     var card = el("div", "card");
@@ -1075,6 +1140,16 @@
     return b;
   }
 
+  /* Что-то из данных не прочиталось. Правку в этом месте не показываем вовсе:
+     пустой экран, уехавший в репозиторий, стёр бы настоящие данные. */
+  function brokenCard(what) {
+    var card = el("div", "card warn");
+    card.appendChild(el("div", "warn-title", "Не прочитался " + what));
+    card.appendChild(el("div", "warn-line",
+      "Обнови страницу. Пока не прочитается — не правим, чтобы не записать пустое."));
+    return card;
+  }
+
   function button(text, cls, fn) {
     var b = el("button", cls || "ghost-btn", text);
     b.type = "button";
@@ -1181,6 +1256,10 @@
   var lastSeriesN = null;
 
   function viewSeries(host) {
+    /* Список дней не прочитался — лента пуста не потому, что дней нет. Заводить
+       день в таком состоянии нельзя: он занял бы имя файла существующего дня. */
+    if (!DATA.daysOk) return host.appendChild(brokenCard("список дней"));
+
     var picker = el("div", "card");
     var chips = el("div", "chips");
     allDays().forEach(function (d) {
@@ -1247,11 +1326,14 @@
       b.setAttribute("aria-pressed", state.series.kind === pair[0] ? "true" : "false");
       b.addEventListener("click", function () {
         state.series.kind = pair[0];
-        /* Возврат к серии: номер мог уйти другой серии, пока этот день был
-           выходным, — тогда берём ближайший свободный. */
-        if (pair[0] === "series" &&
-            seriesNumbers(state.series.n)[seriesNo(state.series)]) {
-          state.series.series = nextSeriesNo(state.series.n);
+        /* Стал серией — нужен номер: у выходного и матбоя его нет, а прежний
+           мог уйти другой серии, пока этот день числился выходным. */
+        if (pair[0] === "series") {
+          var no = state.series.series;
+          if (no === null || no === undefined ||
+              seriesNumbers(state.series.n)[no]) {
+            state.series.series = nextSeriesNo(state.series.n);
+          }
         }
         state.confirmProblem = null;
         touch();
@@ -1316,8 +1398,7 @@
     b.type = "button";
     b.setAttribute("aria-pressed",
       state.series && state.series.n === d.n ? "true" : "false");
-    b.appendChild(el("b", null, d.series === null || d.series === undefined
-      ? (DAY_MARK[kind] || "?") : dayMark(d)));
+    b.appendChild(el("b", null, dayMark(d)));
     b.appendChild(el("small", null,
       d.gone ? "удалён" : (d.pending && !d.date ? "ждём" : shortDate(d.date))));
     b.addEventListener("click", function () {
@@ -1826,8 +1907,8 @@
     state.confirmSub = null;
     state.confirmProblem = null;
     state.confirmGrave = null;
-    state.egg = null;
-    SAVED.egg = null;
+    state.sig = null;
+    SAVED.sig = null;
     state.wn = null;
     SAVED.wn = null;
     lastSeriesN = null;
@@ -1914,12 +1995,15 @@
     var nIn = el("input");
     nIn.type = "number";
     nIn.inputMode = "numeric";
-    nIn.min = "1";
+    /* Меньше числа учеников n быть не может: задача, которую сдали больше n
+       человек, весила бы меньше нуля, и плюс за неё отнимал бы очки. */
+    var least = defaultN();
+    nIn.min = String(least);
     nIn.value = wnValue();
     nIn.className = "input short";
     nIn.addEventListener("change", function () {
       var v = parseInt(nIn.value, 10);
-      if (!v || v < 1) { nIn.value = wnValue(); return; }
+      if (!v || v < least) { nIn.value = wnValue(); return; }
       state.wn = v;
       state.note = "";
       state.noteKind = "";
@@ -1927,8 +2011,7 @@
     });
     score.appendChild(field("n", nIn));
     score.appendChild(el("div", "savecard-note",
-      "вес задачи = n − число решивших; по умолчанию n — число учеников (" +
-      DATA.students.length + ")"));
+      "вес задачи = n − число решивших; меньше " + least + " не бывает"));
     host.appendChild(score);
 
     var sh = el("div", "section-head");
@@ -1941,6 +2024,10 @@
     input.type = "password";
     input.autocomplete = "off";
     input.placeholder = TOKEN ? "••••••••  (введите, чтобы заменить)" : "github_pat_…";
+    /* Набранное держим в памяти: экран перерисовывается от любой кнопки рядом,
+       а вставлять длинный токен второй раз — мучение. */
+    input.value = tokenDraft;
+    input.addEventListener("input", function () { tokenDraft = input.value; });
     token.appendChild(field("Токен", input));
 
     var row = el("div", "frow gap");
@@ -1950,6 +2037,7 @@
       if (!v) return;
       TOKEN = v;
       lsSet(LS_TOKEN, v);
+      tokenDraft = "";
       input.value = "";
       check();
     }));
@@ -1957,6 +2045,7 @@
     row.appendChild(button("Удалить", "ghost-btn", function () {
       TOKEN = null;
       lsDel(LS_TOKEN);
+      tokenDraft = "";
       state.note = "Токен удалён";
       state.noteKind = "";
       render();
@@ -1973,7 +2062,7 @@
     var foot = el("div", "footrow");
     var b = el("button", "egg-btn");
     b.type = "button";
-    b.setAttribute("aria-pressed", eggOn() ? "true" : "false");
+    b.setAttribute("aria-pressed", sigOn() ? "true" : "false");
     b.setAttribute("aria-label", "Подпись");
 
     var NS = "http://www.w3.org/2000/svg";
@@ -1987,14 +2076,14 @@
     circle.setAttribute("cx", "8");
     circle.setAttribute("cy", "8");
     circle.setAttribute("r", "4.6");
-    circle.setAttribute("fill", eggOn() ? "currentColor" : "none");
+    circle.setAttribute("fill", sigOn() ? "currentColor" : "none");
     circle.setAttribute("stroke", "currentColor");
     circle.setAttribute("stroke-width", "1.6");
     svg.appendChild(circle);
     b.appendChild(svg);
 
     b.addEventListener("click", function () {
-      state.egg = !eggOn();
+      state.sig = !sigOn();
       state.note = "";
       state.noteKind = "";
       render();
@@ -2093,19 +2182,33 @@
           return r.json();
         });
     }
-    // гробария может ещё не быть в репозитории — заводим пустой
+    /* Гробарий и список дней читаем мягко: редактор должен открыться и тогда,
+       когда что-то из этого пропало. Но прочиталось оно или нет — запоминаем:
+       непрочитанное нельзя переписывать, иначе пустой экран уехал бы в
+       репозиторий поверх настоящих данных. */
+    var gravesOk = true;
     var soft = get("graves.json").catch(function () {
+      gravesOk = false;
       return { problems: [], solved: {} };
     });
+    var daysOk = true;
+    var days = get("series/manifest.json").catch(function () {
+      daysOk = false;
+      return null;
+    });
+
     return Promise.all([
-      get("config.json"), get("types.json"), get("students.json"),
-      get("series/manifest.json"), soft
+      get("config.json"), get("types.json"), get("students.json"), days, soft
     ]).then(function (res) {
       /* Ученики стоят по алфавиту: в кондуите ищут человека, а не место.
          Сравнивается полное имя, поэтому однофамильцы идут по именам. */
       res[2].sort(function (a, b) { return a.name.localeCompare(b.name, "ru"); });
+
+      var files = res[3] && Array.isArray(res[3].series) ? res[3].series : [];
+      if (res[3] && !Array.isArray(res[3].series)) daysOk = false;
+
       // пропавший файл дня не должен мешать открыть редактор
-      return Promise.all(res[3].series.map(function (f) {
+      return Promise.all(files.map(function (f) {
         return get("series/" + f).catch(function () { return null; });
       }))
         .then(function (all) {
@@ -2116,7 +2219,7 @@
           });
           return {
             config: res[0], types: res[1], students: res[2],
-            series: series,
+            series: series, daysOk: daysOk, gravesOk: gravesOk,
             graves: {
               problems: res[4].problems || [],
               solved: res[4].solved || {}
@@ -2153,9 +2256,10 @@
         state.graves = null;
         SAVED.graves = null;
       }
-      if (state.egg !== null && state.egg === !!DATA.config.egg) {
-        state.egg = null;
-        SAVED.egg = null;
+      if (state.sig !== null && state.sig ===
+          !!(DATA.config.signature && DATA.config.signature.on)) {
+        state.sig = null;
+        SAVED.sig = null;
       }
       if (state.wn !== null && state.wn === configN()) {
         state.wn = null;

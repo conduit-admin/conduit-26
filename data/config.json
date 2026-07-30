@@ -14,6 +14,10 @@
     "name": "conduit-26",
     "branch": "main"
   },
-  "build": "202607302001",
-  "egg": false
+  "build": "202607302035",
+  "signature": {
+    "on": false,
+    "student": "aksenova-elizaveta",
+    "text": "Totus tuus"
+  }
 }
