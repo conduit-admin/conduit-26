@@ -55,8 +55,8 @@
     },
     {
       "id": "7",
-      "type": "geometry",
-      "sub": "klassika",
+      "type": "numbers",
+      "sub": "klassika-2",
       "exercise": false
     }
   ],
@@ -78,6 +78,10 @@
       "3",
       "4"
     ],
+    "boyko-gleb": [
+      "1а",
+      "2"
+    ],
     "budyanskiy-mihail": [
       "1а",
       "1б",
@@ -91,10 +95,6 @@
       "0",
       "1а",
       "3"
-    ],
-    "boyko-gleb": [
-      "1а",
-      "2"
     ],
     "gulev-maksim": [
       "1а"
