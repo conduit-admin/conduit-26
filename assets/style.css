@@ -853,10 +853,11 @@ table.conduit tfoot tr.weights td { color: var(--ink-2); font-weight: 560; }
    тыкают пальцем и по нему же сверяют разметку задач. */
 .tblock-head {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 10px;
   margin-bottom: 10px;
+  min-height: 34px;   /* с кнопкой удаления и без неё — одна высота */
   font-size: 17px;
 }
 

@@ -38,6 +38,7 @@
     confirmRevert: false,
     confirmProblem: null,   // id задачи, у которой спрошено удаление
     confirmGrave: null,     // то же для гроба
+    confirmType: null,      // id раздела, у которого спрошено удаление
     sig: null,              // переключатель подписи; null — не трогали
     wn: null,               // n в формуле очков; null — не трогали
     pickTheme: null,    // id задачи, у которой открыт выбор темы
@@ -476,6 +477,7 @@
       if (n > max) max = n;
     });
     var first = types()[0];
+    if (!first) return;   // без тем задаче нечего присвоить
     ps.push({
       id: String(max + 1),
       type: first.id,
@@ -923,6 +925,7 @@
       if (n > max) max = n;
     });
     var first = types()[0];
+    if (!first) return;   // без тем задаче нечего присвоить
     g.problems.push({
       id: "Г" + (max + 1),
       type: first.id,
@@ -1480,6 +1483,7 @@
       state.confirmProblem = null;
       state.confirmGrave = null;
       state.confirmSub = null;
+      state.confirmType = null;
       render();
     }));
     return box;
@@ -1764,6 +1768,23 @@
       nameBox.appendChild(dot(t.slot));
       nameBox.appendChild(el("b", null, t.name));
       head.appendChild(nameBox);
+
+      /* Раздел удаляется целиком, вместе с подразделами: задачи из него
+         остаются без темы и в рейтинг не идут, пока им не выберут тему заново.
+         Цвет при этом освобождается — им можно красить новый раздел.
+
+         Последний раздел не убираем: задаче всегда нужна тема, а взять её было
+         бы неоткуда. */
+      if (types().length > 1) {
+        head.appendChild(deleteCell(state.confirmType === t.id, function () {
+          state.confirmType = t.id;
+          render();
+        }, function () {
+          state.typesEdit = editTypes().filter(function (x) { return x.id !== t.id; });
+          state.confirmType = null;
+          render();
+        }));
+      }
       block.appendChild(head);
 
       (t.subs || []).forEach(function (s) {
@@ -1929,6 +1950,7 @@
     state.confirmSub = null;
     state.confirmProblem = null;
     state.confirmGrave = null;
+    state.confirmType = null;
     state.sig = null;
     SAVED.sig = null;
     state.wn = null;
@@ -2186,6 +2208,7 @@
         state.confirmSub = null;
         state.confirmProblem = null;
         state.confirmGrave = null;
+        state.confirmType = null;
         state.confirmDelete = false;
         state.confirmRevert = false;
         state.pickTheme = null;

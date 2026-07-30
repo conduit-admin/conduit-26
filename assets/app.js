@@ -809,10 +809,13 @@
       host.appendChild(box);
     }
 
-    var sh4 = el("div", "section-head");
-    sh4.appendChild(el("span", "section-title", "По дням"));
-    host.appendChild(sh4);
-    host.appendChild(seriesTable(id));
+    // пока серий нет, таблица по дням — одна шапка; показывать нечего
+    if (realSeries().length) {
+      var sh4 = el("div", "section-head");
+      sh4.appendChild(el("span", "section-title", "По дням"));
+      host.appendChild(sh4);
+      host.appendChild(seriesTable(id));
+    }
 
     var sign = signature(id);
     if (sign) host.appendChild(el("div", "egg", sign));
