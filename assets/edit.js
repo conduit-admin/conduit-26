@@ -267,16 +267,26 @@
     lsSet(LS_GONE, JSON.stringify(GONE));
   }
 
+  /* Отметка живёт, пока сайт не догонит, но не дольше получаса: день могли
+     удалить с другого устройства, и тогда ждать его появления бессмысленно —
+     запертая кнопка осталась бы в ленте навсегда, заняв заодно свой слот. */
+  var SENT_LIFE = 30 * 60 * 1000;
+
+  function stale(v) {
+    var at = Date.parse(v && typeof v === "object" ? v.at : v);
+    return !at || Date.now() - at > SENT_LIFE;
+  }
+
   function pruneSent() {
     var changed = false;
     Object.keys(SENT).forEach(function (k) {
-      if (dayBySlot(Number(k))) { delete SENT[k]; changed = true; }
+      if (dayBySlot(Number(k)) || stale(SENT[k])) { delete SENT[k]; changed = true; }
     });
     if (changed) lsSet(LS_SENT, JSON.stringify(SENT));
 
     var gchanged = false;
     Object.keys(GONE).forEach(function (k) {
-      if (!dayBySlot(Number(k))) { delete GONE[k]; gchanged = true; }
+      if (!dayBySlot(Number(k)) || stale(GONE[k])) { delete GONE[k]; gchanged = true; }
     });
     if (gchanged) lsSet(LS_GONE, JSON.stringify(GONE));
   }
@@ -1179,8 +1189,8 @@
     return b;
   }
 
-  function field(label, node) {
-    var f = el("div", "field");
+  function field(label, node, cls) {
+    var f = el("div", "field" + (cls ? " " + cls : ""));
     f.appendChild(el("span", "field-label", label));
     f.appendChild(node);
     return f;
@@ -1335,7 +1345,7 @@
         touch();
         render();
       });
-      mrow.appendChild(field("Номер серии", numInput));
+      mrow.appendChild(field("Номер серии", numInput, "narrow"));
     }
     mrow.appendChild(field("Дата", dateField()));
     meta.appendChild(mrow);

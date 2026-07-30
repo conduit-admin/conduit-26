@@ -1118,7 +1118,10 @@ table.data tbody tr { transition: background-color .12s ease; }
 
 .input:focus { outline: 2px solid var(--s1); outline-offset: -1px; }
 .input.short { max-width: 120px; }
-.frow.top > .field:first-child { flex: 0 0 110px; }
+/* Узкое поле — номер: ширина задаётся классом, а не местом в строке. По месту
+   было нельзя: у выходного и матбоя номера нет, и 110 пикселей доставались
+   дате — она переносилась на три строки. */
+.frow.top > .field.narrow { flex: 0 0 110px; }
 .input.tiny { width: 62px; text-align: center; font-variant-numeric: tabular-nums; }
 select.input { padding-right: 6px; }
 
