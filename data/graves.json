@@ -14,6 +14,51 @@
       "id": "Г3",
       "type": "logika",
       "sub": null
+    },
+    {
+      "id": "Г4",
+      "type": "algebra",
+      "sub": "inequalities"
+    },
+    {
+      "id": "Г5",
+      "type": "algebra",
+      "sub": "inequalities"
+    },
+    {
+      "id": "Г6",
+      "type": "algebra",
+      "sub": "inequalities"
+    },
+    {
+      "id": "Г7",
+      "type": "algebra",
+      "sub": "inequalities"
+    },
+    {
+      "id": "Г8",
+      "type": "algebra",
+      "sub": "inequalities"
+    },
+    {
+      "id": "Г9",
+      "type": "algebra",
+      "sub": "inequalities"
+    },
+    {
+      "id": "Г10",
+      "type": "algebra",
+      "sub": "inequalities"
+    },
+    {
+      "id": "Г11",
+      "type": "algebra",
+      "sub": "inequalities"
+    },
+    {
+      "id": "Г12",
+      "type": "algebra",
+      "sub": "inequalities"
     }
   ],
   "solved": {
@@ -22,7 +67,18 @@
       "Г3"
     ],
     "afanasev-igor": [
-      "Г2"
+      "Г1",
+      "Г2",
+      "Г3",
+      "Г4",
+      "Г5",
+      "Г6",
+      "Г7",
+      "Г8",
+      "Г9",
+      "Г10",
+      "Г11",
+      "Г12"
     ],
     "boyko-gleb": [
       "Г1",
