@@ -325,10 +325,12 @@
   }
 
   /* До первой серии считать нечего — показываем состав отряда, чтобы страница
-     не выглядела сломанной. */
+     не выглядела сломанной. Дни при этом могут уже быть: смена вполне может
+     начаться с выходного, и говорить «дней нет» тогда неправда. */
   function viewEmpty(host) {
     var card = el("div", "card");
-    card.appendChild(el("div", "section-title", "Дней пока нет"));
+    card.appendChild(el("div", "section-title",
+      DATA.series.length ? "Задач пока нет" : "Дней пока нет"));
     host.appendChild(card);
 
     var sh = el("div", "section-head");
@@ -656,18 +658,21 @@
       picker.appendChild(r1);
     }
 
-    // гробарий — не день смены, поэтому стоит отдельной строкой, а не в их ряду
-    var r2 = el("div", "filter-row");
-    var gb = el("button", "chip day wide");
-    gb.type = "button";
-    gb.setAttribute("aria-pressed", state.openSeries === GRAVES ? "true" : "false");
-    gb.appendChild(el("b", null, "Гробарий"));
-    gb.addEventListener("click", function () {
-      state.openSeries = GRAVES;
-      render();
-    });
-    r2.appendChild(gb);
-    picker.appendChild(r2);
+    /* Гробарий — не день смены, поэтому стоит отдельной строкой, а не в их ряду.
+       Пустого не показываем: кнопка вела бы на «гробов пока нет». */
+    if (graves().length) {
+      var r2 = el("div", "filter-row");
+      var gb = el("button", "chip day wide");
+      gb.type = "button";
+      gb.setAttribute("aria-pressed", state.openSeries === GRAVES ? "true" : "false");
+      gb.appendChild(el("b", null, "Гробарий"));
+      gb.addEventListener("click", function () {
+        state.openSeries = GRAVES;
+        render();
+      });
+      r2.appendChild(gb);
+      picker.appendChild(r2);
+    }
 
     host.appendChild(picker);
 
