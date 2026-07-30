@@ -14,6 +14,11 @@
       "id": "Г3",
       "type": "algebra",
       "sub": "inequalities"
+    },
+    {
+      "id": "Г4",
+      "type": "algebra",
+      "sub": "inequalities"
     }
   ],
   "solved": {
@@ -27,13 +32,13 @@
       "Г2",
       "Г3"
     ],
+    "boyko-gleb": [
+      "Г1"
+    ],
     "budyanskiy-mihail": [
       "Г2"
     ],
     "velichko-platon": [
-      "Г1"
-    ],
-    "boyko-gleb": [
       "Г1"
     ],
     "gulev-maksim": [
