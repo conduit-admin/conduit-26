@@ -11,6 +11,10 @@
       {
         "id": "mnogochleny",
         "name": "Многочлены"
+      },
+      {
+        "id": "posledovatelnosti",
+        "name": "Последовательности"
       }
     ]
   },
