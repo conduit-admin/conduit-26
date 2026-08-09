@@ -1,0 +1,227 @@
+{
+  "n": 1,
+  "series": 1,
+  "date": "2026-08-09",
+  "kind": "series",
+  "title": "Серия 1",
+  "problems": [
+    {
+      "id": "1",
+      "type": "geometry",
+      "sub": "planimetry",
+      "exercise": false
+    },
+    {
+      "id": "2",
+      "type": "geometry",
+      "sub": "planimetry",
+      "exercise": false
+    },
+    {
+      "id": "3",
+      "type": "algebra",
+      "sub": "mnogochleny",
+      "exercise": false
+    },
+    {
+      "id": "4",
+      "type": "algebra",
+      "sub": "posledovatelnosti",
+      "exercise": false
+    },
+    {
+      "id": "5",
+      "type": "numbers",
+      "sub": "klassika-2",
+      "exercise": false
+    },
+    {
+      "id": "6",
+      "type": "comb",
+      "sub": "podschet",
+      "exercise": false
+    },
+    {
+      "id": "7а",
+      "type": "comb",
+      "sub": "graphs",
+      "exercise": false
+    },
+    {
+      "id": "7б",
+      "type": "comb",
+      "sub": "graphs",
+      "exercise": false
+    }
+  ],
+  "solved": {
+    "aksenova-elizaveta": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7а",
+      "7б"
+    ],
+    "afanasev-igor": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6"
+    ],
+    "boyko-gleb": [
+      "1",
+      "4",
+      "5",
+      "6"
+    ],
+    "budyanskiy-mihail": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7а",
+      "7б"
+    ],
+    "velichko-platon": [
+      "1",
+      "2",
+      "4",
+      "6"
+    ],
+    "gulev-maksim": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6"
+    ],
+    "zarechnyuk-georgiy": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6"
+    ],
+    "karonov-mihail": [
+      "1",
+      "2",
+      "4",
+      "5",
+      "6"
+    ],
+    "karev-denis": [
+      "4",
+      "5",
+      "6"
+    ],
+    "kovalev-artem": [
+      "1",
+      "2",
+      "4",
+      "5",
+      "6"
+    ],
+    "kostylev-konstantin": [
+      "2",
+      "4",
+      "5",
+      "6"
+    ],
+    "larionova-natalya": [
+      "2",
+      "3",
+      "4",
+      "5",
+      "6"
+    ],
+    "lyubimov-slaven": [
+      "1",
+      "2",
+      "4",
+      "5",
+      "6"
+    ],
+    "mahrov-aleksandr": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6"
+    ],
+    "novoselov-maksim": [
+      "4",
+      "5",
+      "6"
+    ],
+    "osipova-viktoriya": [
+      "2",
+      "3",
+      "4",
+      "5",
+      "6"
+    ],
+    "pogorelov-denis": [
+      "1",
+      "2",
+      "4",
+      "6"
+    ],
+    "rudakova-vasilisa": [
+      "2",
+      "4",
+      "5"
+    ],
+    "strelkov-sergey": [
+      "1",
+      "2",
+      "4",
+      "5"
+    ],
+    "titov-viktor": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7а",
+      "7б"
+    ],
+    "titov-dmitriy": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6"
+    ],
+    "celikov-aleksandr": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6"
+    ],
+    "shipilov-andrey": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5"
+    ],
+    "shirtanova-valeriya": [
+      "5"
+    ]
+  }
+}
