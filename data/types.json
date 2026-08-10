@@ -15,6 +15,10 @@
       {
         "id": "posledovatelnosti",
         "name": "Последовательности"
+      },
+      {
+        "id": "matan",
+        "name": "Матан"
       }
     ]
   },
