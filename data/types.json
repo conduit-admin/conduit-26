@@ -61,6 +61,10 @@
       {
         "id": "podschet",
         "name": "Подсчёт"
+      },
+      {
+        "id": "veroyatnosti",
+        "name": "Вероятности"
       }
     ]
   },
