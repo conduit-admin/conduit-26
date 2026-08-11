@@ -39,6 +39,11 @@
       "id": "Г8",
       "type": "algebra",
       "sub": "mnogochleny"
+    },
+    {
+      "id": "Г9",
+      "type": "comb",
+      "sub": "graphs"
     }
   ],
   "solved": {
