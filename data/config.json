@@ -16,7 +16,7 @@
   },
   "build": "202608122223",
   "signature": {
-    "on": false,
+    "on": true,
     "student": "aksenova-elizaveta",
     "text": "Totus tuus"
   }
