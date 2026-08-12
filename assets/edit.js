@@ -42,13 +42,16 @@
     sig: null,              // переключатель подписи; null — не трогали
     wn: null,               // n в формуле очков; null — не трогали
     pickTheme: null,    // id задачи, у которой открыт выбор темы
-    pickDate: false
+    pickDate: false,
+    bonus: null         // правка дополнительных баллов, пока не сохранена
   };
 
   /* Что уже отправлено. Нужен потому, что сайт переразворачивается не сразу:
      сравнивать правку с данными сайта нельзя — минуту после сохранения они
      ещё старые, и всё выглядело бы несохранённым. */
-  var SAVED = { types: null, graves: null, days: {}, sig: null, wn: null };
+  var SAVED = {
+    types: null, graves: null, days: {}, sig: null, wn: null, bonus: null
+  };
 
   /* Виды дня: обычная серия, выходной и математический бой. Номер есть только
      у серии — это её собственный номер. Выходной и матбой стоят в ленте по
@@ -653,6 +656,7 @@
     days.forEach(function (d) { jobs.push(putDayFile(d)); });
     gone.forEach(function (n) { jobs.push(dropDayFile(n)); });
     if (gravesDirty()) jobs.push(putGravesFile);
+    if (bonusDirty()) jobs.push(putBonusFile);
     if (configDirty()) jobs.push(putConfigFile);
     if (!jobs.length) return;
 
@@ -821,6 +825,10 @@
     if (SAVED.wn !== null) return SAVED.wn;
     return configN();
   }
+
+  /* Ниже одного очка вес не опускается — то же правило, что и на сайте. Задачу,
+     которую взяли все, обнулять не за что: она была решена, просто всеми. */
+  function weightOf(k) { return Math.max(wnValue() - k, 1); }
 
   function wnDirty() {
     if (state.wn === null) return false;
@@ -1060,6 +1068,139 @@
 
     wrap.appendChild(row);
     if (open) wrap.appendChild(themeChooser(p, touchGraves));
+    return wrap;
+  }
+
+  // ── дополнительные баллы ────────────────────────────────
+
+  /* Баллы, которые ставятся человеку, а не задаче. Живут отдельным файлом:
+     ко дню они не привязаны, поэтому на сайте прибавляются к очкам при любом
+     отборе и в потолок не входят.
+
+     Предел сверху — не правило смены, а страховка: столько нажатий подряд
+     случайными не бывают, но и уехать в репозиторий такому числу незачем. */
+  var BONUS_MAX = 9999;
+
+  function bonusPoints(b, id) {
+    var v = b && b.points && b.points[id];
+    return typeof v === "number" && isFinite(v) ? v : 0;
+  }
+
+  /* Рабочая копия заводится сразу по всем ученикам: файл может быть неполным
+     или его может не быть вовсе, а строка нужна каждому. */
+  function ensureBonus() {
+    if (!state.bonus) {
+      var src = DATA.bonus || { points: {} };
+      state.bonus = { points: {} };
+      DATA.students.forEach(function (s) {
+        state.bonus.points[s.id] = bonusPoints(src, s.id);
+      });
+    }
+    return state.bonus;
+  }
+
+  function bonusOf(id) { return bonusPoints(state.bonus || DATA.bonus, id); }
+
+  // отрицательных баллов не бывает: это надбавка, а не штраф
+  function setBonus(id, v) {
+    var b = ensureBonus();
+    var n = Math.round(Number(v) || 0);
+    b.points[id] = Math.max(0, Math.min(BONUS_MAX, n));
+    state.note = "";
+    state.noteKind = "";
+  }
+
+  function bonusPayload(b) {
+    var points = {};
+    DATA.students.forEach(function (s) { points[s.id] = bonusPoints(b, s.id); });
+    return { points: points };
+  }
+
+  function bonusDirty() {
+    if (!state.bonus) return false;
+    return JSON.stringify(bonusPayload(state.bonus)) !==
+      (SAVED.bonus || JSON.stringify(bonusPayload(DATA.bonus)));
+  }
+
+  function bonusTotal() {
+    return DATA.students.reduce(function (a, s) { return a + bonusOf(s.id); }, 0);
+  }
+
+  function bonusCount() {
+    return DATA.students.filter(function (s) { return bonusOf(s.id) > 0; }).length;
+  }
+
+  function putBonusFile() {
+    var payload = bonusPayload(state.bonus);
+    var who = bonusCount();
+    var total = bonusTotal();
+
+    return getFile("data/bonus.json").then(function (cur) {
+      return putFile("data/bonus.json", JSON.stringify(payload, null, 2) + "\n",
+        who
+          ? "Доп. баллы: " + withNum(who, "ученик", "ученика", "учеников") +
+            ", " + withNum(total, "балл", "балла", "баллов")
+          : "Доп. баллы обнулены",
+        cur && cur.sha);
+    }).then(function () { SAVED.bonus = JSON.stringify(payload); });
+  }
+
+  function viewBonus(host) {
+    // не прочитались — не показываем нули: правка ушла бы поверх проставленного
+    if (!DATA.bonusOk) return host.appendChild(brokenCard("дополнительные баллы"));
+
+    ensureBonus();
+
+    // ученики стоят по алфавиту: список отсортирован ещё при загрузке
+    var card = el("div", "card");
+    DATA.students.forEach(function (st) { card.appendChild(bonusRow(st)); });
+    host.appendChild(card);
+
+    var who = bonusCount();
+    host.appendChild(el("div", "summary", who
+      ? withNum(bonusTotal(), "балл", "балла", "баллов") + " у " +
+        withNum(who, "ученика", "учеников", "учеников")
+      : "Баллов пока никому не ставили."));
+  }
+
+  /* Строка ученика: имя и счётчик. Баллы ставятся по одному — поля для ввода
+     числа здесь нет вовсе: набирать его на телефоне неудобно, а десяток нажатий
+     на «+» ничем не хуже. Само число не кнопка, а показание. */
+  function bonusRow(st) {
+    var v = bonusOf(st.id);
+
+    var wrap = el("div", "brow-wrap");
+    var row = el("div", "brow");
+
+    var name = el("div", "brow-name");
+    var box = el("span", "name-box");
+    box.appendChild(el("span", "nm", st.name));
+    if (DATA.config.admin === st.id) box.appendChild(el("i", "badge-admin", "◆"));
+    name.appendChild(box);
+    row.appendChild(name);
+
+    var step = el("div", "stepper");
+
+    var minus = button("−", "step-btn", function () {
+      setBonus(st.id, v - 1);
+      render();
+    });
+    minus.disabled = v <= 0;
+    minus.setAttribute("aria-label", st.name + ", убрать балл");
+    step.appendChild(minus);
+
+    step.appendChild(el("span", "step-val" + (v ? " on" : ""), v));
+
+    var plus = button("+", "step-btn", function () {
+      setBonus(st.id, v + 1);
+      render();
+    });
+    plus.disabled = v >= BONUS_MAX;
+    plus.setAttribute("aria-label", st.name + ", добавить балл");
+    step.appendChild(plus);
+
+    row.appendChild(step);
+    wrap.appendChild(row);
     return wrap;
   }
 
@@ -1712,7 +1853,7 @@
     tfoot.appendChild(f1);
     var f2 = el("tr", "weights");
     problems.forEach(function (p) {
-      f2.appendChild(el("td", "colweight", wnValue() - colCount(p.id)));
+      f2.appendChild(el("td", "colweight", weightOf(colCount(p.id))));
     });
     f2.appendChild(el("td", "pcount"));
     tfoot.appendChild(f2);
@@ -1733,7 +1874,7 @@
       problems.forEach(function (p, i) {
         var n = colCount(p.id);
         if (cols[i]) cols[i].textContent = n;
-        if (ws[i]) ws[i].textContent = wnValue() - n;
+        if (ws[i]) ws[i].textContent = weightOf(n);
       });
       var total = table.querySelector(".total");
       if (total) total.textContent = allCount();
@@ -1748,14 +1889,17 @@
      поставленный плюс. */
   function leaderId() {
     var score = {};
-    DATA.students.forEach(function (s) { score[s.id] = 0; });
+    // дополнительные баллы входят в счёт так же, как на сайте
+    DATA.students.forEach(function (s) {
+      score[s.id] = bonusPoints(DATA.bonus, s.id);
+    });
     DATA.series.forEach(function (s) {
       (s.problems || []).forEach(function (p) {
         var solvers = DATA.students.filter(function (st) {
           var list = s.solved[st.id];
           return list && list.indexOf(p.id) !== -1;
         });
-        var weight = wnValue() - solvers.length;
+        var weight = weightOf(solvers.length);
         solvers.forEach(function (st) { score[st.id] += weight; });
       });
     });
@@ -1955,6 +2099,8 @@
     SAVED.types = null;
     state.graves = null;
     SAVED.graves = null;
+    state.bonus = null;
+    SAVED.bonus = null;
     state.series = null;
     state.confirmRevert = false;
     state.confirmSub = null;
@@ -1995,6 +2141,7 @@
       items.push((state.removed[n] || "День") + " · удалить");
     });
     if (gravesDirty()) items.push("Гробарий");
+    if (bonusDirty()) items.push("Доп. баллы");
     if (configDirty()) items.push("Настройки");
 
     var problem = null;
@@ -2065,7 +2212,8 @@
     });
     score.appendChild(field("n", nIn));
     score.appendChild(el("div", "savecard-note",
-      "вес задачи = n − число решивших; меньше " + least + " не бывает"));
+      "вес задачи = n − число решивших, но не меньше 1; само n меньше " +
+      least + " не бывает"));
     host.appendChild(score);
 
     var sh = el("div", "section-head");
@@ -2205,6 +2353,7 @@
 
     if (state.view === "series") viewSeries(main);
     else if (state.view === "graves") viewGraves(main);
+    else if (state.view === "bonus") viewBonus(main);
     else if (state.view === "themes") viewThemes(main);
     else if (state.view === "save") viewSave(main);
   }
@@ -2233,7 +2382,12 @@
     function get(path) {
       return fetch("data/" + path + "?t=" + Date.now(), { cache: "no-store" })
         .then(function (r) {
-          if (!r.ok) throw new Error(path + ": " + r.status);
+          if (!r.ok) {
+            // код нужен, чтобы отличить «файла нет» от «не прочиталось»
+            var e = new Error(path + ": " + r.status);
+            e.status = r.status;
+            throw e;
+          }
           return r.json();
         });
     }
@@ -2251,9 +2405,17 @@
       daysOk = false;
       return null;
     });
+    /* Файла с баллами может не быть вовсе — их просто ещё не ставили, и завести
+       его можно. А вот если чтение сорвалось иначе, правку не показываем: нули,
+       уехавшие в репозиторий, стёрли бы проставленное. */
+    var bonusOk = true;
+    var extra = get("bonus.json").catch(function (e) {
+      if (e.status !== 404) bonusOk = false;
+      return { points: {} };
+    });
 
     return Promise.all([
-      get("config.json"), get("types.json"), get("students.json"), days, soft
+      get("config.json"), get("types.json"), get("students.json"), days, soft, extra
     ]).then(function (res) {
       /* Ученики стоят по алфавиту: в кондуите ищут человека, а не место.
          Сравнивается полное имя, поэтому однофамильцы идут по именам. */
@@ -2278,7 +2440,9 @@
             graves: {
               problems: res[4].problems || [],
               solved: res[4].solved || {}
-            }
+            },
+            bonusOk: bonusOk,
+            bonus: { points: (res[5] && res[5].points) || {} }
           };
         });
     });
@@ -2310,6 +2474,12 @@
           JSON.stringify(gravesPayload(DATA.graves))) {
         state.graves = null;
         SAVED.graves = null;
+      }
+      if (state.bonus &&
+          JSON.stringify(bonusPayload(state.bonus)) ===
+          JSON.stringify(bonusPayload(DATA.bonus))) {
+        state.bonus = null;
+        SAVED.bonus = null;
       }
       if (state.sig !== null && state.sig ===
           !!(DATA.config.signature && DATA.config.signature.on)) {

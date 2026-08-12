@@ -1047,7 +1047,8 @@ td .date { margin-left: 8px; font-size: 12px; }
    без этого кнопки кажутся мёртвыми: нажал — и ничего. Сжатие берём
    преобразованием, оно не трогает разметку и ничего не сдвигает вокруг. */
 .chip, .ghost-btn, .primary-btn, .icon-btn, .mini-btn,
-.tab, .cal-day, .cal-nav, .banner-close, .picker-btn {
+.tab, .cal-day, .cal-nav, .banner-close, .picker-btn,
+.step-btn, .step-val {
   transition: background-color .14s ease, color .14s ease,
               border-color .14s ease, opacity .14s ease;
 }
@@ -1519,6 +1520,80 @@ body.is-editor .brand::after {
 
 .chip.day.pending b { color: var(--ink-muted); }
 
+/* ── дополнительные баллы ──────────────────────────────── */
+
+/* Строка ученика: имя слева, счётчик справа. Имя ужимается, счётчик — никогда:
+   по нему тыкают пальцем, и он должен стоять на одном месте во всех строках,
+   как бы человека ни звали. */
+.brow-wrap { padding: 3px 0; border-bottom: 1px solid var(--grid); }
+.brow-wrap:last-of-type { border-bottom: 0; }
+
+.brow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-height: var(--tap);
+}
+
+.brow-name {
+  min-width: 0;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+/* Счётчик вместо поля ввода: числового поля здесь нет вовсе. Системное привело
+   бы с собой клавиатуру на пол-экрана и крутилки, а баллы всё равно ставят по
+   одному — двух кнопок довольно. */
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+}
+
+.step-btn {
+  appearance: none;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--ink-2);
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-size: 19px;
+  line-height: 1;
+  width: 34px;
+  min-height: 34px;
+  cursor: pointer;
+}
+
+.step-btn:hover { color: var(--ink); border-color: var(--ink); }
+.step-btn:disabled { opacity: .35; cursor: default; }
+
+.step-btn:disabled:hover {
+  color: var(--ink-2);
+  border-color: var(--border-strong);
+}
+
+/* Показание, а не кнопка: нажимать на само число некуда. Ноль приглушён,
+   поставленное — нет, так с одного взгляда видно, кому баллы уже дописаны. */
+.step-val {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--ink-muted);
+  border-radius: var(--radius-sm);
+  font-size: 15px;
+  font-weight: 620;
+  font-variant-numeric: tabular-nums;
+  min-width: 56px;
+  min-height: 34px;
+  padding: 0 8px;
+}
+
+.step-val.on { color: var(--ink); border-color: var(--border-strong); }
+
 
 @media (max-width: 560px) {
   .prow { grid-template-columns: 48px minmax(0, 1fr) 32px; column-gap: 8px; }
@@ -1527,6 +1602,7 @@ body.is-editor .brand::after {
   .prow.grave.asking { grid-template-columns: 66px minmax(0, 1fr) 76px; }
   .input.tiny { width: 48px; }
   .datefield { min-width: 0; }
+  .step-val { min-width: 48px; }
 }
 
 @media (max-width: 560px) {

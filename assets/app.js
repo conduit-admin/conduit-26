@@ -60,6 +60,11 @@
     return typeof n === "number" && n > 0 ? n : DATA.config.students_total;
   }
 
+  /* Ниже одного очка вес не опускается. Задача, которую взяли все, всё-таки
+     была решена: обнулять её значило бы, что плюс за неё не стоит ничего — а он
+     стоит, просто самую малость. Правило то же в редакторе. */
+  function weightOf(solvers) { return Math.max(weightBase() - solvers, 1); }
+
   function dayKind(s) { return s.kind || "series"; }
 
   /* Номер есть только у дня с серией, и это номер самой серии. Выходной и матбой
@@ -162,6 +167,14 @@
     return (DATA.graves && DATA.graves.solved && DATA.graves.solved[id]) || [];
   }
 
+  /* Дополнительные баллы ставятся ученику, а не задаче: они не привязаны ни ко
+     дню, ни к теме, поэтому ни один отбор их не трогает — при любом фильтре
+     человек приносит их с собой. */
+  function bonusOf(id) {
+    var v = DATA.bonus && DATA.bonus.points && DATA.bonus.points[id];
+    return typeof v === "number" && isFinite(v) ? v : 0;
+  }
+
   function buildIndex() {
     CAT = {};
     DATA.types.forEach(function (t) { CAT[t.id] = t; });
@@ -207,7 +220,7 @@
           kind: isExercise(p) ? "exercise" : "problem",
           solvers: solvers,
           solverSet: new Set(solvers),
-          weight: weightBase() - solvers.length
+          weight: weightOf(solvers.length)
         });
       });
     });
@@ -225,7 +238,7 @@
         kind: "grave",
         solvers: solvers,
         solverSet: new Set(solvers),
-        weight: weightBase() - solvers.length
+        weight: weightOf(solvers.length)
       });
     });
 
@@ -241,7 +254,7 @@
   }
 
   function isLeader(id) {
-    return !!FULL && FULL.place[id] === 1 && FULL.rows[0].score > 0;
+    return !!FULL && FULL.place[id] === 1 && FULL.rows[0].total > 0;
   }
 
   var KINDS = [["problem", "Задачи"], ["exercise", "Упражнения"], ["grave", "Гробы"]];
@@ -258,7 +271,7 @@
   function computeRating(seriesSet, leafSet, kindSet) {
     kindSet = kindSet || state.kinds;
     var rows = DATA.students.map(function (s) {
-      return { id: s.id, name: s.name, score: 0, pluses: 0 };
+      return { id: s.id, name: s.name, score: 0, pluses: 0, bonus: bonusOf(s.id) };
     });
     var byId = {};
     rows.forEach(function (r) { byId[r.id] = r; });
@@ -277,10 +290,15 @@
       });
     });
 
+    /* Дополнительные баллы прибавляются к набранному по кондуиту, но лежат
+       отдельным полем: средний балл должен остаться тем, чем был, — очками за
+       один плюс. В потолок они не идут, их не заработать, решая задачи. */
+    rows.forEach(function (r) { r.total = r.score + r.bonus; });
+
     /* Сначала очки, при равенстве — по алфавиту. Место у каждого своё: делить
        одно место на двоих в таблице из двух десятков человек неудобно. */
     rows.sort(function (a, b) {
-      return b.score - a.score || a.name.localeCompare(b.name, "ru");
+      return b.total - a.total || a.name.localeCompare(b.name, "ru");
     });
     rows.forEach(function (r, i) { r.rank = i + 1; });
 
@@ -517,7 +535,7 @@
 
       tr.appendChild(el("td", "rank" + (r.rank <= 3 ? " rank-top" : ""), r.rank));
       tr.appendChild(nameCell("td", "left name", r));
-      tr.appendChild(el("td", "score", num(r.score)));
+      tr.appendChild(el("td", "score", num(r.total)));
       tr.appendChild(el("td", "muted", r.pluses));
       tr.appendChild(el("td", "muted", avgScore(r.score, r.pluses)));
 
@@ -749,7 +767,11 @@
 
     var tiles = el("div", "tiles");
     tiles.appendChild(tile("Место", row.rank + " / " + DATA.students.length, null));
-    tiles.appendChild(tile("Очки", num(row.score), "из " + num(f.ceiling)));
+    tiles.appendChild(tile("Очки", num(row.total), "из " + num(f.ceiling)));
+    /* Дополнительные баллы стоят своей плиткой: в потолок они не входят, и без
+       пометки сумма выглядела бы ошибкой счёта. Нулевую не показываем — пустая
+       строка ничего не сообщает. */
+    if (row.bonus) tiles.appendChild(tile("Доп. баллы", "+" + num(row.bonus), null));
     tiles.appendChild(tile("Задачи", row.pluses + " / " + f.available, null));
 
     // половина задач — рубеж, который стоит отметить
@@ -985,6 +1007,8 @@
     DATA.graves = DATA.graves || { problems: [], solved: {} };
     DATA.graves.problems = DATA.graves.problems || [];
     DATA.graves.solved = DATA.graves.solved || {};
+    DATA.bonus = DATA.bonus || { points: {} };
+    DATA.bonus.points = DATA.bonus.points || {};
     DATA.students.sort(function (a, b) { return a.name.localeCompare(b.name, "ru"); });
     // порядок ленты — по датам: номер принадлежит серии, а не дню смены
     DATA.series.sort(function (a, b) {
@@ -1011,9 +1035,11 @@
        откроется. Сайт читают дети, чинить его посреди смены некому — пусть
        любая порча данных отнимает часть, а не всё. */
     var days = get("series/manifest.json").catch(function () { return null; });
+    // дополнительных баллов может не быть: файл заводится, только когда их проставят
+    var extra = get("bonus.json").catch(function () { return { points: {} }; });
 
     return Promise.all([
-      get("config.json"), get("types.json"), get("students.json"), days, soft
+      get("config.json"), get("types.json"), get("students.json"), days, soft, extra
     ]).then(function (res) {
       var files = res[3] && Array.isArray(res[3].series) ? res[3].series : [];
       /* Пропавший файл дня не должен ронять страницу целиком: раз в списке
@@ -1024,7 +1050,7 @@
       })).then(function (series) {
         return {
           config: res[0], types: res[1], students: res[2],
-          series: series.filter(Boolean), graves: res[4]
+          series: series.filter(Boolean), graves: res[4], bonus: res[5]
         };
       });
     });

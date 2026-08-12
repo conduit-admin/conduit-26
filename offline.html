@@ -1057,7 +1057,8 @@ td .date { margin-left: 8px; font-size: 12px; }
    без этого кнопки кажутся мёртвыми: нажал — и ничего. Сжатие берём
    преобразованием, оно не трогает разметку и ничего не сдвигает вокруг. */
 .chip, .ghost-btn, .primary-btn, .icon-btn, .mini-btn,
-.tab, .cal-day, .cal-nav, .banner-close, .picker-btn {
+.tab, .cal-day, .cal-nav, .banner-close, .picker-btn,
+.step-btn, .step-val {
   transition: background-color .14s ease, color .14s ease,
               border-color .14s ease, opacity .14s ease;
 }
@@ -1529,6 +1530,80 @@ body.is-editor .brand::after {
 
 .chip.day.pending b { color: var(--ink-muted); }
 
+/* ── дополнительные баллы ──────────────────────────────── */
+
+/* Строка ученика: имя слева, счётчик справа. Имя ужимается, счётчик — никогда:
+   по нему тыкают пальцем, и он должен стоять на одном месте во всех строках,
+   как бы человека ни звали. */
+.brow-wrap { padding: 3px 0; border-bottom: 1px solid var(--grid); }
+.brow-wrap:last-of-type { border-bottom: 0; }
+
+.brow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-height: var(--tap);
+}
+
+.brow-name {
+  min-width: 0;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+/* Счётчик вместо поля ввода: числового поля здесь нет вовсе. Системное привело
+   бы с собой клавиатуру на пол-экрана и крутилки, а баллы всё равно ставят по
+   одному — двух кнопок довольно. */
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+}
+
+.step-btn {
+  appearance: none;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--ink-2);
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-size: 19px;
+  line-height: 1;
+  width: 34px;
+  min-height: 34px;
+  cursor: pointer;
+}
+
+.step-btn:hover { color: var(--ink); border-color: var(--ink); }
+.step-btn:disabled { opacity: .35; cursor: default; }
+
+.step-btn:disabled:hover {
+  color: var(--ink-2);
+  border-color: var(--border-strong);
+}
+
+/* Показание, а не кнопка: нажимать на само число некуда. Ноль приглушён,
+   поставленное — нет, так с одного взгляда видно, кому баллы уже дописаны. */
+.step-val {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--ink-muted);
+  border-radius: var(--radius-sm);
+  font-size: 15px;
+  font-weight: 620;
+  font-variant-numeric: tabular-nums;
+  min-width: 56px;
+  min-height: 34px;
+  padding: 0 8px;
+}
+
+.step-val.on { color: var(--ink); border-color: var(--border-strong); }
+
 
 @media (max-width: 560px) {
   .prow { grid-template-columns: 48px minmax(0, 1fr) 32px; column-gap: 8px; }
@@ -1537,6 +1612,7 @@ body.is-editor .brand::after {
   .prow.grave.asking { grid-template-columns: 66px minmax(0, 1fr) 76px; }
   .input.tiny { width: 48px; }
   .datefield { min-width: 0; }
+  .step-val { min-width: 48px; }
 }
 
 @media (max-width: 560px) {
@@ -1563,7 +1639,7 @@ body.is-editor .brand::after {
 }
 
 </style>
-<meta name="build" content="202607302146">
+<meta name="build" content="202608122223">
 </head>
 <body>
 <div class="wrap">
@@ -1582,7 +1658,7 @@ body.is-editor .brand::after {
 
   <main id="main"></main>
 </div>
-<script>window.__CONDUIT__={"config":{"title":"Статистика","subtitle":"Летняя математическая смена · 2026","students_total":24,"admin":"afanasev-igor","noindex":true,"scoring":{"n":24,"formula":"n - solvers","note":"Вес задачи = n минус число решивших. По умолчанию n — число учеников на смене."},"repo":{"owner":"conduit-admin","name":"conduit-26","branch":"main"},"build":"202607302146","signature":{"on":false,"student":"aksenova-elizaveta","text":"Totus tuus"},"offline_date":"2026-07-30"},"types":[{"id":"algebra","name":"Алгебра","slot":1,"subs":[{"id":"inequalities","name":"Неравенства"}]},{"id":"geometry","name":"Геометрия","slot":2,"subs":[{"id":"planimetry","name":"Планиметрия"},{"id":"stereometry","name":"Стереометрия"},{"id":"klassika","name":"Классика"}]},{"id":"comb","name":"Комбинаторика","slot":3,"subs":[{"id":"games","name":"Игры"},{"id":"graphs","name":"Графы"},{"id":"cells","name":"Клетчатые задачи"}]},{"id":"numbers","name":"Теория чисел","slot":7,"subs":[{"id":"klassika-2","name":"Классика"}]},{"id":"logika","name":"Логика","slot":4,"subs":[]}],"students":[{"id":"aksenova-elizaveta","name":"Аксенова Елизавета"},{"id":"afanasev-igor","name":"Афанасьев Игорь"},{"id":"budyanskiy-mihail","name":"Будянский Михаил"},{"id":"velichko-platon","name":"Величко Платон"},{"id":"boyko-gleb","name":"Бойко Глеб"},{"id":"gulev-maksim","name":"Гулев Максим"},{"id":"zarechnyuk-georgiy","name":"Заречнюк Георгий"},{"id":"karonov-mihail","name":"Каронов Михаил"},{"id":"karev-denis","name":"Карьев Денис"},{"id":"kovalev-artem","name":"Ковалёв Артём"},{"id":"kostylev-konstantin","name":"Костылев Константин"},{"id":"larionova-natalya","name":"Ларионова Наталья"},{"id":"lyubimov-slaven","name":"Любимов Славен"},{"id":"mahrov-aleksandr","name":"Махров Александр"},{"id":"novoselov-maksim","name":"Новосёлов Максим"},{"id":"osipova-viktoriya","name":"Осипова Виктория"},{"id":"pogorelov-denis","name":"Погорелов Денис"},{"id":"rudakova-vasilisa","name":"Рудакова Василиса"},{"id":"strelkov-sergey","name":"Стрелков Сергей"},{"id":"titov-viktor","name":"Титов Виктор"},{"id":"titov-dmitriy","name":"Титов Дмитрий"},{"id":"celikov-aleksandr","name":"Целиков Александр"},{"id":"shipilov-andrey","name":"Шипилов Андрей"},{"id":"shirtanova-valeriya","name":"Ширтанова Валерия"}],"series":[],"graves":{"problems":[],"solved":{}}};</script>
+<script>window.__CONDUIT__={"config":{"title":"Статистика","subtitle":"Летняя математическая смена · 2026","students_total":24,"admin":"afanasev-igor","noindex":true,"scoring":{"n":24,"formula":"max(n - solvers, 1)","note":"Вес задачи = n минус число решивших, но не меньше одного очка. По умолчанию n — число учеников на смене."},"repo":{"owner":"conduit-admin","name":"conduit-26","branch":"main"},"build":"202608122223","signature":{"on":false,"student":"aksenova-elizaveta","text":"Totus tuus"},"offline_date":"2026-08-12"},"types":[{"id":"algebra","name":"Алгебра","slot":1,"subs":[{"id":"inequalities","name":"Неравенства"},{"id":"mnogochleny","name":"Многочлены"},{"id":"posledovatelnosti","name":"Последовательности"},{"id":"matan","name":"Матан"}]},{"id":"geometry","name":"Геометрия","slot":2,"subs":[{"id":"planimetry","name":"Планиметрия"},{"id":"stereometry","name":"Стереометрия"}]},{"id":"comb","name":"Комбинаторика","slot":3,"subs":[{"id":"games","name":"Игры"},{"id":"graphs","name":"Графы"},{"id":"cells","name":"Клетчатые задачи"},{"id":"kg","name":"КГ"},{"id":"podschet","name":"Подсчёт"},{"id":"veroyatnosti","name":"Вероятности"}]},{"id":"numbers","name":"Теория чисел","slot":7,"subs":[{"id":"klassika-2","name":"Классика"}]}],"students":[{"id":"aksenova-elizaveta","name":"Аксенова Елизавета"},{"id":"afanasev-igor","name":"Афанасьев Игорь"},{"id":"budyanskiy-mihail","name":"Будянский Михаил"},{"id":"velichko-platon","name":"Величко Платон"},{"id":"boyko-gleb","name":"Бойко Глеб"},{"id":"gulev-maksim","name":"Гулев Максим"},{"id":"zarechnyuk-georgiy","name":"Заречнюк Георгий"},{"id":"karonov-mihail","name":"Каронов Михаил"},{"id":"karev-denis","name":"Карьев Денис"},{"id":"kovalev-artem","name":"Ковалёв Артём"},{"id":"kostylev-konstantin","name":"Костылев Константин"},{"id":"larionova-natalya","name":"Ларионова Наталья"},{"id":"lyubimov-slaven","name":"Любимов Славен"},{"id":"mahrov-aleksandr","name":"Махров Александр"},{"id":"novoselov-maksim","name":"Новосёлов Максим"},{"id":"osipova-viktoriya","name":"Осипова Виктория"},{"id":"pogorelov-denis","name":"Погорелов Денис"},{"id":"rudakova-vasilisa","name":"Рудакова Василиса"},{"id":"strelkov-sergey","name":"Стрелков Сергей"},{"id":"titov-viktor","name":"Титов Виктор"},{"id":"titov-dmitriy","name":"Титов Дмитрий"},{"id":"celikov-aleksandr","name":"Целиков Александр"},{"id":"shipilov-andrey","name":"Шипилов Андрей"},{"id":"shirtanova-valeriya","name":"Ширтанова Валерия"}],"series":[{"n":1,"series":1,"date":"2026-08-09","kind":"series","title":"Серия 1","problems":[{"id":"1","type":"geometry","sub":"planimetry","exercise":false},{"id":"2","type":"geometry","sub":"planimetry","exercise":false},{"id":"3","type":"algebra","sub":"mnogochleny","exercise":false},{"id":"4","type":"algebra","sub":"posledovatelnosti","exercise":false},{"id":"5","type":"numbers","sub":"klassika-2","exercise":false},{"id":"6","type":"comb","sub":"podschet","exercise":false},{"id":"7а","type":"comb","sub":"graphs","exercise":false},{"id":"7б","type":"comb","sub":"graphs","exercise":false}],"solved":{"aksenova-elizaveta":["1","2","3","4","5","6","7а","7б"],"afanasev-igor":["1","2","3","4","5","6"],"boyko-gleb":["1","4","5","6"],"budyanskiy-mihail":["1","2","3","4","5","6","7а","7б"],"velichko-platon":["1","2","4","6"],"gulev-maksim":["1","2","3","4","5","6"],"zarechnyuk-georgiy":["1","2","3","4","5","6"],"karonov-mihail":["1","2","4","5","6"],"karev-denis":["4","5","6"],"kovalev-artem":["1","2","4","5","6"],"kostylev-konstantin":["2","4","5","6"],"larionova-natalya":["2","3","4","5","6"],"lyubimov-slaven":["1","2","4","5","6"],"mahrov-aleksandr":["1","2","3","4","5","6"],"novoselov-maksim":["4","5","6"],"osipova-viktoriya":["2","3","4","5","6"],"pogorelov-denis":["1","2","4","6"],"rudakova-vasilisa":["2","4","5"],"strelkov-sergey":["1","2","4","5"],"titov-viktor":["1","2","3","4","5","6","7а","7б"],"titov-dmitriy":["1","2","3","4","5","6"],"celikov-aleksandr":["1","2","3","4","5","6"],"shipilov-andrey":["1","2","3","4","5"],"shirtanova-valeriya":["2","4","5"]}},{"n":2,"series":2,"date":"2026-08-10","kind":"series","title":"Серия 2","problems":[{"id":"0а","type":"algebra","sub":"matan","exercise":true},{"id":"0б","type":"algebra","sub":"matan","exercise":true},{"id":"1а","type":"algebra","sub":"matan","exercise":false},{"id":"1б","type":"algebra","sub":"matan","exercise":false},{"id":"1в","type":"algebra","sub":"matan","exercise":false},{"id":"2","type":"geometry","sub":"planimetry","exercise":false},{"id":"3","type":"geometry","sub":"planimetry","exercise":false},{"id":"4","type":"numbers","sub":"klassika-2","exercise":false},{"id":"5","type":"comb","sub":"kg","exercise":false},{"id":"6","type":"comb","sub":"games","exercise":false},{"id":"7","type":"comb","sub":"graphs","exercise":false}],"solved":{"aksenova-elizaveta":["0а","0б","1а","1б","1в","2","3","4","5","6","7"],"afanasev-igor":["0а","0б","1а","1б","1в","2","3","4","6","7"],"boyko-gleb":["0а","0б","2"],"budyanskiy-mihail":["0а","0б","1а","1б","1в","2","3","4","6","7"],"velichko-platon":["0а","0б","2"],"gulev-maksim":["0а","0б","1а","1б","1в","2","7"],"zarechnyuk-georgiy":["0а","0б","2","4","7"],"karonov-mihail":["0а","0б","1а","1б","1в","2","3","7"],"karev-denis":["0а","0б","6","7"],"kovalev-artem":["0а","0б","1а","2","3"],"kostylev-konstantin":["0а","0б","1а","1б","2","4","7"],"larionova-natalya":["0а","0б","1а","1б","1в","4","6","7"],"lyubimov-slaven":["0а","0б","1а","1б","1в","2"],"mahrov-aleksandr":["0а","0б","2","7"],"novoselov-maksim":["6","7"],"osipova-viktoriya":["0а","0б","1а","1б","1в","4","7"],"pogorelov-denis":["0а","0б","2","3","7"],"rudakova-vasilisa":["0б","6","7"],"strelkov-sergey":["0а","0б","1а","1б","1в","2"],"titov-viktor":["0а","0б","1а","1б","1в","2","3","4","6","7"],"titov-dmitriy":["0а","0б","1а","1б","1в","2","3","4","6","7"],"celikov-aleksandr":["0а","0б","1а","1б","1в","2","7"],"shipilov-andrey":["0а","0б","1а","1б","1в","7"],"shirtanova-valeriya":["0а","0б","1а","1б","1в","4","7"]}},{"n":3,"series":3,"date":"2026-08-11","kind":"series","title":"Серия 3","problems":[{"id":"0","type":"comb","sub":"veroyatnosti","exercise":true},{"id":"1","type":"geometry","sub":"planimetry","exercise":false},{"id":"2","type":"geometry","sub":"planimetry","exercise":false},{"id":"3","type":"comb","sub":"kg","exercise":false},{"id":"4","type":"numbers","sub":"klassika-2","exercise":false},{"id":"5","type":"comb","sub":"podschet","exercise":false},{"id":"6","type":"comb","sub":"games","exercise":false},{"id":"7","type":"comb","sub":"graphs","exercise":false}],"solved":{"aksenova-elizaveta":["0","1","3","4","5","6","7"],"afanasev-igor":["0","1","3","4","5"],"boyko-gleb":["0","1","4"],"budyanskiy-mihail":["0","1","3","4","5","6","7"],"velichko-platon":["0","1","2","4"],"gulev-maksim":["0","1","5"],"zarechnyuk-georgiy":["0","1"],"karonov-mihail":["0","1","4","5"],"karev-denis":["0","6"],"kovalev-artem":["0","1"],"kostylev-konstantin":["0","5"],"larionova-natalya":["0","4","5","7"],"lyubimov-slaven":["0","1","4"],"mahrov-aleksandr":["0","1","4","5"],"novoselov-maksim":["0"],"osipova-viktoriya":["0","4","5"],"pogorelov-denis":["0","1","2","4"],"rudakova-vasilisa":["0","4","5"],"strelkov-sergey":["0","1","5"],"titov-viktor":["0","1","3","4","5","7"],"titov-dmitriy":["0","1","3","4","5"],"celikov-aleksandr":["0","1","2","4","5"],"shipilov-andrey":["0","3","5"],"shirtanova-valeriya":["0","1"]}},{"n":4,"series":4,"date":"2026-08-12","kind":"series","title":"Серия 4","problems":[{"id":"0","type":"algebra","sub":"matan","exercise":true},{"id":"1","type":"geometry","sub":"planimetry","exercise":false},{"id":"2","type":"geometry","sub":"stereometry","exercise":false},{"id":"3","type":"algebra","sub":"matan","exercise":false},{"id":"4","type":"numbers","sub":"klassika-2","exercise":false},{"id":"5","type":"comb","sub":"cells","exercise":false},{"id":"6","type":"comb","sub":"veroyatnosti","exercise":false},{"id":"7","type":"comb","sub":"graphs","exercise":false}],"solved":{"aksenova-elizaveta":["0","1","2","3","4","5","6","7"],"afanasev-igor":["0","1","2","3","4","5","6"],"boyko-gleb":["0","2","4","6"],"budyanskiy-mihail":["0","1","2","3","4","5","6"],"velichko-platon":["0","1","2","3","6"],"gulev-maksim":["0","1","2","4","5","6"],"zarechnyuk-georgiy":["0","1","4","6"],"karonov-mihail":["0","1","2","4","6"],"karev-denis":["0","5","6"],"kovalev-artem":["0","1","2","4","6"],"kostylev-konstantin":["0","2","4","6"],"larionova-natalya":["0","2","4","5","6"],"lyubimov-slaven":["0","2","4","6"],"mahrov-aleksandr":["0","1","2","3","4","5","6"],"novoselov-maksim":["0","4","5","6"],"osipova-viktoriya":["0","2","4","6"],"pogorelov-denis":["0","1","2","4","6"],"rudakova-vasilisa":["0","2","4","5","6"],"strelkov-sergey":["0","1","2","6"],"titov-viktor":["0","1","2","3","4","5","6"],"titov-dmitriy":["0","1","2","3","4","5","6"],"celikov-aleksandr":["0","1","2","3","4","5","6"],"shipilov-andrey":["0","2","4","6"],"shirtanova-valeriya":["0","2","4","6"]}}],"graves":{"problems":[{"id":"Г1","type":"geometry","sub":"planimetry"},{"id":"Г2","type":"comb","sub":"kg"},{"id":"Г3","type":"comb","sub":"podschet"},{"id":"Г4","type":"comb","sub":"podschet"},{"id":"Г5","type":"comb","sub":"graphs"},{"id":"Г6","type":"geometry","sub":"planimetry"},{"id":"Г7","type":"comb","sub":"kg"},{"id":"Г8","type":"algebra","sub":"mnogochleny"},{"id":"Г9","type":"comb","sub":"graphs"}],"solved":{"aksenova-elizaveta":["Г7"],"afanasev-igor":[],"boyko-gleb":[],"budyanskiy-mihail":["Г3"],"velichko-platon":[],"gulev-maksim":[],"zarechnyuk-georgiy":[],"karonov-mihail":[],"karev-denis":[],"kovalev-artem":[],"kostylev-konstantin":[],"larionova-natalya":[],"lyubimov-slaven":[],"mahrov-aleksandr":[],"novoselov-maksim":[],"osipova-viktoriya":[],"pogorelov-denis":[],"rudakova-vasilisa":[],"strelkov-sergey":[],"titov-viktor":[],"titov-dmitriy":[],"celikov-aleksandr":[],"shipilov-andrey":[],"shirtanova-valeriya":[]}},"bonus":{"points":{"aksenova-elizaveta":0,"afanasev-igor":0,"boyko-gleb":0,"budyanskiy-mihail":0,"velichko-platon":0,"gulev-maksim":0,"zarechnyuk-georgiy":0,"karonov-mihail":0,"karev-denis":0,"kovalev-artem":0,"kostylev-konstantin":0,"larionova-natalya":0,"lyubimov-slaven":0,"mahrov-aleksandr":0,"novoselov-maksim":0,"osipova-viktoriya":0,"pogorelov-denis":0,"rudakova-vasilisa":0,"strelkov-sergey":0,"titov-viktor":0,"titov-dmitriy":0,"celikov-aleksandr":0,"shipilov-andrey":0,"shirtanova-valeriya":0}}};</script>
 <script>
 /* Кондуит — весь подсчёт идёт в браузере читателя.
    Данные приходят одним из двух способов:
@@ -1645,6 +1721,11 @@ body.is-editor .brand::after {
     var n = DATA.config.scoring && DATA.config.scoring.n;
     return typeof n === "number" && n > 0 ? n : DATA.config.students_total;
   }
+
+  /* Ниже одного очка вес не опускается. Задача, которую взяли все, всё-таки
+     была решена: обнулять её значило бы, что плюс за неё не стоит ничего — а он
+     стоит, просто самую малость. Правило то же в редакторе. */
+  function weightOf(solvers) { return Math.max(weightBase() - solvers, 1); }
 
   function dayKind(s) { return s.kind || "series"; }
 
@@ -1748,6 +1829,14 @@ body.is-editor .brand::after {
     return (DATA.graves && DATA.graves.solved && DATA.graves.solved[id]) || [];
   }
 
+  /* Дополнительные баллы ставятся ученику, а не задаче: они не привязаны ни ко
+     дню, ни к теме, поэтому ни один отбор их не трогает — при любом фильтре
+     человек приносит их с собой. */
+  function bonusOf(id) {
+    var v = DATA.bonus && DATA.bonus.points && DATA.bonus.points[id];
+    return typeof v === "number" && isFinite(v) ? v : 0;
+  }
+
   function buildIndex() {
     CAT = {};
     DATA.types.forEach(function (t) { CAT[t.id] = t; });
@@ -1793,7 +1882,7 @@ body.is-editor .brand::after {
           kind: isExercise(p) ? "exercise" : "problem",
           solvers: solvers,
           solverSet: new Set(solvers),
-          weight: weightBase() - solvers.length
+          weight: weightOf(solvers.length)
         });
       });
     });
@@ -1811,7 +1900,7 @@ body.is-editor .brand::after {
         kind: "grave",
         solvers: solvers,
         solverSet: new Set(solvers),
-        weight: weightBase() - solvers.length
+        weight: weightOf(solvers.length)
       });
     });
 
@@ -1827,7 +1916,7 @@ body.is-editor .brand::after {
   }
 
   function isLeader(id) {
-    return !!FULL && FULL.place[id] === 1 && FULL.rows[0].score > 0;
+    return !!FULL && FULL.place[id] === 1 && FULL.rows[0].total > 0;
   }
 
   var KINDS = [["problem", "Задачи"], ["exercise", "Упражнения"], ["grave", "Гробы"]];
@@ -1844,7 +1933,7 @@ body.is-editor .brand::after {
   function computeRating(seriesSet, leafSet, kindSet) {
     kindSet = kindSet || state.kinds;
     var rows = DATA.students.map(function (s) {
-      return { id: s.id, name: s.name, score: 0, pluses: 0 };
+      return { id: s.id, name: s.name, score: 0, pluses: 0, bonus: bonusOf(s.id) };
     });
     var byId = {};
     rows.forEach(function (r) { byId[r.id] = r; });
@@ -1863,10 +1952,15 @@ body.is-editor .brand::after {
       });
     });
 
+    /* Дополнительные баллы прибавляются к набранному по кондуиту, но лежат
+       отдельным полем: средний балл должен остаться тем, чем был, — очками за
+       один плюс. В потолок они не идут, их не заработать, решая задачи. */
+    rows.forEach(function (r) { r.total = r.score + r.bonus; });
+
     /* Сначала очки, при равенстве — по алфавиту. Место у каждого своё: делить
        одно место на двоих в таблице из двух десятков человек неудобно. */
     rows.sort(function (a, b) {
-      return b.score - a.score || a.name.localeCompare(b.name, "ru");
+      return b.total - a.total || a.name.localeCompare(b.name, "ru");
     });
     rows.forEach(function (r, i) { r.rank = i + 1; });
 
@@ -2103,7 +2197,7 @@ body.is-editor .brand::after {
 
       tr.appendChild(el("td", "rank" + (r.rank <= 3 ? " rank-top" : ""), r.rank));
       tr.appendChild(nameCell("td", "left name", r));
-      tr.appendChild(el("td", "score", num(r.score)));
+      tr.appendChild(el("td", "score", num(r.total)));
       tr.appendChild(el("td", "muted", r.pluses));
       tr.appendChild(el("td", "muted", avgScore(r.score, r.pluses)));
 
@@ -2335,7 +2429,11 @@ body.is-editor .brand::after {
 
     var tiles = el("div", "tiles");
     tiles.appendChild(tile("Место", row.rank + " / " + DATA.students.length, null));
-    tiles.appendChild(tile("Очки", num(row.score), "из " + num(f.ceiling)));
+    tiles.appendChild(tile("Очки", num(row.total), "из " + num(f.ceiling)));
+    /* Дополнительные баллы стоят своей плиткой: в потолок они не входят, и без
+       пометки сумма выглядела бы ошибкой счёта. Нулевую не показываем — пустая
+       строка ничего не сообщает. */
+    if (row.bonus) tiles.appendChild(tile("Доп. баллы", "+" + num(row.bonus), null));
     tiles.appendChild(tile("Задачи", row.pluses + " / " + f.available, null));
 
     // половина задач — рубеж, который стоит отметить
@@ -2571,6 +2669,8 @@ body.is-editor .brand::after {
     DATA.graves = DATA.graves || { problems: [], solved: {} };
     DATA.graves.problems = DATA.graves.problems || [];
     DATA.graves.solved = DATA.graves.solved || {};
+    DATA.bonus = DATA.bonus || { points: {} };
+    DATA.bonus.points = DATA.bonus.points || {};
     DATA.students.sort(function (a, b) { return a.name.localeCompare(b.name, "ru"); });
     // порядок ленты — по датам: номер принадлежит серии, а не дню смены
     DATA.series.sort(function (a, b) {
@@ -2597,9 +2697,11 @@ body.is-editor .brand::after {
        откроется. Сайт читают дети, чинить его посреди смены некому — пусть
        любая порча данных отнимает часть, а не всё. */
     var days = get("series/manifest.json").catch(function () { return null; });
+    // дополнительных баллов может не быть: файл заводится, только когда их проставят
+    var extra = get("bonus.json").catch(function () { return { points: {} }; });
 
     return Promise.all([
-      get("config.json"), get("types.json"), get("students.json"), days, soft
+      get("config.json"), get("types.json"), get("students.json"), days, soft, extra
     ]).then(function (res) {
       var files = res[3] && Array.isArray(res[3].series) ? res[3].series : [];
       /* Пропавший файл дня не должен ронять страницу целиком: раз в списке
@@ -2610,7 +2712,7 @@ body.is-editor .brand::after {
       })).then(function (series) {
         return {
           config: res[0], types: res[1], students: res[2],
-          series: series.filter(Boolean), graves: res[4]
+          series: series.filter(Boolean), graves: res[4], bonus: res[5]
         };
       });
     });

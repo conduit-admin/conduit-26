@@ -6,15 +6,15 @@
   "noindex": true,
   "scoring": {
     "n": 24,
-    "formula": "n - solvers",
-    "note": "Вес задачи = n минус число решивших. По умолчанию n — число учеников на смене."
+    "formula": "max(n - solvers, 1)",
+    "note": "Вес задачи = n минус число решивших, но не меньше одного очка. По умолчанию n — число учеников на смене."
   },
   "repo": {
     "owner": "conduit-admin",
     "name": "conduit-26",
     "branch": "main"
   },
-  "build": "202607302146",
+  "build": "202608122223",
   "signature": {
     "on": false,
     "student": "aksenova-elizaveta",
