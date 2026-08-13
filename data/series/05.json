@@ -1,0 +1,285 @@
+{
+  "n": 5,
+  "series": 5,
+  "date": "2026-08-13",
+  "kind": "series",
+  "title": "Серия 5",
+  "problems": [
+    {
+      "id": "0",
+      "type": "comb",
+      "sub": "veroyatnosti",
+      "exercise": true
+    },
+    {
+      "id": "1",
+      "type": "geometry",
+      "sub": "planimetry",
+      "exercise": false
+    },
+    {
+      "id": "2",
+      "type": "geometry",
+      "sub": "planimetry",
+      "exercise": false
+    },
+    {
+      "id": "3а",
+      "type": "algebra",
+      "sub": "mnogochleny",
+      "exercise": false
+    },
+    {
+      "id": "3б",
+      "type": "algebra",
+      "sub": "mnogochleny",
+      "exercise": false
+    },
+    {
+      "id": "4",
+      "type": "numbers",
+      "sub": "klassika-2",
+      "exercise": false
+    },
+    {
+      "id": "5",
+      "type": "comb",
+      "sub": "podschet",
+      "exercise": false
+    },
+    {
+      "id": "6а",
+      "type": "comb",
+      "sub": "veroyatnosti",
+      "exercise": false
+    },
+    {
+      "id": "6б",
+      "type": "comb",
+      "sub": "veroyatnosti",
+      "exercise": false
+    },
+    {
+      "id": "7",
+      "type": "comb",
+      "sub": "graphs",
+      "exercise": false
+    }
+  ],
+  "solved": {
+    "aksenova-elizaveta": [
+      "0",
+      "1",
+      "3а",
+      "3б",
+      "4",
+      "5",
+      "6а",
+      "6б",
+      "7"
+    ],
+    "afanasev-igor": [
+      "0",
+      "1",
+      "2",
+      "3а",
+      "3б",
+      "4",
+      "5",
+      "6а",
+      "6б"
+    ],
+    "boyko-gleb": [
+      "0",
+      "1",
+      "3а",
+      "3б",
+      "6а",
+      "6б"
+    ],
+    "budyanskiy-mihail": [
+      "0",
+      "1",
+      "2",
+      "3а",
+      "3б",
+      "4",
+      "5",
+      "6а",
+      "6б"
+    ],
+    "velichko-platon": [
+      "0",
+      "1",
+      "3а",
+      "6а",
+      "6б"
+    ],
+    "gulev-maksim": [
+      "0",
+      "1",
+      "3а",
+      "3б",
+      "6а",
+      "6б"
+    ],
+    "zarechnyuk-georgiy": [
+      "0",
+      "1",
+      "3а",
+      "3б",
+      "4",
+      "6а",
+      "6б"
+    ],
+    "karonov-mihail": [
+      "0",
+      "1",
+      "3а",
+      "3б",
+      "4",
+      "6а",
+      "6б"
+    ],
+    "karev-denis": [
+      "0",
+      "6а",
+      "6б",
+      "7"
+    ],
+    "kovalev-artem": [
+      "0",
+      "1",
+      "3а",
+      "3б",
+      "6а",
+      "6б"
+    ],
+    "kostylev-konstantin": [
+      "0",
+      "1",
+      "3а",
+      "3б",
+      "4",
+      "6а",
+      "6б",
+      "7"
+    ],
+    "larionova-natalya": [
+      "0",
+      "1",
+      "3а",
+      "3б",
+      "4",
+      "6а",
+      "6б"
+    ],
+    "lyubimov-slaven": [
+      "0",
+      "1",
+      "3а",
+      "3б",
+      "4",
+      "6а",
+      "6б"
+    ],
+    "mahrov-aleksandr": [
+      "0",
+      "1",
+      "3а",
+      "3б",
+      "4",
+      "6а",
+      "6б",
+      "7"
+    ],
+    "novoselov-maksim": [
+      "0",
+      "3а",
+      "3б",
+      "6а",
+      "6б",
+      "7"
+    ],
+    "osipova-viktoriya": [
+      "0",
+      "1",
+      "3а",
+      "3б",
+      "4",
+      "6а",
+      "6б"
+    ],
+    "pogorelov-denis": [
+      "0",
+      "1",
+      "2"
+    ],
+    "rudakova-vasilisa": [
+      "0",
+      "1",
+      "3а",
+      "3б",
+      "4",
+      "6а",
+      "6б"
+    ],
+    "strelkov-sergey": [
+      "0",
+      "1",
+      "3а",
+      "3б",
+      "6а",
+      "6б"
+    ],
+    "titov-viktor": [
+      "0",
+      "1",
+      "2",
+      "3а",
+      "3б",
+      "4",
+      "5",
+      "6а",
+      "6б",
+      "7"
+    ],
+    "titov-dmitriy": [
+      "0",
+      "1",
+      "3а",
+      "3б",
+      "4",
+      "5",
+      "6а",
+      "6б",
+      "7"
+    ],
+    "celikov-aleksandr": [
+      "0",
+      "1",
+      "3а",
+      "3б",
+      "4",
+      "6а",
+      "6б",
+      "7"
+    ],
+    "shipilov-andrey": [
+      "0",
+      "1",
+      "3а",
+      "3б",
+      "6а",
+      "6б"
+    ],
+    "shirtanova-valeriya": [
+      "0",
+      "1",
+      "3а",
+      "3б",
+      "6а",
+      "6б"
+    ]
+  }
+}
