@@ -72,8 +72,6 @@ def stamp_config(version: str) -> None:
 def load_all() -> dict:
     manifest = read_json(DATA / "series" / "manifest.json")
     graves_path = DATA / "graves.json"
-    # файла с дополнительными баллами может не быть: их просто ещё не ставили
-    bonus_path = DATA / "bonus.json"
     bundle = {
         "config": read_json(DATA / "config.json"),
         "types": read_json(DATA / "types.json"),
@@ -82,10 +80,7 @@ def load_all() -> dict:
         "graves": (
             read_json(graves_path)
             if graves_path.exists()
-            else {"problems": [], "solved": {}}
-        ),
-        "bonus": (
-            read_json(bonus_path) if bonus_path.exists() else {"points": {}}
+            else {"problems": [], "solutions": []}
         ),
     }
     bundle["config"]["offline_date"] = date.today().isoformat()
@@ -127,11 +122,11 @@ def main() -> None:
     cells = sum(len(s["problems"]) for s in bundle["series"])
     print(f"версия статики: {version}")
     print(f"offline.html — {OUT.stat().st_size / 1024:.0f} КБ, снимок от {date.today():%d.%m.%Y}")
-    extra = sum(bundle["bonus"].get("points", {}).values())
+    graves = bundle["graves"]
     print(f"данные: {len(bundle['students'])} учеников, "
           f"{len(bundle['series'])} серий, {cells} задач, "
-          f"{len(bundle['graves']['problems'])} гробов, "
-          f"{extra} дополнительных баллов")
+          f"{len(graves['problems'])} гробов, "
+          f"{len(graves.get('solutions', []))} гроборешений")
 
 
 if __name__ == "__main__":

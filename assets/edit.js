@@ -43,15 +43,15 @@
     wn: null,               // n в формуле очков; null — не трогали
     pickTheme: null,    // id задачи, у которой открыт выбор темы
     pickDate: false,
-    bonus: null         // правка дополнительных баллов, пока не сохранена
+    pickSolver: null,   // номер гроборешения, у которого открыт выбор ученика
+    pickGrave: null,    // то же для выбора гроба
+    confirmSolution: null   // гроборешение, у которого спрошено удаление
   };
 
   /* Что уже отправлено. Нужен потому, что сайт переразворачивается не сразу:
      сравнивать правку с данными сайта нельзя — минуту после сохранения они
      ещё старые, и всё выглядело бы несохранённым. */
-  var SAVED = {
-    types: null, graves: null, days: {}, sig: null, wn: null, bonus: null
-  };
+  var SAVED = { types: null, graves: null, days: {}, sig: null, wn: null };
 
   /* Виды дня: обычная серия, выходной и математический бой. Номер есть только
      у серии — это её собственный номер. Выходной и матбой стоят в ленте по
@@ -656,7 +656,6 @@
     days.forEach(function (d) { jobs.push(putDayFile(d)); });
     gone.forEach(function (n) { jobs.push(dropDayFile(n)); });
     if (gravesDirty()) jobs.push(putGravesFile);
-    if (bonusDirty()) jobs.push(putBonusFile);
     if (configDirty()) jobs.push(putConfigFile);
     if (!jobs.length) return;
 
@@ -879,16 +878,54 @@
 
   /* Гробы живут отдельным файлом: они не привязаны ко дню, копятся всю смену
      и на сайте включаются в рейтинг отдельным переключателем. Номер всегда
-     «Гn» — поэтому он не редактируется, а выдаётся следующим свободным. */
+     «Гn» — поэтому он не редактируется, а выдаётся следующим свободным.
+
+     Кто что взял — не сетка «ученики × гробы», а отдельные записи. Гробы дело
+     штучное: сетка под них стоит почти пустой, и надбавку за конкретное
+     решение в клетке «+» показать негде. */
+
+  /* Предел надбавки — не правило смены, а страховка от зажатой кнопки:
+     столько нажатий подряд не бывает. */
+  var BONUS_MAX = 9999;
 
   function ensureGraves() {
     if (!state.graves) {
-      state.graves = JSON.parse(JSON.stringify(DATA.graves));
+      state.graves = {
+        problems: JSON.parse(JSON.stringify((DATA.graves || {}).problems || [])),
+        solutions: readSolutions(DATA.graves)
+      };
     }
-    DATA.students.forEach(function (s) {
-      if (!state.graves.solved[s.id]) state.graves.solved[s.id] = [];
-    });
     return state.graves;
+  }
+
+  /* У файлов, записанных до разделения, вместо списка решений лежит карта
+     solved: читаем и её, иначе первое же сохранение стёрло бы старые плюсы. */
+  function readSolutions(g) {
+    g = g || {};
+    if (Array.isArray(g.solutions)) {
+      return g.solutions.map(function (s) {
+        return {
+          student: s.student || null,
+          problem: s.problem || null,
+          bonus: solutionBonus(s)
+        };
+      });
+    }
+    var out = [];
+    Object.keys(g.solved || {}).forEach(function (sid) {
+      (g.solved[sid] || []).forEach(function (pid) {
+        out.push({ student: sid, problem: pid, bonus: 0 });
+      });
+    });
+    return out;
+  }
+
+  /* Надбавка ставится за само решение и прибавляется к цене гроба. Ниже нуля
+     не бывает: это надбавка, а не штраф. */
+  function solutionBonus(s) {
+    var v = s && s.bonus;
+    return typeof v === "number" && isFinite(v) && v > 0
+      ? Math.min(Math.round(v), BONUS_MAX) : 0;
   }
 
   function graveNum(id) {
@@ -905,22 +942,33 @@
   function renameGrave(oldId, newId) {
     var g = ensureGraves();
     g.problems.forEach(function (p) { if (p.id === oldId) p.id = newId; });
-    Object.keys(g.solved).forEach(function (sid) {
-      var i = g.solved[sid].indexOf(oldId);
-      if (i !== -1) g.solved[sid][i] = newId;
-    });
+    g.solutions.forEach(function (s) { if (s.problem === oldId) s.problem = newId; });
   }
 
+  /* Решения пишем по порядку гробов, внутри гроба — по алфавиту. Порядок в
+     файле от порядка нажатий тогда не зависит, и в истории видно правку, а не
+     перетасовку. Незаполненные записи наружу не уходят. */
   function gravesPayload(g) {
-    var solved = {};
-    DATA.students.forEach(function (s) {
-      solved[s.id] = (((g && g.solved) || {})[s.id] || []).slice().sort(cmpGraves);
+    var name = {};
+    DATA.students.forEach(function (s) { name[s.id] = s.name; });
+
+    var list = readSolutions(g).filter(function (s) {
+      return s.student && s.problem;
+    }).map(function (s) {
+      return { student: s.student, problem: s.problem, bonus: solutionBonus(s) };
     });
+
+    list.sort(function (a, b) {
+      return cmpGraves(a.problem, b.problem) ||
+        String(name[a.student] || a.student)
+          .localeCompare(String(name[b.student] || b.student), "ru");
+    });
+
     return {
       problems: (((g && g.problems) || [])).map(function (p) {
         return { id: p.id, type: p.type, sub: p.sub || null };
       }),
-      solved: solved
+      solutions: list
     };
   }
 
@@ -956,27 +1004,70 @@
   function removeGrave(id) {
     var g = ensureGraves();
     g.problems = g.problems.filter(function (p) { return p.id !== id; });
-    Object.keys(g.solved).forEach(function (sid) {
-      g.solved[sid] = g.solved[sid].filter(function (x) { return x !== id; });
-    });
+    // решения удалённого гроба уходят с ним: без задачи они ничего не значат
+    g.solutions = g.solutions.filter(function (s) { return s.problem !== id; });
     touchGraves();
   }
 
-  function graveSolvers() {
-    var g = ensureGraves();
-    return DATA.students.reduce(function (a, s) {
-      return a + (g.solved[s.id] || []).length;
-    }, 0);
+  // ── гроборешения ────────────────────────────────────────
+
+  function solutions() { return ensureGraves().solutions; }
+
+  function studentById(id) {
+    return DATA.students.filter(function (s) { return s.id === id; })[0] || null;
+  }
+
+  function graveById(id) {
+    return ensureGraves().problems.filter(function (p) { return p.id === id; })[0] || null;
+  }
+
+  // сколько человек взяло гроб — от этого его цена и зависит
+  function graveSolvers(id) {
+    return solutions().filter(function (s) { return s.problem === id; }).length;
+  }
+
+  // цена гроба считается той же формулой, что и у задачи серии
+  function gravePrice(id) { return weightOf(graveSolvers(id)); }
+
+  function solutionValue(s) {
+    return s.problem ? gravePrice(s.problem) + solutionBonus(s) : 0;
+  }
+
+  /* Пустая запись: ни ученика, ни гроба. Подставлять первых попавшихся нельзя —
+     это утверждение о том, кто что решил, и делать его должен человек. Пока
+     запись не заполнена, вкладка сохранения её не выпустит. */
+  function addSolution() {
+    solutions().push({ student: null, problem: null, bonus: 0 });
+    touchGraves();
+  }
+
+  function removeSolution(i) {
+    solutions().splice(i, 1);
+    state.confirmSolution = null;
+    state.pickSolver = null;
+    state.pickGrave = null;
+    touchGraves();
+  }
+
+  /* Дважды одно и то же решение не записывается: это и лишний плюс в рейтинге,
+     и лишний решивший, от которого сам гроб подешевел бы. */
+  function solutionTaken(sid, pid, except) {
+    return solutions().some(function (s, i) {
+      return i !== except && s.student === sid && s.problem === pid;
+    });
+  }
+
+  function unfilledSolutions() {
+    return solutions().filter(function (s) { return !s.student || !s.problem; }).length;
   }
 
   function putGravesFile() {
     var payload = gravesPayload(state.graves);
-    var pluses = graveSolvers();
 
     return getFile("data/graves.json").then(function (cur) {
       return putFile("data/graves.json", JSON.stringify(payload, null, 2) + "\n",
         "Гробарий: " + withNum(payload.problems.length, "гроб", "гроба", "гробов") +
-        ", " + withNum(pluses, "плюс", "плюса", "плюсов"),
+        ", " + withNum(payload.solutions.length, "решение", "решения", "решений"),
         cur && cur.sha);
     }).then(function () { SAVED.graves = JSON.stringify(payload); });
   }
@@ -998,12 +1089,192 @@
     card.appendChild(actions);
     host.appendChild(card);
 
-    if (g.problems.length) {
-      var sh = el("div", "section-head");
-      sh.appendChild(el("span", "section-title", "Кто решил"));
-      host.appendChild(sh);
-      host.appendChild(conduitGrid(g.problems, g.solved, touchGraves));
+    var sh = el("div", "section-head");
+    sh.appendChild(el("span", "section-title", "Кто решил"));
+    host.appendChild(sh);
+
+    if (!g.problems.length) {
+      var none = el("div", "card");
+      none.appendChild(el("div", "summary", "Сначала заведи гроб — решать пока нечего."));
+      host.appendChild(none);
+      return;
     }
+
+    var scard = el("div", "card");
+    g.solutions.forEach(function (s, i) { scard.appendChild(solutionBlock(s, i)); });
+
+    var sact = el("div", "frow gap");
+    sact.appendChild(button("+ гроборешение", "ghost-btn", function () {
+      addSolution();
+      render();
+    }));
+    scard.appendChild(sact);
+    host.appendChild(scard);
+
+    if (g.solutions.length) {
+      var total = g.solutions.reduce(function (a, s) { return a + solutionValue(s); }, 0);
+      host.appendChild(el("div", "summary",
+        withNum(g.solutions.length, "решение", "решения", "решений") +
+        ", " + withNum(total, "очко", "очка", "очков")));
+    }
+  }
+
+  /* Блок гроборешения: кто, какой гроб и надбавка за него. Всё выбирается
+     своими списками — системных полей на этой странице нет. */
+  function solutionBlock(s, i) {
+    var block = el("div", "tblock");
+
+    var whoOpen = state.pickSolver === i;
+    var whatOpen = state.pickGrave === i;
+
+    var top = el("div", "frow top");
+    var st = studentById(s.student);
+    top.appendChild(field("Решивший", picker(st ? st.name : "кто?", null, whoOpen,
+      function () {
+        state.pickSolver = whoOpen ? null : i;
+        state.pickGrave = null;
+        render();
+      })));
+
+    var p = graveById(s.problem);
+    var t = p ? typeById(p.type) : null;
+    var sub = p ? subOf(t, p) : null;
+    var label = p
+      ? p.id + (sub ? " · " + sub.name : (t ? " · " + t.name : ""))
+      : "какой?";
+    top.appendChild(field("Гроб", picker(label,
+      p ? (typed(p) ? dot(t.slot) : greyDot()) : null, whatOpen,
+      function () {
+        state.pickGrave = whatOpen ? null : i;
+        state.pickSolver = null;
+        render();
+      })));
+    block.appendChild(top);
+
+    if (whoOpen) block.appendChild(solverChooser(s, i));
+    if (whatOpen) block.appendChild(graveChooser(s, i));
+
+    var bottom = el("div", "frow gap");
+    bottom.appendChild(field("Надбавка", bonusStepper(s)));
+    bottom.appendChild(priceBox(s));
+    bottom.appendChild(deleteCell(state.confirmSolution === i, function () {
+      state.confirmSolution = i;
+      state.pickSolver = null;
+      state.pickGrave = null;
+      render();
+    }, function () {
+      removeSolution(i);
+      render();
+    }));
+    block.appendChild(bottom);
+
+    return block;
+  }
+
+  function picker(label, mark, open, fn) {
+    var b = el("button", "picker-btn" + (open ? " open" : ""));
+    b.type = "button";
+    var box = el("span", "picker-label");
+    if (mark) box.appendChild(mark);
+    box.appendChild(document.createTextNode(label));
+    b.appendChild(box);
+    b.appendChild(el("span", "picker-caret", "▾"));
+    b.addEventListener("click", fn);
+    return b;
+  }
+
+  function solverChooser(s, i) {
+    var box = el("div", "chooser");
+    var chips = el("div", "chips");
+    DATA.students.forEach(function (st) {
+      // у кого этот гроб уже записан — второй раз он его не решал
+      if (s.problem && solutionTaken(st.id, s.problem, i)) return;
+      var b = el("button", "chip pick", st.name);
+      b.type = "button";
+      b.setAttribute("aria-pressed", st.id === s.student ? "true" : "false");
+      b.addEventListener("click", function () {
+        s.student = st.id;
+        state.pickSolver = null;
+        touchGraves();
+        render();
+      });
+      chips.appendChild(b);
+    });
+    box.appendChild(chips);
+    return box;
+  }
+
+  function graveChooser(s, i) {
+    var box = el("div", "chooser");
+    var chips = el("div", "chips");
+    ensureGraves().problems.forEach(function (p) {
+      if (s.student && solutionTaken(s.student, p.id, i)) return;
+      var b = el("button", "chip pick");
+      b.type = "button";
+      b.setAttribute("aria-pressed", p.id === s.problem ? "true" : "false");
+      b.appendChild(typed(p) ? dot(typeById(p.type).slot) : greyDot());
+      b.appendChild(document.createTextNode(p.id));
+      b.addEventListener("click", function () {
+        s.problem = p.id;
+        state.pickGrave = null;
+        touchGraves();
+        render();
+      });
+      chips.appendChild(b);
+    });
+    box.appendChild(chips);
+    return box;
+  }
+
+  /* Надбавка — тот же счётчик, что был у дополнительных баллов: поля для ввода
+     числа здесь нет, на телефоне оно неудобно. */
+  function bonusStepper(s) {
+    var v = solutionBonus(s);
+    var step = el("div", "stepper");
+
+    var minus = button("−", "step-btn", function () {
+      s.bonus = Math.max(0, v - 1);
+      touchGraves();
+      render();
+    });
+    minus.disabled = v <= 0;
+    minus.setAttribute("aria-label", "убрать балл надбавки");
+    step.appendChild(minus);
+
+    step.appendChild(el("span", "step-val" + (v ? " on" : ""), v));
+
+    var plus = button("+", "step-btn", function () {
+      s.bonus = Math.min(BONUS_MAX, v + 1);
+      touchGraves();
+      render();
+    });
+    plus.disabled = v >= BONUS_MAX;
+    plus.setAttribute("aria-label", "добавить балл надбавки");
+    step.appendChild(plus);
+
+    return step;
+  }
+
+  /* Цена решения = цена гроба плюс надбавка. Слагаемые показываем: без них
+     разные суммы за один и тот же гроб выглядели бы ошибкой счёта. */
+  function priceBox(s) {
+    var box = el("div", "solution-price");
+    if (!s.problem) {
+      box.appendChild(el("span", "muted", "гроб не выбран"));
+      return box;
+    }
+    var price = gravePrice(s.problem);
+    var extra = solutionBonus(s);
+    box.appendChild(el("span", "price-label", "цена"));
+    var val = el("span", "price-val");
+    if (extra) {
+      val.appendChild(el("i", "price-sum", price + " + " + extra + " = "));
+      val.appendChild(document.createTextNode(String(price + extra)));
+    } else {
+      val.appendChild(document.createTextNode(String(price)));
+    }
+    box.appendChild(val);
+    return box;
   }
 
   function graveRow(p) {
@@ -1068,139 +1339,6 @@
 
     wrap.appendChild(row);
     if (open) wrap.appendChild(themeChooser(p, touchGraves));
-    return wrap;
-  }
-
-  // ── дополнительные баллы ────────────────────────────────
-
-  /* Баллы, которые ставятся человеку, а не задаче. Живут отдельным файлом:
-     ко дню они не привязаны, поэтому на сайте прибавляются к очкам при любом
-     отборе и в потолок не входят.
-
-     Предел сверху — не правило смены, а страховка: столько нажатий подряд
-     случайными не бывают, но и уехать в репозиторий такому числу незачем. */
-  var BONUS_MAX = 9999;
-
-  function bonusPoints(b, id) {
-    var v = b && b.points && b.points[id];
-    return typeof v === "number" && isFinite(v) ? v : 0;
-  }
-
-  /* Рабочая копия заводится сразу по всем ученикам: файл может быть неполным
-     или его может не быть вовсе, а строка нужна каждому. */
-  function ensureBonus() {
-    if (!state.bonus) {
-      var src = DATA.bonus || { points: {} };
-      state.bonus = { points: {} };
-      DATA.students.forEach(function (s) {
-        state.bonus.points[s.id] = bonusPoints(src, s.id);
-      });
-    }
-    return state.bonus;
-  }
-
-  function bonusOf(id) { return bonusPoints(state.bonus || DATA.bonus, id); }
-
-  // отрицательных баллов не бывает: это надбавка, а не штраф
-  function setBonus(id, v) {
-    var b = ensureBonus();
-    var n = Math.round(Number(v) || 0);
-    b.points[id] = Math.max(0, Math.min(BONUS_MAX, n));
-    state.note = "";
-    state.noteKind = "";
-  }
-
-  function bonusPayload(b) {
-    var points = {};
-    DATA.students.forEach(function (s) { points[s.id] = bonusPoints(b, s.id); });
-    return { points: points };
-  }
-
-  function bonusDirty() {
-    if (!state.bonus) return false;
-    return JSON.stringify(bonusPayload(state.bonus)) !==
-      (SAVED.bonus || JSON.stringify(bonusPayload(DATA.bonus)));
-  }
-
-  function bonusTotal() {
-    return DATA.students.reduce(function (a, s) { return a + bonusOf(s.id); }, 0);
-  }
-
-  function bonusCount() {
-    return DATA.students.filter(function (s) { return bonusOf(s.id) > 0; }).length;
-  }
-
-  function putBonusFile() {
-    var payload = bonusPayload(state.bonus);
-    var who = bonusCount();
-    var total = bonusTotal();
-
-    return getFile("data/bonus.json").then(function (cur) {
-      return putFile("data/bonus.json", JSON.stringify(payload, null, 2) + "\n",
-        who
-          ? "Доп. баллы: " + withNum(who, "ученик", "ученика", "учеников") +
-            ", " + withNum(total, "балл", "балла", "баллов")
-          : "Доп. баллы обнулены",
-        cur && cur.sha);
-    }).then(function () { SAVED.bonus = JSON.stringify(payload); });
-  }
-
-  function viewBonus(host) {
-    // не прочитались — не показываем нули: правка ушла бы поверх проставленного
-    if (!DATA.bonusOk) return host.appendChild(brokenCard("дополнительные баллы"));
-
-    ensureBonus();
-
-    // ученики стоят по алфавиту: список отсортирован ещё при загрузке
-    var card = el("div", "card");
-    DATA.students.forEach(function (st) { card.appendChild(bonusRow(st)); });
-    host.appendChild(card);
-
-    var who = bonusCount();
-    host.appendChild(el("div", "summary", who
-      ? withNum(bonusTotal(), "балл", "балла", "баллов") + " у " +
-        withNum(who, "ученика", "учеников", "учеников")
-      : "Баллов пока никому не ставили."));
-  }
-
-  /* Строка ученика: имя и счётчик. Баллы ставятся по одному — поля для ввода
-     числа здесь нет вовсе: набирать его на телефоне неудобно, а десяток нажатий
-     на «+» ничем не хуже. Само число не кнопка, а показание. */
-  function bonusRow(st) {
-    var v = bonusOf(st.id);
-
-    var wrap = el("div", "brow-wrap");
-    var row = el("div", "brow");
-
-    var name = el("div", "brow-name");
-    var box = el("span", "name-box");
-    box.appendChild(el("span", "nm", st.name));
-    if (DATA.config.admin === st.id) box.appendChild(el("i", "badge-admin", "◆"));
-    name.appendChild(box);
-    row.appendChild(name);
-
-    var step = el("div", "stepper");
-
-    var minus = button("−", "step-btn", function () {
-      setBonus(st.id, v - 1);
-      render();
-    });
-    minus.disabled = v <= 0;
-    minus.setAttribute("aria-label", st.name + ", убрать балл");
-    step.appendChild(minus);
-
-    step.appendChild(el("span", "step-val" + (v ? " on" : ""), v));
-
-    var plus = button("+", "step-btn", function () {
-      setBonus(st.id, v + 1);
-      render();
-    });
-    plus.disabled = v >= BONUS_MAX;
-    plus.setAttribute("aria-label", st.name + ", добавить балл");
-    step.appendChild(plus);
-
-    row.appendChild(step);
-    wrap.appendChild(row);
     return wrap;
   }
 
@@ -1635,6 +1773,7 @@
       state.confirmGrave = null;
       state.confirmSub = null;
       state.confirmType = null;
+      state.confirmSolution = null;
       render();
     }));
     return box;
@@ -1889,10 +2028,7 @@
      поставленный плюс. */
   function leaderId() {
     var score = {};
-    // дополнительные баллы входят в счёт так же, как на сайте
-    DATA.students.forEach(function (s) {
-      score[s.id] = bonusPoints(DATA.bonus, s.id);
-    });
+    DATA.students.forEach(function (s) { score[s.id] = 0; });
     DATA.series.forEach(function (s) {
       (s.problems || []).forEach(function (p) {
         var solvers = DATA.students.filter(function (st) {
@@ -1903,6 +2039,18 @@
         solvers.forEach(function (st) { score[st.id] += weight; });
       });
     });
+
+    // гробы с надбавками — тоже очки, и на сайте они считаются так же
+    var taken = readSolutions(DATA.graves);
+    ((DATA.graves && DATA.graves.problems) || []).forEach(function (p) {
+      var mine = taken.filter(function (x) { return x.problem === p.id; });
+      var weight = weightOf(mine.length);
+      mine.forEach(function (x) {
+        if (score[x.student] === undefined) return;
+        score[x.student] += weight + solutionBonus(x);
+      });
+    });
+
     var best = null;
     Object.keys(score).forEach(function (id) {
       if (score[id] > 0 && (!best || score[id] > score[best])) best = id;
@@ -2099,14 +2247,15 @@
     SAVED.types = null;
     state.graves = null;
     SAVED.graves = null;
-    state.bonus = null;
-    SAVED.bonus = null;
     state.series = null;
     state.confirmRevert = false;
     state.confirmSub = null;
     state.confirmProblem = null;
     state.confirmGrave = null;
     state.confirmType = null;
+    state.confirmSolution = null;
+    state.pickSolver = null;
+    state.pickGrave = null;
     state.sig = null;
     SAVED.sig = null;
     state.wn = null;
@@ -2141,13 +2290,24 @@
       items.push((state.removed[n] || "День") + " · удалить");
     });
     if (gravesDirty()) items.push("Гробарий");
-    if (bonusDirty()) items.push("Доп. баллы");
     if (configDirty()) items.push("Настройки");
 
     var problem = null;
     for (var i = 0; i < days.length && !problem; i++) {
       var bad = validate(days[i]);
       if (bad) problem = dayLabel(days[i]) + ": " + bad;
+    }
+
+    /* Незаполненное гроборешение наружу не выпускаем: запись без ученика или
+       без гроба ничего не значит, а молча выбросить её при сохранении — значит
+       потерять начатое, ничего не сказав. */
+    if (!problem && state.graves) {
+      var half = unfilledSolutions();
+      if (half) {
+        problem = "Гробарий: " +
+          withNum(half, "гроборешение не заполнено", "гроборешения не заполнены",
+            "гроборешений не заполнено");
+      }
     }
 
     var left = cooldownLeft();
@@ -2353,7 +2513,6 @@
 
     if (state.view === "series") viewSeries(main);
     else if (state.view === "graves") viewGraves(main);
-    else if (state.view === "bonus") viewBonus(main);
     else if (state.view === "themes") viewThemes(main);
     else if (state.view === "save") viewSave(main);
   }
@@ -2368,9 +2527,12 @@
         state.confirmProblem = null;
         state.confirmGrave = null;
         state.confirmType = null;
+        state.confirmSolution = null;
         state.confirmDelete = false;
         state.confirmRevert = false;
         state.pickTheme = null;
+        state.pickSolver = null;
+        state.pickGrave = null;
         render();
       });
     });
@@ -2405,17 +2567,8 @@
       daysOk = false;
       return null;
     });
-    /* Файла с баллами может не быть вовсе — их просто ещё не ставили, и завести
-       его можно. А вот если чтение сорвалось иначе, правку не показываем: нули,
-       уехавшие в репозиторий, стёрли бы проставленное. */
-    var bonusOk = true;
-    var extra = get("bonus.json").catch(function (e) {
-      if (e.status !== 404) bonusOk = false;
-      return { points: {} };
-    });
-
     return Promise.all([
-      get("config.json"), get("types.json"), get("students.json"), days, soft, extra
+      get("config.json"), get("types.json"), get("students.json"), days, soft
     ]).then(function (res) {
       /* Ученики стоят по алфавиту: в кондуите ищут человека, а не место.
          Сравнивается полное имя, поэтому однофамильцы идут по именам. */
@@ -2439,10 +2592,9 @@
             series: series, daysOk: daysOk, gravesOk: gravesOk,
             graves: {
               problems: res[4].problems || [],
+              solutions: res[4].solutions,
               solved: res[4].solved || {}
-            },
-            bonusOk: bonusOk,
-            bonus: { points: (res[5] && res[5].points) || {} }
+            }
           };
         });
     });
@@ -2474,12 +2626,6 @@
           JSON.stringify(gravesPayload(DATA.graves))) {
         state.graves = null;
         SAVED.graves = null;
-      }
-      if (state.bonus &&
-          JSON.stringify(bonusPayload(state.bonus)) ===
-          JSON.stringify(bonusPayload(DATA.bonus))) {
-        state.bonus = null;
-        SAVED.bonus = null;
       }
       if (state.sig !== null && state.sig ===
           !!(DATA.config.signature && DATA.config.signature.on)) {

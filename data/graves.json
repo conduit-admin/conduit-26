@@ -46,34 +46,16 @@
       "sub": "graphs"
     }
   ],
-  "solved": {
-    "aksenova-elizaveta": [
-      "Г7"
-    ],
-    "afanasev-igor": [],
-    "boyko-gleb": [],
-    "budyanskiy-mihail": [
-      "Г3"
-    ],
-    "velichko-platon": [],
-    "gulev-maksim": [],
-    "zarechnyuk-georgiy": [],
-    "karonov-mihail": [],
-    "karev-denis": [],
-    "kovalev-artem": [],
-    "kostylev-konstantin": [],
-    "larionova-natalya": [],
-    "lyubimov-slaven": [],
-    "mahrov-aleksandr": [],
-    "novoselov-maksim": [],
-    "osipova-viktoriya": [],
-    "pogorelov-denis": [],
-    "rudakova-vasilisa": [],
-    "strelkov-sergey": [],
-    "titov-viktor": [],
-    "titov-dmitriy": [],
-    "celikov-aleksandr": [],
-    "shipilov-andrey": [],
-    "shirtanova-valeriya": []
-  }
+  "solutions": [
+    {
+      "student": "budyanskiy-mihail",
+      "problem": "Г3",
+      "bonus": 8
+    },
+    {
+      "student": "aksenova-elizaveta",
+      "problem": "Г7",
+      "bonus": 0
+    }
+  ]
 }

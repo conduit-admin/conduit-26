@@ -163,16 +163,34 @@
      под отбор по сериям, зато включаются и выключаются отдельным признаком. */
   function graves() { return (DATA.graves && DATA.graves.problems) || []; }
 
-  function graveSolved(id) {
-    return (DATA.graves && DATA.graves.solved && DATA.graves.solved[id]) || [];
+  /* Гроборешение — отдельная запись «кто какой гроб взял». Гробы штучные, и
+     сетка «ученики × гробы» под них не годится: она почти пуста, а надбавку за
+     конкретное решение в клетке «+» показать нечем.
+
+     У файлов, записанных до разделения, вместо списка решений лежит карта
+     solved — читаем и её, иначе на старых данных гробарий оказался бы пуст. */
+  function graveSolutions() {
+    var g = DATA.graves || {};
+    if (Array.isArray(g.solutions)) return g.solutions;
+    var out = [];
+    Object.keys(g.solved || {}).forEach(function (sid) {
+      (g.solved[sid] || []).forEach(function (pid) {
+        out.push({ student: sid, problem: pid, bonus: 0 });
+      });
+    });
+    return out;
   }
 
-  /* Дополнительные баллы ставятся ученику, а не задаче: они не привязаны ни ко
-     дню, ни к теме, поэтому ни один отбор их не трогает — при любом фильтре
-     человек приносит их с собой. */
-  function bonusOf(id) {
-    var v = DATA.bonus && DATA.bonus.points && DATA.bonus.points[id];
-    return typeof v === "number" && isFinite(v) ? v : 0;
+  /* Надбавка ставится за само решение, а не человеку вообще: она прибавляется
+     к цене гроба и вместе с ней достаётся тому, кто его взял. */
+  function solutionBonus(s) {
+    var v = s && s.bonus;
+    return typeof v === "number" && isFinite(v) && v > 0 ? v : 0;
+  }
+
+  // сколько принёс этот плюс имеющему его ученику: цена задачи плюс надбавка
+  function unitValue(u, id) {
+    return u.weight + ((u.bonus && u.bonus[id]) || 0);
   }
 
   function buildIndex() {
@@ -225,10 +243,20 @@
       });
     });
 
+    /* Гроб собирается из своих решений: чужой ученик в счёт не идёт, повтор —
+       тоже. И то и другое сдвинуло бы число решивших, а значит и цену гроба. */
+    var known = {};
+    DATA.students.forEach(function (s) { known[s.id] = true; });
+    var solutions = graveSolutions();
+
     graves().forEach(function (p) {
       var solvers = [];
-      DATA.students.forEach(function (st) {
-        if (graveSolved(st.id).indexOf(p.id) !== -1) solvers.push(st.id);
+      var bonus = {};
+      solutions.forEach(function (s) {
+        if (s.problem !== p.id || !known[s.student]) return;
+        if (solvers.indexOf(s.student) !== -1) return;
+        solvers.push(s.student);
+        bonus[s.student] = solutionBonus(s);
       });
       UNITS.push({
         sn: null,
@@ -238,6 +266,7 @@
         kind: "grave",
         solvers: solvers,
         solverSet: new Set(solvers),
+        bonus: bonus,
         weight: weightOf(solvers.length)
       });
     });
@@ -254,7 +283,7 @@
   }
 
   function isLeader(id) {
-    return !!FULL && FULL.place[id] === 1 && FULL.rows[0].total > 0;
+    return !!FULL && FULL.place[id] === 1 && FULL.rows[0].score > 0;
   }
 
   var KINDS = [["problem", "Задачи"], ["exercise", "Упражнения"], ["grave", "Гробы"]];
@@ -271,7 +300,7 @@
   function computeRating(seriesSet, leafSet, kindSet) {
     kindSet = kindSet || state.kinds;
     var rows = DATA.students.map(function (s) {
-      return { id: s.id, name: s.name, score: 0, pluses: 0, bonus: bonusOf(s.id) };
+      return { id: s.id, name: s.name, score: 0, pluses: 0 };
     });
     var byId = {};
     rows.forEach(function (r) { byId[r.id] = r; });
@@ -285,20 +314,16 @@
       u.solvers.forEach(function (id) {
         var r = byId[id];
         if (!r) return;
-        r.score += u.weight;
+        // надбавка за решение достаётся только тому, кому её поставили
+        r.score += unitValue(u, id);
         r.pluses += 1;
       });
     });
 
-    /* Дополнительные баллы прибавляются к набранному по кондуиту, но лежат
-       отдельным полем: средний балл должен остаться тем, чем был, — очками за
-       один плюс. В потолок они не идут, их не заработать, решая задачи. */
-    rows.forEach(function (r) { r.total = r.score + r.bonus; });
-
     /* Сначала очки, при равенстве — по алфавиту. Место у каждого своё: делить
        одно место на двоих в таблице из двух десятков человек неудобно. */
     rows.sort(function (a, b) {
-      return b.total - a.total || a.name.localeCompare(b.name, "ru");
+      return b.score - a.score || a.name.localeCompare(b.name, "ru");
     });
     rows.forEach(function (r, i) { r.rank = i + 1; });
 
@@ -535,7 +560,7 @@
 
       tr.appendChild(el("td", "rank" + (r.rank <= 3 ? " rank-top" : ""), r.rank));
       tr.appendChild(nameCell("td", "left name", r));
-      tr.appendChild(el("td", "score", num(r.total)));
+      tr.appendChild(el("td", "score", num(r.score)));
       tr.appendChild(el("td", "muted", r.pluses));
       tr.appendChild(el("td", "muted", avgScore(r.score, r.pluses)));
 
@@ -694,7 +719,7 @@
 
     host.appendChild(picker);
 
-    if (state.openSeries === GRAVES) return viewGraveConduit(host);
+    if (state.openSeries === GRAVES) return viewGraveList(host);
 
     var s = DATA.series.filter(function (x) { return x.n === state.openSeries; })[0];
     if (!s) return;
@@ -725,9 +750,11 @@
     }));
   }
 
-  /* Гробарий в том же виде, что и день: сетка «ученики × задачи», внизу сколько
-     человек взяло гроб и сколько он стоит. */
-  function viewGraveConduit(host) {
+  /* Гробарий — списком, а не сеткой. Гробы штучные: сетка «ученики × гробы»
+     стоит почти пустой, и в клетке «+» негде показать надбавку за решение.
+     Взятые идут первыми — ради них сюда и заходят; остальные собраны одной
+     строкой внизу, чтобы было видно, что ещё лежит нерешённым. */
+  function viewGraveList(host) {
     var list = graves();
     if (!list.length) {
       var none = el("div", "card");
@@ -739,19 +766,66 @@
     var byId = {};
     UNITS.forEach(function (u) { if (u.kind === "grave") byId[u.id] = u; });
 
+    var student = {};
+    DATA.students.forEach(function (s) { student[s.id] = s; });
+
     var sh = el("div", "section-head");
     sh.appendChild(el("span", "section-title", "Гробарий"));
     host.appendChild(sh);
 
-    var order = byName(computeRating(new Set(), allLeaves(), new Set(["grave"])).rows);
+    var taken = list.filter(function (p) { return byId[p.id].solvers.length; });
+    var free = list.filter(function (p) { return !byId[p.id].solvers.length; });
 
-    host.appendChild(conduitTables(list, order, function (p, r) {
-      return byId[p.id].solverSet.has(r.id) ? el("div", "mark on", "+") : el("div", "mark");
-    }, function (p) {
-      return [byId[p.id].solvers.length, byId[p.id].weight];
-    }, function (r) {
-      return list.filter(function (p) { return byId[p.id].solverSet.has(r.id); }).length;
-    }));
+    if (taken.length) {
+      var card = el("div", "card");
+      taken.forEach(function (p) {
+        var u = byId[p.id];
+        var leaf = LEAF[leafKey(p.type, p.sub)];
+
+        var block = el("div", "tblock");
+
+        var head = el("div", "grave-head");
+        head.appendChild(el("b", "grave-num", p.id));
+        var theme = el("span", "grave-theme");
+        var d = el("span", "dot");
+        // без темы — серый кружок: гроб виден, но в рейтинг не идёт
+        d.style.background = leaf ? "var(--s" + leaf.slot + ")" : "var(--axis)";
+        theme.appendChild(d);
+        theme.appendChild(document.createTextNode(leaf ? leaf.label : "без темы"));
+        head.appendChild(theme);
+        block.appendChild(head);
+
+        byName(u.solvers.map(function (sid) { return student[sid]; }))
+          .forEach(function (st) { block.appendChild(graveLine(st, u)); });
+
+        card.appendChild(block);
+      });
+      host.appendChild(card);
+    }
+
+    if (free.length) {
+      host.appendChild(el("div", "summary",
+        free.map(function (p) { return p.id; }).join(", ") + " — пока никто"));
+    }
+  }
+
+  /* Строка решения: кто взял и сколько это принесло. Надбавку показываем
+     слагаемым — иначе 31 у одного и 23 у другого за один и тот же гроб
+     выглядели бы опечаткой. */
+  function graveLine(st, u) {
+    var line = el("div", "grave-line");
+    line.appendChild(nameCell("span", "grave-who", st));
+
+    var extra = (u.bonus && u.bonus[st.id]) || 0;
+    var val = el("span", "grave-val");
+    if (extra) {
+      val.appendChild(el("i", "grave-sum", "+" + num(u.weight) + " +" + num(extra) + " ="));
+      val.appendChild(document.createTextNode(" " + num(u.weight + extra)));
+    } else {
+      val.appendChild(document.createTextNode("+" + num(u.weight)));
+    }
+    line.appendChild(val);
+    return line;
   }
 
   // ── вид: ученики ────────────────────────────────────────
@@ -767,11 +841,7 @@
 
     var tiles = el("div", "tiles");
     tiles.appendChild(tile("Место", row.rank + " / " + DATA.students.length, null));
-    tiles.appendChild(tile("Очки", num(row.total), "из " + num(f.ceiling)));
-    /* Дополнительные баллы стоят своей плиткой: в потолок они не входят, и без
-       пометки сумма выглядела бы ошибкой счёта. Нулевую не показываем — пустая
-       строка ничего не сообщает. */
-    if (row.bonus) tiles.appendChild(tile("Доп. баллы", "+" + num(row.bonus), null));
+    tiles.appendChild(tile("Очки", num(row.score), "из " + num(f.ceiling)));
     tiles.appendChild(tile("Задачи", row.pluses + " / " + f.available, null));
 
     // половина задач — рубеж, который стоит отметить
@@ -781,9 +851,9 @@
     tiles.appendChild(pctTile);
 
     var best = bestProblem(id);
-    tiles.appendChild(tile("Самый ценный плюс", best ? "+" + best.weight : "—",
-      best ? (best.sn === null ? "гроб " + best.id
-        : "серия " + seriesNoBySlot(best.sn) + ", задача " + best.id) : null));
+    tiles.appendChild(tile("Самый ценный плюс", best ? "+" + best.value : "—",
+      best ? (best.u.sn === null ? "гроб " + best.u.id
+        : "серия " + seriesNoBySlot(best.u.sn) + ", задача " + best.u.id) : null));
     host.appendChild(tiles);
 
     var sh2 = el("div", "section-head");
@@ -827,7 +897,7 @@
         mine.forEach(function (u) {
           var chip = el("span", "smini");
           chip.appendChild(el("b", null, u.id));
-          chip.appendChild(document.createTextNode(" +" + u.weight));
+          chip.appendChild(document.createTextNode(" +" + unitValue(u, id)));
           box.appendChild(chip);
         });
       } else {
@@ -932,11 +1002,14 @@
     return box;
   }
 
+  /* Самый ценный плюс — по тому, сколько он принёс этому ученику: у гроба с
+     надбавкой цена своя, и сравнивать голые веса было бы неверно. */
   function bestProblem(id) {
     var best = null;
     UNITS.forEach(function (u) {
       if (!u.solverSet.has(id)) return;
-      if (!best || u.weight > best.weight) best = u;
+      var v = unitValue(u, id);
+      if (!best || v > best.value) best = { u: u, value: v };
     });
     return best;
   }
@@ -1007,8 +1080,6 @@
     DATA.graves = DATA.graves || { problems: [], solved: {} };
     DATA.graves.problems = DATA.graves.problems || [];
     DATA.graves.solved = DATA.graves.solved || {};
-    DATA.bonus = DATA.bonus || { points: {} };
-    DATA.bonus.points = DATA.bonus.points || {};
     DATA.students.sort(function (a, b) { return a.name.localeCompare(b.name, "ru"); });
     // порядок ленты — по датам: номер принадлежит серии, а не дню смены
     DATA.series.sort(function (a, b) {
@@ -1035,11 +1106,8 @@
        откроется. Сайт читают дети, чинить его посреди смены некому — пусть
        любая порча данных отнимает часть, а не всё. */
     var days = get("series/manifest.json").catch(function () { return null; });
-    // дополнительных баллов может не быть: файл заводится, только когда их проставят
-    var extra = get("bonus.json").catch(function () { return { points: {} }; });
-
     return Promise.all([
-      get("config.json"), get("types.json"), get("students.json"), days, soft, extra
+      get("config.json"), get("types.json"), get("students.json"), days, soft
     ]).then(function (res) {
       var files = res[3] && Array.isArray(res[3].series) ? res[3].series : [];
       /* Пропавший файл дня не должен ронять страницу целиком: раз в списке
@@ -1050,7 +1118,7 @@
       })).then(function (series) {
         return {
           config: res[0], types: res[1], students: res[2],
-          series: series.filter(Boolean), graves: res[4], bonus: res[5]
+          series: series.filter(Boolean), graves: res[4]
         };
       });
     });
