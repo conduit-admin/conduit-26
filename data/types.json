@@ -34,6 +34,10 @@
       {
         "id": "stereometry",
         "name": "Стереометрия"
+      },
+      {
+        "id": "geomneravenstva",
+        "name": "Геомнеравенства"
       }
     ]
   },
