@@ -19,8 +19,8 @@
     },
     {
       "id": "2",
-      "type": "comb",
-      "sub": "kg",
+      "type": "geometry",
+      "sub": "stereometry",
       "exercise": false
     },
     {
