@@ -18,4 +18,4 @@ python tools/build.py
 
 Чтобы убрать обратно, достаточно удалить всё из `data/series/` кроме
 `manifest.json`, а в самом `manifest.json` оставить `{"series": []}`;
-`data/graves.json` — `{"problems": [], "solved": {}}`.
+`data/graves.json` — `{"problems": [], "solutions": []}`.

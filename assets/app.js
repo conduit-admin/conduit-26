@@ -750,10 +750,17 @@
     }));
   }
 
+  // порядок по номеру: файл обычно уже отсортирован, но полагаться на это незачем
+  function graveNum(id) {
+    var m = String(id).match(/(\d+)/);
+    return m ? Number(m[1]) : 0;
+  }
+
   /* Гробарий — списком, а не сеткой. Гробы штучные: сетка «ученики × гробы»
      стоит почти пустой, и в клетке «+» негде показать надбавку за решение.
-     Взятые идут первыми — ради них сюда и заходят; остальные собраны одной
-     строкой внизу, чтобы было видно, что ещё лежит нерешённым. */
+
+     Стоят все гробы подряд, взятые и нет: гробарий — это ещё и объявление,
+     что вообще лежит нерешённым, а тема у каждого говорит, за что браться. */
   function viewGraveList(host) {
     var list = graves();
     if (!list.length) {
@@ -773,40 +780,37 @@
     sh.appendChild(el("span", "section-title", "Гробарий"));
     host.appendChild(sh);
 
-    var taken = list.filter(function (p) { return byId[p.id].solvers.length; });
-    var free = list.filter(function (p) { return !byId[p.id].solvers.length; });
+    var card = el("div", "card");
+    list.slice().sort(function (a, b) {
+      return graveNum(a.id) - graveNum(b.id);
+    }).forEach(function (p) {
+      var u = byId[p.id];
+      var leaf = LEAF[leafKey(p.type, p.sub)];
 
-    if (taken.length) {
-      var card = el("div", "card");
-      taken.forEach(function (p) {
-        var u = byId[p.id];
-        var leaf = LEAF[leafKey(p.type, p.sub)];
+      var block = el("div", "tblock");
 
-        var block = el("div", "tblock");
+      var head = el("div", "grave-head");
+      head.appendChild(el("b", "grave-num", p.id));
+      var theme = el("span", "grave-theme");
+      var d = el("span", "dot");
+      // без темы — серый кружок: гроб виден, но в рейтинг не идёт
+      d.style.background = leaf ? "var(--s" + leaf.slot + ")" : "var(--axis)";
+      theme.appendChild(d);
+      theme.appendChild(document.createTextNode(leaf ? leaf.label : "без темы"));
+      head.appendChild(theme);
+      block.appendChild(head);
 
-        var head = el("div", "grave-head");
-        head.appendChild(el("b", "grave-num", p.id));
-        var theme = el("span", "grave-theme");
-        var d = el("span", "dot");
-        // без темы — серый кружок: гроб виден, но в рейтинг не идёт
-        d.style.background = leaf ? "var(--s" + leaf.slot + ")" : "var(--axis)";
-        theme.appendChild(d);
-        theme.appendChild(document.createTextNode(leaf ? leaf.label : "без темы"));
-        head.appendChild(theme);
-        block.appendChild(head);
-
+      if (u.solvers.length) {
         byName(u.solvers.map(function (sid) { return student[sid]; }))
           .forEach(function (st) { block.appendChild(graveLine(st, u)); });
+      } else {
+        // цену нерешённого не пишем: она сложится, только когда его возьмут
+        block.appendChild(el("div", "block-none", "пока никто"));
+      }
 
-        card.appendChild(block);
-      });
-      host.appendChild(card);
-    }
-
-    if (free.length) {
-      host.appendChild(el("div", "summary",
-        free.map(function (p) { return p.id; }).join(", ") + " — пока никто"));
-    }
+      card.appendChild(block);
+    });
+    host.appendChild(card);
   }
 
   /* Строка решения: кто взял и сколько это принесло. Надбавку показываем
@@ -911,7 +915,7 @@
       var sh4 = el("div", "section-head");
       sh4.appendChild(el("span", "section-title", "По дням"));
       host.appendChild(sh4);
-      host.appendChild(seriesTable(id));
+      host.appendChild(seriesBlocks(id));
     }
 
     var sign = signature(id);
@@ -934,41 +938,51 @@
     return line;
   }
 
-  function seriesTable(id) {
-    var wrap = el("div", "table-wrap");
-    var table = el("table", "data");
+  /* По дням — что именно взято в каждой серии. Раньше тут стояли одни итоги;
+     номера задач говорят больше: видно, дорогие задачи человек берёт или много
+     дешёвых, и какая серия ему не далась. Итоги остались в шапке дня. */
+  function seriesBlocks(id) {
+    var card = el("div", "card");
 
-    var thead = el("thead");
-    var hr = el("tr");
-    hr.appendChild(th("Серия", "left"));
-    hr.appendChild(th("Задачи"));
-    hr.appendChild(th("Очки"));
-    thead.appendChild(hr);
-    table.appendChild(thead);
-
-    var tbody = el("tbody");
     realSeries().forEach(function (s) {
-      var got = 0, total = 0, score = 0, ceiling = 0;
+      var mine = [], total = 0, score = 0, ceiling = 0;
       UNITS.forEach(function (u) {
         if (u.sn !== s.n) return;
         total += 1;
         ceiling += u.weight;
-        if (u.solverSet.has(id)) { got += 1; score += u.weight; }
+        if (u.solverSet.has(id)) {
+          mine.push(u);
+          score += unitValue(u, id);
+        }
       });
 
-      var tr = el("tr");
-      var first = el("td", "left");
-      first.appendChild(el("b", null, seriesNo(s)));
-      first.appendChild(el("span", "muted date", prettyDate(s.date, true)));
-      tr.appendChild(first);
-      tr.appendChild(el("td", null, got + " / " + total));
-      tr.appendChild(el("td", null, num(score) + " / " + num(ceiling)));
-      tbody.appendChild(tr);
-    });
-    table.appendChild(tbody);
+      var block = el("div", "tblock");
 
-    wrap.appendChild(table);
-    return wrap;
+      var head = el("div", "dblock-head");
+      var name = el("span", "dblock-name", "Серия " + seriesNo(s));
+      name.appendChild(el("span", "dblock-date", prettyDate(s.date, true)));
+      head.appendChild(name);
+      head.appendChild(el("span", "dblock-val",
+        mine.length + " / " + total + " · " + num(score) + " / " + num(ceiling)));
+      block.appendChild(head);
+
+      if (mine.length) {
+        var box = el("div", "series-mini");
+        mine.forEach(function (u) {
+          var chip = el("span", "smini");
+          chip.appendChild(el("b", null, u.id));
+          chip.appendChild(document.createTextNode(" +" + unitValue(u, id)));
+          box.appendChild(chip);
+        });
+        block.appendChild(box);
+      } else {
+        block.appendChild(el("div", "block-none", "ни одной"));
+      }
+
+      card.appendChild(block);
+    });
+
+    return card;
   }
 
   function statFor(keys, studentId) {

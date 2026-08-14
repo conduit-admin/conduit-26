@@ -21,77 +21,146 @@
       "sub": "inequalities"
     }
   ],
-  "solved": {
-    "aksenova-elizaveta": [
-      "Г1",
-      "Г2",
-      "Г3"
-    ],
-    "afanasev-igor": [
-      "Г1",
-      "Г2",
-      "Г3"
-    ],
-    "boyko-gleb": [
-      "Г1"
-    ],
-    "budyanskiy-mihail": [
-      "Г2"
-    ],
-    "velichko-platon": [
-      "Г1"
-    ],
-    "gulev-maksim": [
-      "Г2"
-    ],
-    "zarechnyuk-georgiy": [],
-    "karonov-mihail": [
-      "Г3"
-    ],
-    "karev-denis": [
-      "Г1"
-    ],
-    "kovalev-artem": [
-      "Г1",
-      "Г3"
-    ],
-    "kostylev-konstantin": [],
-    "larionova-natalya": [
-      "Г2"
-    ],
-    "lyubimov-slaven": [],
-    "mahrov-aleksandr": [
-      "Г2"
-    ],
-    "novoselov-maksim": [
-      "Г1",
-      "Г3"
-    ],
-    "osipova-viktoriya": [],
-    "pogorelov-denis": [
-      "Г2",
-      "Г3"
-    ],
-    "rudakova-vasilisa": [
-      "Г1"
-    ],
-    "strelkov-sergey": [],
-    "titov-viktor": [
-      "Г2"
-    ],
-    "titov-dmitriy": [
-      "Г1",
-      "Г3"
-    ],
-    "celikov-aleksandr": [
-      "Г2"
-    ],
-    "shipilov-andrey": [
-      "Г1"
-    ],
-    "shirtanova-valeriya": [
-      "Г2",
-      "Г3"
-    ]
-  }
+  "solutions": [
+    {
+      "student": "aksenova-elizaveta",
+      "problem": "Г1",
+      "bonus": 0
+    },
+    {
+      "student": "afanasev-igor",
+      "problem": "Г1",
+      "bonus": 0
+    },
+    {
+      "student": "boyko-gleb",
+      "problem": "Г1",
+      "bonus": 0
+    },
+    {
+      "student": "velichko-platon",
+      "problem": "Г1",
+      "bonus": 0
+    },
+    {
+      "student": "karev-denis",
+      "problem": "Г1",
+      "bonus": 0
+    },
+    {
+      "student": "kovalev-artem",
+      "problem": "Г1",
+      "bonus": 0
+    },
+    {
+      "student": "novoselov-maksim",
+      "problem": "Г1",
+      "bonus": 0
+    },
+    {
+      "student": "rudakova-vasilisa",
+      "problem": "Г1",
+      "bonus": 0
+    },
+    {
+      "student": "titov-dmitriy",
+      "problem": "Г1",
+      "bonus": 0
+    },
+    {
+      "student": "shipilov-andrey",
+      "problem": "Г1",
+      "bonus": 0
+    },
+    {
+      "student": "aksenova-elizaveta",
+      "problem": "Г2",
+      "bonus": 0
+    },
+    {
+      "student": "afanasev-igor",
+      "problem": "Г2",
+      "bonus": 0
+    },
+    {
+      "student": "budyanskiy-mihail",
+      "problem": "Г2",
+      "bonus": 0
+    },
+    {
+      "student": "gulev-maksim",
+      "problem": "Г2",
+      "bonus": 0
+    },
+    {
+      "student": "larionova-natalya",
+      "problem": "Г2",
+      "bonus": 0
+    },
+    {
+      "student": "mahrov-aleksandr",
+      "problem": "Г2",
+      "bonus": 0
+    },
+    {
+      "student": "pogorelov-denis",
+      "problem": "Г2",
+      "bonus": 0
+    },
+    {
+      "student": "titov-viktor",
+      "problem": "Г2",
+      "bonus": 0
+    },
+    {
+      "student": "celikov-aleksandr",
+      "problem": "Г2",
+      "bonus": 0
+    },
+    {
+      "student": "shirtanova-valeriya",
+      "problem": "Г2",
+      "bonus": 0
+    },
+    {
+      "student": "aksenova-elizaveta",
+      "problem": "Г3",
+      "bonus": 0
+    },
+    {
+      "student": "afanasev-igor",
+      "problem": "Г3",
+      "bonus": 0
+    },
+    {
+      "student": "karonov-mihail",
+      "problem": "Г3",
+      "bonus": 0
+    },
+    {
+      "student": "kovalev-artem",
+      "problem": "Г3",
+      "bonus": 0
+    },
+    {
+      "student": "novoselov-maksim",
+      "problem": "Г3",
+      "bonus": 0
+    },
+    {
+      "student": "pogorelov-denis",
+      "problem": "Г3",
+      "bonus": 0
+    },
+    {
+      "student": "titov-dmitriy",
+      "problem": "Г3",
+      "bonus": 0
+    },
+    {
+      "student": "shirtanova-valeriya",
+      "problem": "Г3",
+      "bonus": 0
+    }
+  ]
 }
