@@ -193,6 +193,22 @@
     return u.weight + ((u.bonus && u.bonus[id]) || 0);
   }
 
+  /* Ликбезы — приложенные к смене pdf. Со счётом они никак не связаны: это
+     просто файлы, которые надо раздать. Список лежит в data/likbez.json, сами
+     файлы — в data/likbez/. */
+  function likbez() {
+    var items = DATA.likbez && DATA.likbez.items;
+    return Array.isArray(items) ? items : [];
+  }
+
+  /* Размер словами: килобайты до мегабайта, дальше мегабайты с десятой. Точный
+     байт никому не нужен — важно понять, ждать ли загрузку с телефона. */
+  function fileSize(n) {
+    if (typeof n !== "number" || !isFinite(n) || n <= 0) return "";
+    if (n < 1024 * 1024) return Math.max(1, Math.round(n / 1024)) + " КБ";
+    return (n / 1024 / 1024).toFixed(1).replace(".", ",") + " МБ";
+  }
+
   function buildIndex() {
     CAT = {};
     DATA.types.forEach(function (t) { CAT[t.id] = t; });
@@ -832,6 +848,46 @@
     return line;
   }
 
+  // ── вид: ликбезы ────────────────────────────────────────
+
+  /* Список файлов и больше ничего: сюда заходят с одной целью — забрать pdf,
+     поэтому вся строка и есть кнопка скачивания. */
+  function viewLikbez(host) {
+    var items = likbez();
+    if (!items.length) {
+      var none = el("div", "card");
+      none.appendChild(el("div", "section-title", "Ликбезов пока нет"));
+      host.appendChild(none);
+      return;
+    }
+
+    /* В офлайн-копии файлов нет: она собрана одной страницей, класть в неё
+       десятки мегабайт pdf незачем. Названия оставляем — по ним видно, что
+       искать на сайте, — но ссылками не притворяемся. */
+    var offline = !!DATA.config.offline_date;
+
+    var card = el("div", "card");
+    items.forEach(function (it) {
+      var row = el(offline ? "div" : "a", "lik-row" + (offline ? " off" : ""));
+      if (!offline) {
+        row.href = "data/likbez/" + encodeURIComponent(it.file);
+        // без этого телефон открывает pdf во вкладке, а его просили скачать
+        row.setAttribute("download", it.title + ".pdf");
+      }
+
+      var main = el("span", "lik-main");
+      main.appendChild(el("span", "lik-title", it.title));
+      main.appendChild(el("span", "lik-meta",
+        offline ? "нет в офлайн-копии" : "PDF" +
+          (fileSize(it.size) ? " · " + fileSize(it.size) : "")));
+      row.appendChild(main);
+
+      if (!offline) row.appendChild(el("span", "lik-get", "скачать"));
+      card.appendChild(row);
+    });
+    host.appendChild(card);
+  }
+
   // ── вид: ученики ────────────────────────────────────────
 
   function viewStudentCard(host, id) {
@@ -1054,6 +1110,7 @@
       if (state.openStudent) viewStudentCard(main, state.openStudent);
       else viewRating(main);
     } else if (state.view === "series") viewSeries(main);
+    else if (state.view === "likbez") viewLikbez(main);
   }
 
   function setupChrome() {
@@ -1094,6 +1151,8 @@
     DATA.graves = DATA.graves || { problems: [], solved: {} };
     DATA.graves.problems = DATA.graves.problems || [];
     DATA.graves.solved = DATA.graves.solved || {};
+    DATA.likbez = DATA.likbez || { items: [] };
+    DATA.likbez.items = DATA.likbez.items || [];
     DATA.students.sort(function (a, b) { return a.name.localeCompare(b.name, "ru"); });
     // порядок ленты — по датам: номер принадлежит серии, а не дню смены
     DATA.series.sort(function (a, b) {
@@ -1120,8 +1179,11 @@
        откроется. Сайт читают дети, чинить его посреди смены некому — пусть
        любая порча данных отнимает часть, а не всё. */
     var days = get("series/manifest.json").catch(function () { return null; });
+    // ликбезов может не быть вовсе — это не повод не открыть сайт
+    var lik = get("likbez.json").catch(function () { return { items: [] }; });
+
     return Promise.all([
-      get("config.json"), get("types.json"), get("students.json"), days, soft
+      get("config.json"), get("types.json"), get("students.json"), days, soft, lik
     ]).then(function (res) {
       var files = res[3] && Array.isArray(res[3].series) ? res[3].series : [];
       /* Пропавший файл дня не должен ронять страницу целиком: раз в списке
@@ -1132,7 +1194,7 @@
       })).then(function (series) {
         return {
           config: res[0], types: res[1], students: res[2],
-          series: series.filter(Boolean), graves: res[4]
+          series: series.filter(Boolean), graves: res[4], likbez: res[5]
         };
       });
     });
@@ -1143,7 +1205,7 @@
      касание — не начало прокрутки, и на быстром тапе состояние успевает
      появиться и исчезнуть за несколько миллисекунд. Анимация же, раз начавшись,
      доигрывает до конца независимо от того, как долго держали палец. */
-  var TAPPABLE = "button:not(.mark), .chip, a.ghost-btn, tr.clickable";
+  var TAPPABLE = "button:not(.mark), .chip, a.ghost-btn, a.lik-row, tr.clickable";
 
   function enableTapFeedback() {
     document.addEventListener("pointerdown", function (e) {

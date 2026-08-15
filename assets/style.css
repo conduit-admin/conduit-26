@@ -1667,6 +1667,61 @@ body.is-editor .brand::after {
   color: var(--ink-muted);
 }
 
+/* ── ликбезы ───────────────────────────────────────────── */
+
+/* Вся строка — кнопка скачивания: на телефоне целиться в маленькую ссылку
+   рядом с названием неудобно, а другого действия у строки и нет. */
+.lik-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: var(--tap);
+  padding: 10px 0;
+  border-bottom: 1px solid var(--grid);
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.lik-row:last-child { border-bottom: 0; }
+.lik-row:hover { background: var(--wash); }
+
+.lik-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.lik-title {
+  font-size: 15px;
+  font-weight: 560;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lik-meta { font-size: 12px; color: var(--ink-muted); }
+
+/* Слово, а не значок: значок пришлось бы рисовать, а места хватает. */
+.lik-get {
+  flex: none;
+  font-size: 12.5px;
+  font-weight: 560;
+  color: var(--ink-2);
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  padding: 6px 12px;
+}
+
+.lik-row:hover .lik-get { color: var(--ink); border-color: var(--ink); }
+
+/* В офлайн-копии файлов нет: строка остаётся, но не притворяется кнопкой. */
+.lik-row.off { cursor: default; }
+.lik-row.off:hover { background: none; }
+.lik-row.off .lik-title { color: var(--ink-2); font-weight: 500; }
+
 /* ── плюсы по дням ─────────────────────────────────────── */
 
 /* Шапка дня: номер с датой слева, итоги справа. Итоги набраны мелко — они

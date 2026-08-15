@@ -72,6 +72,7 @@ def stamp_config(version: str) -> None:
 def load_all() -> dict:
     manifest = read_json(DATA / "series" / "manifest.json")
     graves_path = DATA / "graves.json"
+    likbez_path = DATA / "likbez.json"
     bundle = {
         "config": read_json(DATA / "config.json"),
         "types": read_json(DATA / "types.json"),
@@ -81,6 +82,11 @@ def load_all() -> dict:
             read_json(graves_path)
             if graves_path.exists()
             else {"problems": [], "solutions": []}
+        ),
+        # сами pdf в офлайн-копию не кладём: она страница, а не архив.
+        # Названия оставляем — по ним видно, что искать на сайте.
+        "likbez": (
+            read_json(likbez_path) if likbez_path.exists() else {"items": []}
         ),
     }
     bundle["config"]["offline_date"] = date.today().isoformat()
@@ -126,7 +132,8 @@ def main() -> None:
     print(f"данные: {len(bundle['students'])} учеников, "
           f"{len(bundle['series'])} серий, {cells} задач, "
           f"{len(graves['problems'])} гробов, "
-          f"{len(graves.get('solutions', []))} гроборешений")
+          f"{len(graves.get('solutions', []))} гроборешений, "
+          f"{len(bundle['likbez'].get('items', []))} ликбезов")
 
 
 if __name__ == "__main__":
