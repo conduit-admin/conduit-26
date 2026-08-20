@@ -1,0 +1,261 @@
+{
+  "n": 12,
+  "series": 10,
+  "date": "2026-08-20",
+  "kind": "series",
+  "title": "Серия 10",
+  "problems": [
+    {
+      "id": "0",
+      "type": "algebra",
+      "sub": "matan",
+      "exercise": true
+    },
+    {
+      "id": "1а",
+      "type": "algebra",
+      "sub": "matan",
+      "exercise": false
+    },
+    {
+      "id": "1б",
+      "type": "algebra",
+      "sub": "matan",
+      "exercise": false
+    },
+    {
+      "id": "1в",
+      "type": "algebra",
+      "sub": "matan",
+      "exercise": false
+    },
+    {
+      "id": "2",
+      "type": "geometry",
+      "sub": "planimetry",
+      "exercise": false
+    },
+    {
+      "id": "3",
+      "type": "geometry",
+      "sub": "stereometry",
+      "exercise": false
+    },
+    {
+      "id": "4",
+      "type": "numbers",
+      "sub": "klassika-2",
+      "exercise": false
+    },
+    {
+      "id": "5",
+      "type": "algebra",
+      "sub": "inequalities",
+      "exercise": false
+    },
+    {
+      "id": "6",
+      "type": "comb",
+      "sub": "cells",
+      "exercise": false
+    },
+    {
+      "id": "7а",
+      "type": "comb",
+      "sub": "graphs",
+      "exercise": false
+    },
+    {
+      "id": "7б",
+      "type": "comb",
+      "sub": "graphs",
+      "exercise": false
+    },
+    {
+      "id": "Б2",
+      "type": "comb",
+      "sub": "graphs",
+      "exercise": true
+    }
+  ],
+  "solved": {
+    "aksenova-elizaveta": [
+      "Б2",
+      "1а",
+      "1б",
+      "1в",
+      "2",
+      "5",
+      "7а",
+      "7б"
+    ],
+    "afanasev-igor": [
+      "0",
+      "1а",
+      "1б",
+      "1в",
+      "2",
+      "3",
+      "5",
+      "7а",
+      "7б"
+    ],
+    "boyko-gleb": [
+      "0",
+      "1а",
+      "2",
+      "7а",
+      "7б"
+    ],
+    "budyanskiy-mihail": [
+      "1а",
+      "1б",
+      "1в",
+      "2",
+      "5",
+      "7а",
+      "7б"
+    ],
+    "velichko-platon": [
+      "2",
+      "5"
+    ],
+    "gulev-maksim": [
+      "1а",
+      "2",
+      "5",
+      "7а"
+    ],
+    "zarechnyuk-georgiy": [
+      "0",
+      "2",
+      "5"
+    ],
+    "karonov-mihail": [
+      "0",
+      "1а",
+      "1б",
+      "1в",
+      "2",
+      "5",
+      "7а"
+    ],
+    "karev-denis": [
+      "0",
+      "7а",
+      "7б"
+    ],
+    "kovalev-artem": [
+      "0",
+      "1а",
+      "2",
+      "3",
+      "5"
+    ],
+    "kostylev-konstantin": [
+      "0",
+      "1а",
+      "1б",
+      "2",
+      "5",
+      "7а",
+      "7б"
+    ],
+    "larionova-natalya": [
+      "0",
+      "1а",
+      "1б",
+      "1в",
+      "2",
+      "5",
+      "7а",
+      "7б"
+    ],
+    "lyubimov-slaven": [
+      "1а",
+      "1б",
+      "1в",
+      "2",
+      "5"
+    ],
+    "mahrov-aleksandr": [
+      "0",
+      "1а",
+      "1б",
+      "1в",
+      "2",
+      "7а",
+      "7б"
+    ],
+    "novoselov-maksim": [
+      "Б2",
+      "7а"
+    ],
+    "osipova-viktoriya": [
+      "1а",
+      "2",
+      "5",
+      "7а",
+      "7б"
+    ],
+    "pogorelov-denis": [
+      "2",
+      "5"
+    ],
+    "rudakova-vasilisa": [
+      "0",
+      "1а",
+      "2",
+      "7а"
+    ],
+    "strelkov-sergey": [
+      "0",
+      "1а",
+      "1б",
+      "2",
+      "7а",
+      "7б"
+    ],
+    "titov-viktor": [
+      "1а",
+      "1б",
+      "1в",
+      "2",
+      "3",
+      "5",
+      "7а",
+      "7б"
+    ],
+    "titov-dmitriy": [
+      "1а",
+      "1б",
+      "1в",
+      "2",
+      "3",
+      "5",
+      "7а",
+      "7б"
+    ],
+    "celikov-aleksandr": [
+      "1а",
+      "1б",
+      "1в",
+      "2",
+      "5",
+      "7а"
+    ],
+    "shipilov-andrey": [
+      "1а",
+      "2",
+      "5",
+      "7а"
+    ],
+    "shirtanova-valeriya": [
+      "0",
+      "1а",
+      "5",
+      "7а",
+      "7б"
+    ]
+  }
+}
