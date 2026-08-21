@@ -1048,7 +1048,7 @@ td .date { margin-left: 8px; font-size: 12px; }
    преобразованием, оно не трогает разметку и ничего не сдвигает вокруг. */
 .chip, .ghost-btn, .primary-btn, .icon-btn, .mini-btn,
 .tab, .cal-day, .cal-nav, .banner-close, .picker-btn,
-.step-btn, .step-val {
+.step-btn, .step-val, .wchip {
   transition: background-color .14s ease, color .14s ease,
               border-color .14s ease, opacity .14s ease;
 }
@@ -1204,7 +1204,7 @@ select.input { padding-right: 6px; }
 
 .prow {
   display: grid;
-  grid-template-columns: 62px minmax(0, 1fr) 34px;
+  grid-template-columns: 62px minmax(0, 1fr) auto 34px;
   align-items: center;
   gap: 8px;
 }
@@ -1222,12 +1222,15 @@ select.input { padding-right: 6px; }
   background: var(--s2);
 }
 
-/* у гроба правится только число, буква Г — подпись слева от поля */
-.prow.grave { grid-template-columns: 80px minmax(0, 1fr) 34px; }
+/* у гроба правится только число, буква Г — подпись слева от поля, буква
+   пункта — справа, поэтому колонка шире, чем у задачи серии */
+.prow.grave { grid-template-columns: 80px minmax(0, 1fr) auto 34px; }
+.prow.grave.part { grid-template-columns: 92px minmax(0, 1fr) auto 34px; }
 
 /* спрошено удаление: на месте крестика два бокса — «удалить» и «передумал» */
-.prow.asking { grid-template-columns: 62px minmax(0, 1fr) 76px; }
-.prow.grave.asking { grid-template-columns: 80px minmax(0, 1fr) 76px; }
+.prow.asking { grid-template-columns: 62px minmax(0, 1fr) auto 76px; }
+.prow.grave.asking { grid-template-columns: 80px minmax(0, 1fr) auto 76px; }
+.prow.grave.part.asking { grid-template-columns: 92px minmax(0, 1fr) auto 76px; }
 
 .grave-id {
   display: flex;
@@ -1236,6 +1239,13 @@ select.input { padding-right: 6px; }
 }
 
 .grave-pre {
+  font-size: 15px;
+  font-weight: 560;
+  color: var(--ink-2);
+}
+
+/* буква пункта — подпись, а не поле: её правят через «+ пункт», не руками */
+.grave-post {
   font-size: 15px;
   font-weight: 560;
   color: var(--ink-2);
@@ -1520,6 +1530,66 @@ body.is-editor .brand::after {
 
 .chip.day.pending b { color: var(--ink-muted); }
 
+/* ── цена задачи ───────────────────────────────────────── */
+
+/* Цена в строке задачи. Приглушённая — считается формулой, плотная и в рамке
+   цвета отличия — задана вручную: разницу видно, не открывая панель. */
+.wchip {
+  appearance: none;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--ink-muted);
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  min-width: 38px;
+  min-height: 34px;
+  padding: 0 6px;
+  cursor: pointer;
+}
+
+.wchip:hover { background: var(--wash); border-color: var(--border-strong); }
+
+.wchip.on {
+  color: var(--accent-hi);
+  border-color: var(--accent-hi);
+  background: var(--accent-wash);
+}
+
+/* Ряд кнопок: по десять по краям, по одному внутри, число посередине. Числа
+   на телефоне не набирают, а дотянуться до цены смены этими шагами хватает. */
+.wrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.step-btn.wide { width: auto; padding: 0 10px; font-size: 14px; }
+
+.wfoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 10px;
+  padding-top: 9px;
+  border-top: 1px solid var(--grid);
+}
+
+.wnote { font-size: 12.5px; color: var(--ink-muted); }
+
+.mini-btn:disabled { opacity: .4; cursor: default; }
+
+.mini-btn:disabled:hover {
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--ink-2);
+}
+
 /* ── гроборешения ──────────────────────────────────────── */
 
 /* Счётчик надбавки вместо поля ввода: числового поля здесь нет вовсе.
@@ -1753,10 +1823,14 @@ body.is-editor .brand::after {
 
 
 @media (max-width: 560px) {
-  .prow { grid-template-columns: 48px minmax(0, 1fr) 32px; column-gap: 8px; }
-  .prow.grave { grid-template-columns: 66px minmax(0, 1fr) 32px; }
-  .prow.asking { grid-template-columns: 48px minmax(0, 1fr) 76px; }
-  .prow.grave.asking { grid-template-columns: 66px minmax(0, 1fr) 76px; }
+  .prow { grid-template-columns: 48px minmax(0, 1fr) auto 32px; column-gap: 6px; }
+  .prow.grave { grid-template-columns: 66px minmax(0, 1fr) auto 32px; }
+  .prow.grave.part { grid-template-columns: 78px minmax(0, 1fr) auto 32px; }
+  .prow.asking { grid-template-columns: 48px minmax(0, 1fr) auto 76px; }
+  .prow.grave.asking { grid-template-columns: 66px minmax(0, 1fr) auto 76px; }
+  .prow.grave.part.asking { grid-template-columns: 78px minmax(0, 1fr) auto 76px; }
+  /* на телефоне чип цены ужимаем: место нужнее названию темы */
+  .wchip { min-width: 32px; padding: 0 4px; font-size: 12.5px; }
   .input.tiny { width: 48px; }
   .datefield { min-width: 0; }
   .step-val { min-width: 48px; }

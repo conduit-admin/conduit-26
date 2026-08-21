@@ -42,6 +42,7 @@
     sig: null,              // переключатель подписи; null — не трогали
     wn: null,               // n в формуле очков; null — не трогали
     pickTheme: null,    // id задачи, у которой открыт выбор темы
+    pickWeight: null,   // id задачи, у которой открыта своя цена
     pickDate: false,
     pickSolver: null,   // номер гроборешения, у которого открыт выбор ученика
     pickGrave: null,    // то же для выбора гроба
@@ -392,6 +393,7 @@
     state.note = "";
     state.noteKind = "";
     state.pickTheme = null;
+    state.pickWeight = null;
     state.pickDate = false;
     state.confirmDelete = false;
     state.confirmProblem = null;
@@ -569,12 +571,16 @@
       kind: d.kind || "series",
       title: plain ? DAY_NAME[d.kind] : "Серия " + seriesNo(d),
       problems: plain ? [] : (d.problems || []).map(function (p) {
-        return {
+        var out = {
           id: String(p.id).trim(),
           type: p.type,
           sub: p.sub || null,
           exercise: isExercise(p)
         };
+        // поле только у задач со своей ценой: иначе оно висело бы у всех подряд
+        var w = customWeight(p);
+        if (w !== null) out.weight = w;
+        return out;
       }),
       solved: {}
     };
@@ -829,6 +835,21 @@
      которую взяли все, обнулять не за что: она была решена, просто всеми. */
   function weightOf(k) { return Math.max(wnValue() - k, 1); }
 
+  /* Цену задачи можно задать вручную. Формула знает только число решивших, а
+     задача бывает дорога и не поэтому: её давали с подсказкой, или она стоила
+     целого вечера. Заданная вручную цена от числа решивших не зависит вовсе.
+
+     Пустого поля тут не бывает: не задана — значит считается формулой. */
+  function customWeight(p) {
+    var w = p && p.weight;
+    return typeof w === "number" && isFinite(w) && w > 0 ? Math.round(w) : null;
+  }
+
+  function priceOf(p, solvers) {
+    var w = customWeight(p);
+    return w === null ? weightOf(solvers) : w;
+  }
+
   function wnDirty() {
     if (state.wn === null) return false;
     return state.wn !== (SAVED.wn !== null ? SAVED.wn : configN());
@@ -933,7 +954,17 @@
     return m ? Number(m[1]) : 0;
   }
 
-  function cmpGraves(a, b) { return graveNum(a) - graveNum(b); }
+  /* Пункты одного гроба идут по букве: номер у них общий, и без второго
+     сравнения Г3а и Г3б встали бы как придётся. */
+  function cmpGraves(a, b) {
+    return graveNum(a) - graveNum(b) || String(a).localeCompare(String(b), "ru");
+  }
+
+  // буква пункта, если она есть: Г3а → «а», Г3 → «»
+  function graveSuffix(id) {
+    var m = String(id).match(/^Г\d+(.*)$/);
+    return m ? m[1] : "";
+  }
 
   function sortGraves() {
     ensureGraves().problems.sort(function (a, b) { return cmpGraves(a.id, b.id); });
@@ -966,7 +997,10 @@
 
     return {
       problems: (((g && g.problems) || [])).map(function (p) {
-        return { id: p.id, type: p.type, sub: p.sub || null };
+        var out = { id: p.id, type: p.type, sub: p.sub || null };
+        var w = customWeight(p);
+        if (w !== null) out.weight = w;
+        return out;
       }),
       solutions: list
     };
@@ -1001,6 +1035,51 @@
     touchGraves();
   }
 
+  // семья пунктов последнего гроба: Г3 → [Г3], Г3а/Г3б → [Г3а, Г3б]
+  function lastGraveFamily() {
+    var ps = ensureGraves().problems;
+    if (!ps.length) return [];
+    var last = graveNum(ps[ps.length - 1].id);
+    return ps.filter(function (p) { return graveNum(p.id) === last; });
+  }
+
+  // букв ровно шесть — как и у задачи серии
+  function canAddGravePart() {
+    return lastGraveFamily().length < LETTERS.length;
+  }
+
+  function insertGraveAfter(anchor, item) {
+    var ps = ensureGraves().problems;
+    var i = ps.indexOf(anchor);
+    ps.splice(i === -1 ? ps.length : i + 1, 0, item);
+  }
+
+  /* Пункт гроба — то же, что пункт задачи серии: Г3 превращается в Г3а, и
+     рядом встаёт Г3б. Решения при переименовании не теряются: renameGrave
+     правит и их. Цена у пунктов своя — каждый считается отдельной задачей. */
+  function addGravePart() {
+    var ps = ensureGraves().problems;
+    if (!ps.length) return addGrave();
+    if (!canAddGravePart()) return;
+
+    var last = graveNum(ps[ps.length - 1].id);
+    var family = lastGraveFamily();
+    var sample = family[family.length - 1];
+
+    if (family.length === 1 && sample.id === "Г" + last) {
+      renameGrave(sample.id, "Г" + last + LETTERS[0]);
+      insertGraveAfter(sample, {
+        id: "Г" + last + LETTERS[1], type: sample.type, sub: sample.sub
+      });
+    } else {
+      insertGraveAfter(sample, {
+        id: "Г" + last + LETTERS[family.length], type: sample.type, sub: sample.sub
+      });
+    }
+    sortGraves();
+    touchGraves();
+  }
+
   function removeGrave(id) {
     var g = ensureGraves();
     g.problems = g.problems.filter(function (p) { return p.id !== id; });
@@ -1027,7 +1106,9 @@
   }
 
   // цена гроба считается той же формулой, что и у задачи серии
-  function gravePrice(id) { return weightOf(graveSolvers(id)); }
+  function gravePrice(id) {
+    return priceOf(graveById(id), graveSolvers(id));
+  }
 
   function solutionValue(s) {
     return s.problem ? gravePrice(s.problem) + solutionBonus(s) : 0;
@@ -1086,6 +1167,13 @@
       addGrave();
       render();
     }));
+    var gpart = button("+ пункт", "ghost-btn", function () {
+      addGravePart();
+      render();
+    });
+    // дошли до «е» — дальше пункт совпал бы с уже существующим
+    gpart.disabled = g.problems.length > 0 && !canAddGravePart();
+    actions.appendChild(gpart);
     card.appendChild(actions);
     host.appendChild(card);
 
@@ -1283,7 +1371,13 @@
     var row = el("div", "prow grave" + (asking ? " asking" : ""));
 
     /* Правится только число: буква Г стоит рядом как подпись, чтобы не искать
-       кириллицу на телефонной клавиатуре. */
+       кириллицу на телефонной клавиатуре. Буква пункта — тоже подпись, справа:
+       перенумеровать Г3а в Г5а можно, а превратить пункт в целый гроб — нет,
+       на его месте осталась бы дыра в семье. */
+    var suffix = graveSuffix(p.id);
+    // колонку номера расширяем только там, где есть буква: у остальных она
+    // отняла бы место у названия темы, а на телефоне его и так в обрез
+    if (suffix) row.className += " part";
     var idBox = el("div", "grave-id");
     idBox.appendChild(el("span", "grave-pre", "Г"));
 
@@ -1295,7 +1389,7 @@
     numIn.value = graveNum(p.id);
     numIn.addEventListener("change", function () {
       var v = parseInt(numIn.value, 10);
-      var id = "Г" + v;
+      var id = "Г" + v + suffix;
       var taken = ensureGraves().problems.some(function (x) {
         return x !== p && x.id === id;
       });
@@ -1306,6 +1400,7 @@
       render();
     });
     idBox.appendChild(numIn);
+    if (suffix) idBox.appendChild(el("span", "grave-post", suffix));
     row.appendChild(idBox);
 
     var t = typeById(p.type);
@@ -1323,13 +1418,18 @@
     pick.appendChild(el("span", "picker-caret", "▾"));
     pick.addEventListener("click", function () {
       state.pickTheme = open ? null : p.id;
+      state.pickWeight = null;
       render();
     });
     row.appendChild(pick);
 
+    var solvers = graveSolvers(p.id);
+    row.appendChild(weightChip(p, solvers));
+
     row.appendChild(deleteCell(asking, function () {
       state.confirmGrave = p.id;
       state.pickTheme = null;
+      state.pickWeight = null;
       render();
     }, function () {
       removeGrave(p.id);
@@ -1339,6 +1439,9 @@
 
     wrap.appendChild(row);
     if (open) wrap.appendChild(themeChooser(p, touchGraves));
+    else if (state.pickWeight === p.id) {
+      wrap.appendChild(weightChooser(p, solvers, touchGraves));
+    }
     return wrap;
   }
 
@@ -1812,14 +1915,19 @@
     pick.appendChild(el("span", "picker-caret", "▾"));
     pick.addEventListener("click", function () {
       state.pickTheme = open ? null : p.id;
+      state.pickWeight = null;
       state.pickDate = false;
       render();
     });
     row.appendChild(pick);
 
+    var solvers = solversOf(p.id);
+    row.appendChild(weightChip(p, solvers));
+
     row.appendChild(deleteCell(asking, function () {
       state.confirmProblem = p.id;
       state.pickTheme = null;
+      state.pickWeight = null;
       render();
     }, function () {
       removeProblem(p.id);
@@ -1829,8 +1937,77 @@
     }));
 
     wrap.appendChild(row);
+    // панели раскрываются по одной: обе разом заняли бы пол-экрана
     if (open) wrap.appendChild(themeChooser(p, touch));
+    else if (state.pickWeight === p.id) {
+      wrap.appendChild(weightChooser(p, solvers, touch));
+    }
     return wrap;
+  }
+
+  /* Цена задачи в строке: приглушённая, пока считается формулой, и плотная,
+     когда задана вручную. Касание раскрывает панель под строкой — поля для
+     ввода числа здесь, как и везде в редакторе, нет. */
+  function weightChip(p, solvers) {
+    var b = el("button",
+      "wchip" + (customWeight(p) === null ? "" : " on"), priceOf(p, solvers));
+    b.type = "button";
+    b.setAttribute("data-pid", p.id);
+    b.setAttribute("aria-label", "цена задачи " + p.id);
+    b.addEventListener("click", function () {
+      state.pickWeight = state.pickWeight === p.id ? null : p.id;
+      state.pickTheme = null;
+      state.pickDate = false;
+      render();
+    });
+    return b;
+  }
+
+  /* По одному и по десять: от единицы до цены смены дотянуться хватает, а
+     набирать число на телефоне неудобно. «По формуле» возвращает задачу к
+     автоматической цене — иначе из ручной не было бы выхода. */
+  function weightChooser(p, solvers, touch) {
+    var box = el("div", "chooser");
+    var now = priceOf(p, solvers);
+
+    function set(v) {
+      p.weight = Math.max(1, Math.min(999, v));
+      touch();
+      render();
+    }
+
+    var row = el("div", "wrow");
+    row.appendChild(button("−10", "step-btn wide", function () { set(now - 10); }));
+    row.appendChild(button("−", "step-btn", function () { set(now - 1); }));
+    row.appendChild(el("span", "step-val on", now));
+    row.appendChild(button("+", "step-btn", function () { set(now + 1); }));
+    row.appendChild(button("+10", "step-btn wide", function () { set(now + 10); }));
+    box.appendChild(row);
+
+    var foot = el("div", "wfoot");
+    var own = customWeight(p) !== null;
+    foot.appendChild(el("span", "wnote", own
+      ? "по формуле было бы " + weightOf(solvers)
+      : "считается по формуле"));
+    var back = button("по формуле", "mini-btn", function () {
+      delete p.weight;
+      touch();
+      render();
+    });
+    back.disabled = !own;
+    foot.appendChild(back);
+    box.appendChild(foot);
+
+    return box;
+  }
+
+  // сколько человек взяло эту задачу в открытом дне — от этого зависит цена
+  function solversOf(pid) {
+    var solved = (state.series && state.series.solved) || {};
+    return DATA.students.filter(function (s) {
+      var list = solved[s.id];
+      return list && list.indexOf(pid) !== -1;
+    }).length;
   }
 
   /* Один и тот же выбор темы для задачи серии и для гроба: правка помечает
@@ -1992,7 +2169,7 @@
     tfoot.appendChild(f1);
     var f2 = el("tr", "weights");
     problems.forEach(function (p) {
-      f2.appendChild(el("td", "colweight", weightOf(colCount(p.id))));
+      f2.appendChild(el("td", "colweight", priceOf(p, colCount(p.id))));
     });
     f2.appendChild(el("td", "pcount"));
     tfoot.appendChild(f2);
@@ -2013,10 +2190,22 @@
       problems.forEach(function (p, i) {
         var n = colCount(p.id);
         if (cols[i]) cols[i].textContent = n;
-        if (ws[i]) ws[i].textContent = weightOf(n);
+        if (ws[i]) ws[i].textContent = priceOf(p, n);
       });
       var total = table.querySelector(".total");
       if (total) total.textContent = allCount();
+
+      /* Цена в строке задачи считается от числа решивших — значит, меняется от
+         каждого касания клетки. Перерисовывать ради неё весь экран нельзя:
+         сбилась бы прокрутка сетки, поэтому правим одни подписи. */
+      Array.prototype.forEach.call(document.querySelectorAll(".wchip"),
+        function (chip) {
+          var pid = chip.getAttribute("data-pid");
+          var found = problems.filter(function (x) {
+            return String(x.id) === pid;
+          })[0];
+          if (found) chip.textContent = priceOf(found, colCount(found.id));
+        });
       if (onChange) onChange();
     }
 
@@ -2035,7 +2224,7 @@
           var list = s.solved[st.id];
           return list && list.indexOf(p.id) !== -1;
         });
-        var weight = weightOf(solvers.length);
+        var weight = priceOf(p, solvers.length);
         solvers.forEach(function (st) { score[st.id] += weight; });
       });
     });
@@ -2044,7 +2233,7 @@
     var taken = readSolutions(DATA.graves);
     ((DATA.graves && DATA.graves.problems) || []).forEach(function (p) {
       var mine = taken.filter(function (x) { return x.problem === p.id; });
-      var weight = weightOf(mine.length);
+      var weight = priceOf(p, mine.length);
       mine.forEach(function (x) {
         if (score[x.student] === undefined) return;
         score[x.student] += weight + solutionBonus(x);
@@ -2256,6 +2445,7 @@
     state.confirmSolution = null;
     state.pickSolver = null;
     state.pickGrave = null;
+    state.pickWeight = null;
     state.sig = null;
     SAVED.sig = null;
     state.wn = null;
@@ -2531,6 +2721,7 @@
         state.confirmDelete = false;
         state.confirmRevert = false;
         state.pickTheme = null;
+        state.pickWeight = null;
         state.pickSolver = null;
         state.pickGrave = null;
         render();

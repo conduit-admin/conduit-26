@@ -65,6 +65,15 @@
      стоит, просто самую малость. Правило то же в редакторе. */
   function weightOf(solvers) { return Math.max(weightBase() - solvers, 1); }
 
+  /* Цену задачи можно задать вручную — тогда формула к ней не применяется.
+     Ставится она в редакторе: формула знает только число решивших, а задача
+     бывает дорога и не поэтому. */
+  function priceOf(p, solvers) {
+    var w = p && p.weight;
+    return typeof w === "number" && isFinite(w) && w > 0
+      ? Math.round(w) : weightOf(solvers);
+  }
+
   function dayKind(s) { return s.kind || "series"; }
 
   /* Номер есть только у дня с серией, и это номер самой серии. Выходной и матбой
@@ -254,7 +263,7 @@
           kind: isExercise(p) ? "exercise" : "problem",
           solvers: solvers,
           solverSet: new Set(solvers),
-          weight: weightOf(solvers.length)
+          weight: priceOf(p, solvers.length)
         });
       });
     });
@@ -283,7 +292,7 @@
         solvers: solvers,
         solverSet: new Set(solvers),
         bonus: bonus,
-        weight: weightOf(solvers.length)
+        weight: priceOf(p, solvers.length)
       });
     });
 

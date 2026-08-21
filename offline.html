@@ -1058,7 +1058,7 @@ td .date { margin-left: 8px; font-size: 12px; }
    преобразованием, оно не трогает разметку и ничего не сдвигает вокруг. */
 .chip, .ghost-btn, .primary-btn, .icon-btn, .mini-btn,
 .tab, .cal-day, .cal-nav, .banner-close, .picker-btn,
-.step-btn, .step-val {
+.step-btn, .step-val, .wchip {
   transition: background-color .14s ease, color .14s ease,
               border-color .14s ease, opacity .14s ease;
 }
@@ -1214,7 +1214,7 @@ select.input { padding-right: 6px; }
 
 .prow {
   display: grid;
-  grid-template-columns: 62px minmax(0, 1fr) 34px;
+  grid-template-columns: 62px minmax(0, 1fr) auto 34px;
   align-items: center;
   gap: 8px;
 }
@@ -1232,12 +1232,15 @@ select.input { padding-right: 6px; }
   background: var(--s2);
 }
 
-/* у гроба правится только число, буква Г — подпись слева от поля */
-.prow.grave { grid-template-columns: 80px minmax(0, 1fr) 34px; }
+/* у гроба правится только число, буква Г — подпись слева от поля, буква
+   пункта — справа, поэтому колонка шире, чем у задачи серии */
+.prow.grave { grid-template-columns: 80px minmax(0, 1fr) auto 34px; }
+.prow.grave.part { grid-template-columns: 92px minmax(0, 1fr) auto 34px; }
 
 /* спрошено удаление: на месте крестика два бокса — «удалить» и «передумал» */
-.prow.asking { grid-template-columns: 62px minmax(0, 1fr) 76px; }
-.prow.grave.asking { grid-template-columns: 80px minmax(0, 1fr) 76px; }
+.prow.asking { grid-template-columns: 62px minmax(0, 1fr) auto 76px; }
+.prow.grave.asking { grid-template-columns: 80px minmax(0, 1fr) auto 76px; }
+.prow.grave.part.asking { grid-template-columns: 92px minmax(0, 1fr) auto 76px; }
 
 .grave-id {
   display: flex;
@@ -1246,6 +1249,13 @@ select.input { padding-right: 6px; }
 }
 
 .grave-pre {
+  font-size: 15px;
+  font-weight: 560;
+  color: var(--ink-2);
+}
+
+/* буква пункта — подпись, а не поле: её правят через «+ пункт», не руками */
+.grave-post {
   font-size: 15px;
   font-weight: 560;
   color: var(--ink-2);
@@ -1530,6 +1540,66 @@ body.is-editor .brand::after {
 
 .chip.day.pending b { color: var(--ink-muted); }
 
+/* ── цена задачи ───────────────────────────────────────── */
+
+/* Цена в строке задачи. Приглушённая — считается формулой, плотная и в рамке
+   цвета отличия — задана вручную: разницу видно, не открывая панель. */
+.wchip {
+  appearance: none;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--ink-muted);
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  min-width: 38px;
+  min-height: 34px;
+  padding: 0 6px;
+  cursor: pointer;
+}
+
+.wchip:hover { background: var(--wash); border-color: var(--border-strong); }
+
+.wchip.on {
+  color: var(--accent-hi);
+  border-color: var(--accent-hi);
+  background: var(--accent-wash);
+}
+
+/* Ряд кнопок: по десять по краям, по одному внутри, число посередине. Числа
+   на телефоне не набирают, а дотянуться до цены смены этими шагами хватает. */
+.wrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.step-btn.wide { width: auto; padding: 0 10px; font-size: 14px; }
+
+.wfoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 10px;
+  padding-top: 9px;
+  border-top: 1px solid var(--grid);
+}
+
+.wnote { font-size: 12.5px; color: var(--ink-muted); }
+
+.mini-btn:disabled { opacity: .4; cursor: default; }
+
+.mini-btn:disabled:hover {
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--ink-2);
+}
+
 /* ── гроборешения ──────────────────────────────────────── */
 
 /* Счётчик надбавки вместо поля ввода: числового поля здесь нет вовсе.
@@ -1763,10 +1833,14 @@ body.is-editor .brand::after {
 
 
 @media (max-width: 560px) {
-  .prow { grid-template-columns: 48px minmax(0, 1fr) 32px; column-gap: 8px; }
-  .prow.grave { grid-template-columns: 66px minmax(0, 1fr) 32px; }
-  .prow.asking { grid-template-columns: 48px minmax(0, 1fr) 76px; }
-  .prow.grave.asking { grid-template-columns: 66px minmax(0, 1fr) 76px; }
+  .prow { grid-template-columns: 48px minmax(0, 1fr) auto 32px; column-gap: 6px; }
+  .prow.grave { grid-template-columns: 66px minmax(0, 1fr) auto 32px; }
+  .prow.grave.part { grid-template-columns: 78px minmax(0, 1fr) auto 32px; }
+  .prow.asking { grid-template-columns: 48px minmax(0, 1fr) auto 76px; }
+  .prow.grave.asking { grid-template-columns: 66px minmax(0, 1fr) auto 76px; }
+  .prow.grave.part.asking { grid-template-columns: 78px minmax(0, 1fr) auto 76px; }
+  /* на телефоне чип цены ужимаем: место нужнее названию темы */
+  .wchip { min-width: 32px; padding: 0 4px; font-size: 12.5px; }
   .input.tiny { width: 48px; }
   .datefield { min-width: 0; }
   .step-val { min-width: 48px; }
@@ -1796,7 +1870,7 @@ body.is-editor .brand::after {
 }
 
 </style>
-<meta name="build" content="202608152259">
+<meta name="build" content="202608212043">
 </head>
 <body>
 <div class="wrap">
@@ -1816,7 +1890,7 @@ body.is-editor .brand::after {
 
   <main id="main"></main>
 </div>
-<script>window.__CONDUIT__={"config":{"title":"Статистика","subtitle":"Летняя математическая смена · 2026","students_total":24,"admin":"afanasev-igor","noindex":true,"scoring":{"n":24,"formula":"max(n - solvers, 1)","note":"Вес задачи = n минус число решивших, но не меньше одного очка. По умолчанию n — число учеников на смене."},"repo":{"owner":"conduit-admin","name":"conduit-26","branch":"main"},"build":"202608152259","signature":{"on":true,"student":"aksenova-elizaveta","text":"Totus tuus"},"offline_date":"2026-08-15"},"types":[{"id":"algebra","name":"Алгебра","slot":1,"subs":[{"id":"inequalities","name":"Неравенства"},{"id":"mnogochleny","name":"Многочлены"},{"id":"posledovatelnosti","name":"Последовательности"},{"id":"matan","name":"Матан"}]},{"id":"geometry","name":"Геометрия","slot":2,"subs":[{"id":"planimetry","name":"Планиметрия"},{"id":"stereometry","name":"Стереометрия"},{"id":"geomneravenstva","name":"Геомнеравенства"}]},{"id":"comb","name":"Комбинаторика","slot":3,"subs":[{"id":"games","name":"Игры"},{"id":"graphs","name":"Графы"},{"id":"cells","name":"Клетчатые задачи"},{"id":"kg","name":"КГ"},{"id":"podschet","name":"Подсчёт"},{"id":"veroyatnosti","name":"Вероятности"}]},{"id":"numbers","name":"Теория чисел","slot":7,"subs":[{"id":"klassika-2","name":"Классика"}]}],"students":[{"id":"aksenova-elizaveta","name":"Аксенова Елизавета"},{"id":"afanasev-igor","name":"Афанасьев Игорь"},{"id":"budyanskiy-mihail","name":"Будянский Михаил"},{"id":"velichko-platon","name":"Величко Платон"},{"id":"boyko-gleb","name":"Бойко Глеб"},{"id":"gulev-maksim","name":"Гулев Максим"},{"id":"zarechnyuk-georgiy","name":"Заречнюк Георгий"},{"id":"karonov-mihail","name":"Каронов Михаил"},{"id":"karev-denis","name":"Карьев Денис"},{"id":"kovalev-artem","name":"Ковалёв Артём"},{"id":"kostylev-konstantin","name":"Костылев Константин"},{"id":"larionova-natalya","name":"Ларионова Наталья"},{"id":"lyubimov-slaven","name":"Любимов Славен"},{"id":"mahrov-aleksandr","name":"Махров Александр"},{"id":"novoselov-maksim","name":"Новосёлов Максим"},{"id":"osipova-viktoriya","name":"Осипова Виктория"},{"id":"pogorelov-denis","name":"Погорелов Денис"},{"id":"rudakova-vasilisa","name":"Рудакова Василиса"},{"id":"strelkov-sergey","name":"Стрелков Сергей"},{"id":"titov-viktor","name":"Титов Виктор"},{"id":"titov-dmitriy","name":"Титов Дмитрий"},{"id":"celikov-aleksandr","name":"Целиков Александр"},{"id":"shipilov-andrey","name":"Шипилов Андрей"},{"id":"shirtanova-valeriya","name":"Ширтанова Валерия"}],"series":[{"n":1,"series":1,"date":"2026-08-09","kind":"series","title":"Серия 1","problems":[{"id":"1","type":"geometry","sub":"planimetry","exercise":false},{"id":"2","type":"geometry","sub":"planimetry","exercise":false},{"id":"3","type":"algebra","sub":"mnogochleny","exercise":false},{"id":"4","type":"algebra","sub":"posledovatelnosti","exercise":false},{"id":"5","type":"numbers","sub":"klassika-2","exercise":false},{"id":"6","type":"comb","sub":"podschet","exercise":false},{"id":"7а","type":"comb","sub":"graphs","exercise":false},{"id":"7б","type":"comb","sub":"graphs","exercise":false}],"solved":{"aksenova-elizaveta":["1","2","3","4","5","6","7а","7б"],"afanasev-igor":["1","2","3","4","5","6"],"boyko-gleb":["1","4","5","6"],"budyanskiy-mihail":["1","2","3","4","5","6","7а","7б"],"velichko-platon":["1","2","4","6"],"gulev-maksim":["1","2","3","4","5","6"],"zarechnyuk-georgiy":["1","2","3","4","5","6"],"karonov-mihail":["1","2","4","5","6"],"karev-denis":["4","5","6"],"kovalev-artem":["1","2","4","5","6"],"kostylev-konstantin":["2","4","5","6"],"larionova-natalya":["2","3","4","5","6"],"lyubimov-slaven":["1","2","4","5","6"],"mahrov-aleksandr":["1","2","3","4","5","6"],"novoselov-maksim":["4","5","6"],"osipova-viktoriya":["2","3","4","5","6"],"pogorelov-denis":["1","2","4","6"],"rudakova-vasilisa":["2","4","5"],"strelkov-sergey":["1","2","4","5"],"titov-viktor":["1","2","3","4","5","6","7а","7б"],"titov-dmitriy":["1","2","3","4","5","6"],"celikov-aleksandr":["1","2","3","4","5","6"],"shipilov-andrey":["1","2","3","4","5"],"shirtanova-valeriya":["2","4","5"]}},{"n":2,"series":2,"date":"2026-08-10","kind":"series","title":"Серия 2","problems":[{"id":"0а","type":"algebra","sub":"matan","exercise":true},{"id":"0б","type":"algebra","sub":"matan","exercise":true},{"id":"1а","type":"algebra","sub":"matan","exercise":false},{"id":"1б","type":"algebra","sub":"matan","exercise":false},{"id":"1в","type":"algebra","sub":"matan","exercise":false},{"id":"2","type":"geometry","sub":"planimetry","exercise":false},{"id":"3","type":"geometry","sub":"planimetry","exercise":false},{"id":"4","type":"numbers","sub":"klassika-2","exercise":false},{"id":"5","type":"comb","sub":"kg","exercise":false},{"id":"6","type":"comb","sub":"games","exercise":false},{"id":"7","type":"comb","sub":"graphs","exercise":false}],"solved":{"aksenova-elizaveta":["0а","0б","1а","1б","1в","2","3","4","5","6","7"],"afanasev-igor":["0а","0б","1а","1б","1в","2","3","4","6","7"],"boyko-gleb":["0а","0б","2"],"budyanskiy-mihail":["0а","0б","1а","1б","1в","2","3","4","6","7"],"velichko-platon":["0а","0б","2"],"gulev-maksim":["0а","0б","1а","1б","1в","2","7"],"zarechnyuk-georgiy":["0а","0б","2","4","7"],"karonov-mihail":["0а","0б","1а","1б","1в","2","3","7"],"karev-denis":["0а","0б","6","7"],"kovalev-artem":["0а","0б","1а","2","3"],"kostylev-konstantin":["0а","0б","1а","1б","2","4","7"],"larionova-natalya":["0а","0б","1а","1б","1в","4","6","7"],"lyubimov-slaven":["0а","0б","1а","1б","1в","2"],"mahrov-aleksandr":["0а","0б","2","7"],"novoselov-maksim":["6","7"],"osipova-viktoriya":["0а","0б","1а","1б","1в","4","7"],"pogorelov-denis":["0а","0б","2","3","7"],"rudakova-vasilisa":["0б","6","7"],"strelkov-sergey":["0а","0б","1а","1б","1в","2"],"titov-viktor":["0а","0б","1а","1б","1в","2","3","4","6","7"],"titov-dmitriy":["0а","0б","1а","1б","1в","2","3","4","6","7"],"celikov-aleksandr":["0а","0б","1а","1б","1в","2","7"],"shipilov-andrey":["0а","0б","1а","1б","1в","7"],"shirtanova-valeriya":["0а","0б","1а","1б","1в","4","7"]}},{"n":3,"series":3,"date":"2026-08-11","kind":"series","title":"Серия 3","problems":[{"id":"0","type":"comb","sub":"veroyatnosti","exercise":true},{"id":"1","type":"geometry","sub":"planimetry","exercise":false},{"id":"2","type":"geometry","sub":"planimetry","exercise":false},{"id":"3","type":"comb","sub":"kg","exercise":false},{"id":"4","type":"numbers","sub":"klassika-2","exercise":false},{"id":"5","type":"comb","sub":"podschet","exercise":false},{"id":"6","type":"comb","sub":"games","exercise":false},{"id":"7","type":"comb","sub":"graphs","exercise":false}],"solved":{"aksenova-elizaveta":["0","1","3","4","5","6","7"],"afanasev-igor":["0","1","3","4","5"],"boyko-gleb":["0","1","4"],"budyanskiy-mihail":["0","1","3","4","5","6","7"],"velichko-platon":["0","1","2","4"],"gulev-maksim":["0","1","5"],"zarechnyuk-georgiy":["0","1"],"karonov-mihail":["0","1","4","5"],"karev-denis":["0","6"],"kovalev-artem":["0","1"],"kostylev-konstantin":["0","5"],"larionova-natalya":["0","4","5","7"],"lyubimov-slaven":["0","1","4"],"mahrov-aleksandr":["0","1","4","5"],"novoselov-maksim":["0"],"osipova-viktoriya":["0","4","5"],"pogorelov-denis":["0","1","2","4"],"rudakova-vasilisa":["0","4","5"],"strelkov-sergey":["0","1","5"],"titov-viktor":["0","1","3","4","5","7"],"titov-dmitriy":["0","1","3","4","5"],"celikov-aleksandr":["0","1","2","4","5"],"shipilov-andrey":["0","3","5"],"shirtanova-valeriya":["0","1"]}},{"n":4,"series":4,"date":"2026-08-12","kind":"series","title":"Серия 4","problems":[{"id":"0","type":"algebra","sub":"matan","exercise":true},{"id":"1","type":"geometry","sub":"planimetry","exercise":false},{"id":"2","type":"geometry","sub":"stereometry","exercise":false},{"id":"3","type":"algebra","sub":"matan","exercise":false},{"id":"4","type":"numbers","sub":"klassika-2","exercise":false},{"id":"5","type":"comb","sub":"cells","exercise":false},{"id":"6","type":"comb","sub":"veroyatnosti","exercise":false},{"id":"7","type":"comb","sub":"graphs","exercise":false}],"solved":{"aksenova-elizaveta":["0","1","2","3","4","5","6","7"],"afanasev-igor":["0","1","2","3","4","5","6"],"boyko-gleb":["0","2","4","6"],"budyanskiy-mihail":["0","1","2","3","4","5","6"],"velichko-platon":["0","1","2","3","6"],"gulev-maksim":["0","1","2","4","5","6"],"zarechnyuk-georgiy":["0","1","4","6"],"karonov-mihail":["0","1","2","4","6"],"karev-denis":["0","5","6"],"kovalev-artem":["0","1","2","4","6"],"kostylev-konstantin":["0","2","4","6"],"larionova-natalya":["0","2","4","5","6"],"lyubimov-slaven":["0","2","4","6"],"mahrov-aleksandr":["0","1","2","3","4","5","6"],"novoselov-maksim":["0","4","5","6"],"osipova-viktoriya":["0","2","4","6"],"pogorelov-denis":["0","1","2","4","6"],"rudakova-vasilisa":["0","2","4","5","6"],"strelkov-sergey":["0","1","2","6"],"titov-viktor":["0","1","2","3","4","5","6"],"titov-dmitriy":["0","1","2","3","4","5","6"],"celikov-aleksandr":["0","1","2","3","4","5","6"],"shipilov-andrey":["0","2","4","6"],"shirtanova-valeriya":["0","2","4","6"]}},{"n":5,"series":5,"date":"2026-08-13","kind":"series","title":"Серия 5","problems":[{"id":"0","type":"comb","sub":"veroyatnosti","exercise":true},{"id":"1","type":"geometry","sub":"planimetry","exercise":false},{"id":"2","type":"geometry","sub":"planimetry","exercise":false},{"id":"3а","type":"algebra","sub":"mnogochleny","exercise":false},{"id":"3б","type":"algebra","sub":"mnogochleny","exercise":false},{"id":"4","type":"numbers","sub":"klassika-2","exercise":false},{"id":"5","type":"comb","sub":"podschet","exercise":false},{"id":"6а","type":"comb","sub":"veroyatnosti","exercise":false},{"id":"6б","type":"comb","sub":"veroyatnosti","exercise":false},{"id":"7","type":"comb","sub":"graphs","exercise":false}],"solved":{"aksenova-elizaveta":["0","1","3а","3б","4","5","6а","6б","7"],"afanasev-igor":["0","1","2","3а","3б","4","5","6а","6б"],"boyko-gleb":["0","1","3а","3б","6а","6б"],"budyanskiy-mihail":["0","1","2","3а","3б","4","5","6а","6б"],"velichko-platon":["0","1","3а","6а","6б"],"gulev-maksim":["0","1","3а","3б","6а","6б"],"zarechnyuk-georgiy":["0","1","3а","3б","4","6а","6б"],"karonov-mihail":["0","1","3а","3б","4","6а","6б"],"karev-denis":["0","6а","6б","7"],"kovalev-artem":["0","1","3а","3б","6а","6б"],"kostylev-konstantin":["0","1","3а","3б","4","6а","6б","7"],"larionova-natalya":["0","1","3а","3б","4","6а","6б"],"lyubimov-slaven":["0","1","3а","3б","4","6а","6б"],"mahrov-aleksandr":["0","1","3а","3б","4","6а","6б","7"],"novoselov-maksim":["0","3а","3б","6а","6б","7"],"osipova-viktoriya":["0","1","3а","3б","4","6а","6б"],"pogorelov-denis":["0","1","2"],"rudakova-vasilisa":["0","1","3а","3б","4","6а","6б"],"strelkov-sergey":["0","1","3а","3б","6а","6б"],"titov-viktor":["0","1","2","3а","3б","4","5","6а","6б","7"],"titov-dmitriy":["0","1","3а","3б","4","5","6а","6б","7"],"celikov-aleksandr":["0","1","3а","3б","4","6а","6б","7"],"shipilov-andrey":["0","1","3а","3б","6а","6б"],"shirtanova-valeriya":["0","1","3а","3б","6а","6б"]}},{"n":6,"series":6,"date":"2026-08-14","kind":"series","title":"Серия 6","problems":[{"id":"0","type":"algebra","sub":"matan","exercise":true},{"id":"1","type":"geometry","sub":"geomneravenstva","exercise":false},{"id":"2","type":"geometry","sub":"stereometry","exercise":false},{"id":"3а","type":"algebra","sub":"mnogochleny","exercise":false},{"id":"3б","type":"algebra","sub":"mnogochleny","exercise":false},{"id":"4","type":"comb","sub":"veroyatnosti","exercise":false},{"id":"5","type":"algebra","sub":"posledovatelnosti","exercise":false},{"id":"6","type":"comb","sub":"podschet","exercise":false},{"id":"7а","type":"comb","sub":"graphs","exercise":false},{"id":"7б","type":"comb","sub":"graphs","exercise":false}],"solved":{"aksenova-elizaveta":["0","1","3а","3б","4","5","6","7а","7б"],"afanasev-igor":["0","1","3а","3б","4","5","7а","7б"],"boyko-gleb":["0","1","4","5"],"budyanskiy-mihail":["0","1","2","3а","3б","4","5","6","7а","7б"],"velichko-platon":["0","1","3а","4"],"gulev-maksim":["0","1","4","5","7а","7б"],"zarechnyuk-georgiy":["0","1","4"],"karonov-mihail":["0","1","4","5","7а","7б"],"karev-denis":["0"],"kovalev-artem":["0","1","4","5","7б"],"kostylev-konstantin":["0","1","4","5","7а","7б"],"larionova-natalya":["0","1","3а","3б","4","5","7а","7б"],"lyubimov-slaven":["0","1","3а","3б","4"],"mahrov-aleksandr":["0","1","4","5","7а","7б"],"novoselov-maksim":["4","5","7а","7б"],"osipova-viktoriya":["0","4","5","7а","7б"],"pogorelov-denis":["0","1","4"],"rudakova-vasilisa":["0","5"],"strelkov-sergey":["0","1","5","7а","7б"],"titov-viktor":["0","1","3а","3б","4","5","7а","7б"],"titov-dmitriy":["0","1","3а","3б","4","5","7а","7б"],"celikov-aleksandr":["0","1","3а","3б","4","5","7а","7б"],"shipilov-andrey":["0","4","7а","7б"],"shirtanova-valeriya":["0","7а","7б"]}}],"graves":{"problems":[{"id":"Г1","type":"geometry","sub":"planimetry"},{"id":"Г2","type":"comb","sub":"kg"},{"id":"Г3","type":"comb","sub":"podschet"},{"id":"Г4","type":"comb","sub":"podschet"},{"id":"Г5","type":"comb","sub":"graphs"},{"id":"Г6","type":"geometry","sub":"planimetry"},{"id":"Г7","type":"comb","sub":"kg"},{"id":"Г8","type":"algebra","sub":"mnogochleny"},{"id":"Г9","type":"comb","sub":"graphs"}],"solutions":[{"student":"budyanskiy-mihail","problem":"Г3","bonus":8},{"student":"aksenova-elizaveta","problem":"Г7","bonus":0}]},"likbez":{"items":[{"title":"Теория вероятности","file":"teoriya-veroyatnosti.pdf","size":142842,"at":"2026-08-15"}]}};</script>
+<script>window.__CONDUIT__={"config":{"title":"Статистика","subtitle":"Летняя математическая смена · 2026","students_total":24,"admin":"afanasev-igor","noindex":true,"scoring":{"n":24,"formula":"max(n - solvers, 1)","note":"Вес задачи = n минус число решивших, но не меньше одного очка. По умолчанию n — число учеников на смене."},"repo":{"owner":"conduit-admin","name":"conduit-26","branch":"main"},"build":"202608212043","signature":{"on":true,"student":"aksenova-elizaveta","text":"Totus tuus"},"offline_date":"2026-08-21"},"types":[{"id":"algebra","name":"Алгебра","slot":1,"subs":[{"id":"inequalities","name":"Неравенства"},{"id":"mnogochleny","name":"Многочлены"},{"id":"posledovatelnosti","name":"Последовательности"},{"id":"matan","name":"Матан"}]},{"id":"geometry","name":"Геометрия","slot":2,"subs":[{"id":"planimetry","name":"Планиметрия"},{"id":"stereometry","name":"Стереометрия"},{"id":"geomneravenstva","name":"Геомнеравенства"}]},{"id":"comb","name":"Комбинаторика","slot":3,"subs":[{"id":"games","name":"Игры"},{"id":"graphs","name":"Графы"},{"id":"cells","name":"Клетчатые задачи"},{"id":"kg","name":"КГ"},{"id":"podschet","name":"Подсчёт"},{"id":"veroyatnosti","name":"Вероятности"}]},{"id":"numbers","name":"Теория чисел","slot":7,"subs":[{"id":"klassika-2","name":"Классика"}]}],"students":[{"id":"aksenova-elizaveta","name":"Аксенова Елизавета"},{"id":"afanasev-igor","name":"Афанасьев Игорь"},{"id":"budyanskiy-mihail","name":"Будянский Михаил"},{"id":"velichko-platon","name":"Величко Платон"},{"id":"boyko-gleb","name":"Бойко Глеб"},{"id":"gulev-maksim","name":"Гулев Максим"},{"id":"zarechnyuk-georgiy","name":"Заречнюк Георгий"},{"id":"karonov-mihail","name":"Каронов Михаил"},{"id":"karev-denis","name":"Карьев Денис"},{"id":"kovalev-artem","name":"Ковалёв Артём"},{"id":"kostylev-konstantin","name":"Костылев Константин"},{"id":"larionova-natalya","name":"Ларионова Наталья"},{"id":"lyubimov-slaven","name":"Любимов Славен"},{"id":"mahrov-aleksandr","name":"Махров Александр"},{"id":"novoselov-maksim","name":"Новосёлов Максим"},{"id":"osipova-viktoriya","name":"Осипова Виктория"},{"id":"pogorelov-denis","name":"Погорелов Денис"},{"id":"rudakova-vasilisa","name":"Рудакова Василиса"},{"id":"strelkov-sergey","name":"Стрелков Сергей"},{"id":"titov-viktor","name":"Титов Виктор"},{"id":"titov-dmitriy","name":"Титов Дмитрий"},{"id":"celikov-aleksandr","name":"Целиков Александр"},{"id":"shipilov-andrey","name":"Шипилов Андрей"},{"id":"shirtanova-valeriya","name":"Ширтанова Валерия"}],"series":[{"n":1,"series":1,"date":"2026-08-09","kind":"series","title":"Серия 1","problems":[{"id":"1","type":"geometry","sub":"planimetry","exercise":false},{"id":"2","type":"geometry","sub":"planimetry","exercise":false},{"id":"3","type":"algebra","sub":"mnogochleny","exercise":false},{"id":"4","type":"algebra","sub":"posledovatelnosti","exercise":false},{"id":"5","type":"numbers","sub":"klassika-2","exercise":false},{"id":"6","type":"comb","sub":"podschet","exercise":false},{"id":"7а","type":"comb","sub":"graphs","exercise":false},{"id":"7б","type":"comb","sub":"graphs","exercise":false}],"solved":{"aksenova-elizaveta":["1","2","3","4","5","6","7а","7б"],"afanasev-igor":["1","2","3","4","5","6"],"boyko-gleb":["1","4","5","6"],"budyanskiy-mihail":["1","2","3","4","5","6","7а","7б"],"velichko-platon":["1","2","4","6"],"gulev-maksim":["1","2","3","4","5","6"],"zarechnyuk-georgiy":["1","2","3","4","5","6"],"karonov-mihail":["1","2","4","5","6"],"karev-denis":["4","5","6"],"kovalev-artem":["1","2","4","5","6"],"kostylev-konstantin":["2","4","5","6"],"larionova-natalya":["2","3","4","5","6"],"lyubimov-slaven":["1","2","4","5","6"],"mahrov-aleksandr":["1","2","3","4","5","6"],"novoselov-maksim":["4","5","6"],"osipova-viktoriya":["2","3","4","5","6"],"pogorelov-denis":["1","2","4","6"],"rudakova-vasilisa":["2","4","5"],"strelkov-sergey":["1","2","4","5"],"titov-viktor":["1","2","3","4","5","6","7а","7б"],"titov-dmitriy":["1","2","3","4","5","6"],"celikov-aleksandr":["1","2","3","4","5","6"],"shipilov-andrey":["1","2","3","4","5"],"shirtanova-valeriya":["2","4","5"]}},{"n":2,"series":2,"date":"2026-08-10","kind":"series","title":"Серия 2","problems":[{"id":"0а","type":"algebra","sub":"matan","exercise":true},{"id":"0б","type":"algebra","sub":"matan","exercise":true},{"id":"1а","type":"algebra","sub":"matan","exercise":false},{"id":"1б","type":"algebra","sub":"matan","exercise":false},{"id":"1в","type":"algebra","sub":"matan","exercise":false},{"id":"2","type":"geometry","sub":"planimetry","exercise":false},{"id":"3","type":"geometry","sub":"planimetry","exercise":false},{"id":"4","type":"numbers","sub":"klassika-2","exercise":false},{"id":"5","type":"comb","sub":"kg","exercise":false},{"id":"6","type":"comb","sub":"games","exercise":false},{"id":"7","type":"comb","sub":"graphs","exercise":false}],"solved":{"aksenova-elizaveta":["0а","0б","1а","1б","1в","2","3","4","5","6","7"],"afanasev-igor":["0а","0б","1а","1б","1в","2","3","4","6","7"],"boyko-gleb":["0а","0б","2"],"budyanskiy-mihail":["0а","0б","1а","1б","1в","2","3","4","6","7"],"velichko-platon":["0а","0б","2"],"gulev-maksim":["0а","0б","1а","1б","1в","2","7"],"zarechnyuk-georgiy":["0а","0б","2","4","7"],"karonov-mihail":["0а","0б","1а","1б","1в","2","3","7"],"karev-denis":["0а","0б","6","7"],"kovalev-artem":["0а","0б","1а","2","3"],"kostylev-konstantin":["0а","0б","1а","1б","2","4","7"],"larionova-natalya":["0а","0б","1а","1б","1в","4","6","7"],"lyubimov-slaven":["0а","0б","1а","1б","1в","2"],"mahrov-aleksandr":["0а","0б","2","7"],"novoselov-maksim":["6","7"],"osipova-viktoriya":["0а","0б","1а","1б","1в","4","7"],"pogorelov-denis":["0а","0б","2","3","7"],"rudakova-vasilisa":["0б","6","7"],"strelkov-sergey":["0а","0б","1а","1б","1в","2"],"titov-viktor":["0а","0б","1а","1б","1в","2","3","4","6","7"],"titov-dmitriy":["0а","0б","1а","1б","1в","2","3","4","6","7"],"celikov-aleksandr":["0а","0б","1а","1б","1в","2","7"],"shipilov-andrey":["0а","0б","1а","1б","1в","7"],"shirtanova-valeriya":["0а","0б","1а","1б","1в","4","7"]}},{"n":3,"series":3,"date":"2026-08-11","kind":"series","title":"Серия 3","problems":[{"id":"0","type":"comb","sub":"veroyatnosti","exercise":true},{"id":"1","type":"geometry","sub":"planimetry","exercise":false},{"id":"2","type":"geometry","sub":"planimetry","exercise":false},{"id":"3","type":"comb","sub":"kg","exercise":false},{"id":"4","type":"numbers","sub":"klassika-2","exercise":false},{"id":"5","type":"comb","sub":"podschet","exercise":false},{"id":"6","type":"comb","sub":"games","exercise":false},{"id":"7","type":"comb","sub":"graphs","exercise":false}],"solved":{"aksenova-elizaveta":["0","1","3","4","5","6","7"],"afanasev-igor":["0","1","3","4","5"],"boyko-gleb":["0","1","4"],"budyanskiy-mihail":["0","1","3","4","5","6","7"],"velichko-platon":["0","1","2","4"],"gulev-maksim":["0","1","5"],"zarechnyuk-georgiy":["0","1"],"karonov-mihail":["0","1","4","5"],"karev-denis":["0","6"],"kovalev-artem":["0","1"],"kostylev-konstantin":["0","5"],"larionova-natalya":["0","4","5","7"],"lyubimov-slaven":["0","1","4"],"mahrov-aleksandr":["0","1","4","5"],"novoselov-maksim":["0"],"osipova-viktoriya":["0","4","5"],"pogorelov-denis":["0","1","2","4"],"rudakova-vasilisa":["0","4","5"],"strelkov-sergey":["0","1","5"],"titov-viktor":["0","1","3","4","5","7"],"titov-dmitriy":["0","1","3","4","5"],"celikov-aleksandr":["0","1","2","4","5"],"shipilov-andrey":["0","3","5"],"shirtanova-valeriya":["0","1"]}},{"n":4,"series":4,"date":"2026-08-12","kind":"series","title":"Серия 4","problems":[{"id":"0","type":"algebra","sub":"matan","exercise":true},{"id":"1","type":"geometry","sub":"planimetry","exercise":false},{"id":"2","type":"geometry","sub":"stereometry","exercise":false},{"id":"3","type":"algebra","sub":"matan","exercise":false},{"id":"4","type":"numbers","sub":"klassika-2","exercise":false},{"id":"5","type":"comb","sub":"cells","exercise":false},{"id":"6","type":"comb","sub":"veroyatnosti","exercise":false},{"id":"7","type":"comb","sub":"graphs","exercise":false}],"solved":{"aksenova-elizaveta":["0","1","2","3","4","5","6","7"],"afanasev-igor":["0","1","2","3","4","5","6"],"boyko-gleb":["0","2","4","6"],"budyanskiy-mihail":["0","1","2","3","4","5","6"],"velichko-platon":["0","1","2","3","6"],"gulev-maksim":["0","1","2","4","5","6"],"zarechnyuk-georgiy":["0","1","4","6"],"karonov-mihail":["0","1","2","4","6"],"karev-denis":["0","5","6"],"kovalev-artem":["0","1","2","4","6"],"kostylev-konstantin":["0","2","4","6"],"larionova-natalya":["0","2","4","5","6"],"lyubimov-slaven":["0","2","4","6"],"mahrov-aleksandr":["0","1","2","3","4","5","6"],"novoselov-maksim":["0","4","5","6"],"osipova-viktoriya":["0","2","4","6"],"pogorelov-denis":["0","1","2","4","6"],"rudakova-vasilisa":["0","2","4","5","6"],"strelkov-sergey":["0","1","2","6"],"titov-viktor":["0","1","2","3","4","5","6"],"titov-dmitriy":["0","1","2","3","4","5","6"],"celikov-aleksandr":["0","1","2","3","4","5","6"],"shipilov-andrey":["0","2","4","6"],"shirtanova-valeriya":["0","2","4","6"]}},{"n":5,"series":5,"date":"2026-08-13","kind":"series","title":"Серия 5","problems":[{"id":"0","type":"comb","sub":"veroyatnosti","exercise":true},{"id":"1","type":"geometry","sub":"planimetry","exercise":false},{"id":"2","type":"geometry","sub":"planimetry","exercise":false},{"id":"3а","type":"algebra","sub":"mnogochleny","exercise":false},{"id":"3б","type":"algebra","sub":"mnogochleny","exercise":false},{"id":"4","type":"numbers","sub":"klassika-2","exercise":false},{"id":"5","type":"comb","sub":"podschet","exercise":false},{"id":"6а","type":"comb","sub":"veroyatnosti","exercise":false},{"id":"6б","type":"comb","sub":"veroyatnosti","exercise":false},{"id":"7","type":"comb","sub":"graphs","exercise":false}],"solved":{"aksenova-elizaveta":["0","1","3а","3б","4","5","6а","6б","7"],"afanasev-igor":["0","1","2","3а","3б","4","5","6а","6б"],"boyko-gleb":["0","1","3а","3б","6а","6б"],"budyanskiy-mihail":["0","1","2","3а","3б","4","5","6а","6б"],"velichko-platon":["0","1","3а","6а","6б"],"gulev-maksim":["0","1","3а","3б","6а","6б"],"zarechnyuk-georgiy":["0","1","3а","3б","4","6а","6б"],"karonov-mihail":["0","1","3а","3б","4","6а","6б"],"karev-denis":["0","6а","6б","7"],"kovalev-artem":["0","1","3а","3б","6а","6б"],"kostylev-konstantin":["0","1","3а","3б","4","6а","6б","7"],"larionova-natalya":["0","1","3а","3б","4","6а","6б"],"lyubimov-slaven":["0","1","3а","3б","4","6а","6б"],"mahrov-aleksandr":["0","1","3а","3б","4","6а","6б","7"],"novoselov-maksim":["0","3а","3б","6а","6б","7"],"osipova-viktoriya":["0","1","3а","3б","4","6а","6б"],"pogorelov-denis":["0","1","2"],"rudakova-vasilisa":["0","1","3а","3б","4","6а","6б"],"strelkov-sergey":["0","1","3а","3б","6а","6б"],"titov-viktor":["0","1","2","3а","3б","4","5","6а","6б","7"],"titov-dmitriy":["0","1","3а","3б","4","5","6а","6б","7"],"celikov-aleksandr":["0","1","3а","3б","4","6а","6б","7"],"shipilov-andrey":["0","1","3а","3б","6а","6б"],"shirtanova-valeriya":["0","1","3а","3б","6а","6б"]}},{"n":6,"series":6,"date":"2026-08-14","kind":"series","title":"Серия 6","problems":[{"id":"0","type":"algebra","sub":"matan","exercise":true},{"id":"1","type":"geometry","sub":"geomneravenstva","exercise":false},{"id":"2","type":"geometry","sub":"stereometry","exercise":false},{"id":"3а","type":"algebra","sub":"mnogochleny","exercise":false},{"id":"3б","type":"algebra","sub":"mnogochleny","exercise":false},{"id":"4","type":"comb","sub":"veroyatnosti","exercise":false},{"id":"5","type":"algebra","sub":"posledovatelnosti","exercise":false},{"id":"6","type":"comb","sub":"podschet","exercise":false},{"id":"7а","type":"comb","sub":"graphs","exercise":false},{"id":"7б","type":"comb","sub":"graphs","exercise":false}],"solved":{"aksenova-elizaveta":["0","1","3а","3б","4","5","6","7а","7б"],"afanasev-igor":["0","1","3а","3б","4","5","7а","7б"],"boyko-gleb":["0","1","4","5"],"budyanskiy-mihail":["0","1","2","3а","3б","4","5","6","7а","7б"],"velichko-platon":["0","1","3а","4"],"gulev-maksim":["0","1","4","5","7а","7б"],"zarechnyuk-georgiy":["0","1","4"],"karonov-mihail":["0","1","4","5","7а","7б"],"karev-denis":["0"],"kovalev-artem":["0","1","4","5","7б"],"kostylev-konstantin":["0","1","4","5","7а","7б"],"larionova-natalya":["0","1","3а","3б","4","5","7а","7б"],"lyubimov-slaven":["0","1","3а","3б","4"],"mahrov-aleksandr":["0","1","4","5","7а","7б"],"novoselov-maksim":["4","5","7а","7б"],"osipova-viktoriya":["0","4","5","7а","7б"],"pogorelov-denis":["0","1","4"],"rudakova-vasilisa":["0","5"],"strelkov-sergey":["0","1","5","7а","7б"],"titov-viktor":["0","1","3а","3б","4","5","7а","7б"],"titov-dmitriy":["0","1","3а","3б","4","5","7а","7б"],"celikov-aleksandr":["0","1","3а","3б","4","5","7а","7б"],"shipilov-andrey":["0","4","7а","7б"],"shirtanova-valeriya":["0","7а","7б"]}}],"graves":{"problems":[{"id":"Г1","type":"geometry","sub":"planimetry"},{"id":"Г2","type":"comb","sub":"kg"},{"id":"Г3","type":"comb","sub":"podschet"},{"id":"Г4","type":"comb","sub":"podschet"},{"id":"Г5","type":"comb","sub":"graphs"},{"id":"Г6","type":"geometry","sub":"planimetry"},{"id":"Г7","type":"comb","sub":"kg"},{"id":"Г8","type":"algebra","sub":"mnogochleny"},{"id":"Г9","type":"comb","sub":"graphs"}],"solutions":[{"student":"budyanskiy-mihail","problem":"Г3","bonus":8},{"student":"aksenova-elizaveta","problem":"Г7","bonus":0}]},"likbez":{"items":[{"title":"Теория вероятности","file":"teoriya-veroyatnosti.pdf","size":142842,"at":"2026-08-15"}]}};</script>
 <script>
 /* Кондуит — весь подсчёт идёт в браузере читателя.
    Данные приходят одним из двух способов:
@@ -1884,6 +1958,15 @@ body.is-editor .brand::after {
      была решена: обнулять её значило бы, что плюс за неё не стоит ничего — а он
      стоит, просто самую малость. Правило то же в редакторе. */
   function weightOf(solvers) { return Math.max(weightBase() - solvers, 1); }
+
+  /* Цену задачи можно задать вручную — тогда формула к ней не применяется.
+     Ставится она в редакторе: формула знает только число решивших, а задача
+     бывает дорога и не поэтому. */
+  function priceOf(p, solvers) {
+    var w = p && p.weight;
+    return typeof w === "number" && isFinite(w) && w > 0
+      ? Math.round(w) : weightOf(solvers);
+  }
 
   function dayKind(s) { return s.kind || "series"; }
 
@@ -2074,7 +2157,7 @@ body.is-editor .brand::after {
           kind: isExercise(p) ? "exercise" : "problem",
           solvers: solvers,
           solverSet: new Set(solvers),
-          weight: weightOf(solvers.length)
+          weight: priceOf(p, solvers.length)
         });
       });
     });
@@ -2103,7 +2186,7 @@ body.is-editor .brand::after {
         solvers: solvers,
         solverSet: new Set(solvers),
         bonus: bonus,
-        weight: weightOf(solvers.length)
+        weight: priceOf(p, solvers.length)
       });
     });
 
