@@ -51,7 +51,12 @@
       "sub": "planimetry"
     },
     {
-      "id": "Г11",
+      "id": "Г11а",
+      "type": "comb",
+      "sub": "graphs"
+    },
+    {
+      "id": "Г11б",
       "type": "comb",
       "sub": "graphs"
     },
