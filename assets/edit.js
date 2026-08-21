@@ -842,7 +842,7 @@
      Пустого поля тут не бывает: не задана — значит считается формулой. */
   function customWeight(p) {
     var w = p && p.weight;
-    return typeof w === "number" && isFinite(w) && w > 0 ? Math.round(w) : null;
+    return typeof w === "number" && isFinite(w) && w >= 0 ? Math.round(w) : null;
   }
 
   function priceOf(p, solvers) {
@@ -1970,15 +1970,21 @@
     var box = el("div", "chooser");
     var now = priceOf(p, solvers);
 
+    /* Ноль руками поставить можно, и это не то же самое, что «нет цены»:
+       формула ниже единицы не опускается нарочно, а вручную задача обнуляется
+       намеренно — когда её решили все или когда она не должна считаться. */
     function set(v) {
-      p.weight = Math.max(1, Math.min(999, v));
+      p.weight = Math.max(0, Math.min(999, v));
       touch();
       render();
     }
 
     var row = el("div", "wrow");
-    row.appendChild(button("−10", "step-btn wide", function () { set(now - 10); }));
-    row.appendChild(button("−", "step-btn", function () { set(now - 1); }));
+    var less10 = button("−10", "step-btn wide", function () { set(now - 10); });
+    var less = button("−", "step-btn", function () { set(now - 1); });
+    less10.disabled = less.disabled = now <= 0;
+    row.appendChild(less10);
+    row.appendChild(less);
     row.appendChild(el("span", "step-val on", now));
     row.appendChild(button("+", "step-btn", function () { set(now + 1); }));
     row.appendChild(button("+10", "step-btn wide", function () { set(now + 10); }));

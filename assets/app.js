@@ -70,7 +70,7 @@
      бывает дорога и не поэтому. */
   function priceOf(p, solvers) {
     var w = p && p.weight;
-    return typeof w === "number" && isFinite(w) && w > 0
+    return typeof w === "number" && isFinite(w) && w >= 0
       ? Math.round(w) : weightOf(solvers);
   }
 
