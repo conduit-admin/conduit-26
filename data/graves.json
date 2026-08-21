@@ -44,6 +44,26 @@
       "id": "Г9",
       "type": "comb",
       "sub": "graphs"
+    },
+    {
+      "id": "Г10",
+      "type": "geometry",
+      "sub": "planimetry"
+    },
+    {
+      "id": "Г11",
+      "type": "comb",
+      "sub": "graphs"
+    },
+    {
+      "id": "Г12",
+      "type": "comb",
+      "sub": "podschet"
+    },
+    {
+      "id": "Г13",
+      "type": "comb",
+      "sub": "kg"
     }
   ],
   "solutions": [
