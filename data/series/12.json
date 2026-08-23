@@ -72,22 +72,22 @@
       "exercise": false
     },
     {
-      "id": "Б2",
+      "id": "8",
       "type": "comb",
       "sub": "graphs",
-      "exercise": true
+      "exercise": false
     }
   ],
   "solved": {
     "aksenova-elizaveta": [
-      "Б2",
       "1а",
       "1б",
       "1в",
       "2",
       "5",
       "7а",
-      "7б"
+      "7б",
+      "8"
     ],
     "afanasev-igor": [
       "0",
@@ -189,8 +189,8 @@
       "7б"
     ],
     "novoselov-maksim": [
-      "Б2",
-      "7а"
+      "7а",
+      "8"
     ],
     "osipova-viktoriya": [
       "1а",
