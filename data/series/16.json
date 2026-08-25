@@ -1,0 +1,360 @@
+{
+  "n": 16,
+  "series": 14,
+  "date": "2026-08-25",
+  "kind": "series",
+  "title": "Серия 14",
+  "problems": [
+    {
+      "id": "0а",
+      "type": "algebra",
+      "sub": "posledovatelnosti",
+      "exercise": true
+    },
+    {
+      "id": "0б",
+      "type": "algebra",
+      "sub": "posledovatelnosti",
+      "exercise": true
+    },
+    {
+      "id": "1а",
+      "type": "algebra",
+      "sub": "matan",
+      "exercise": false
+    },
+    {
+      "id": "1б",
+      "type": "algebra",
+      "sub": "matan",
+      "exercise": false
+    },
+    {
+      "id": "1в",
+      "type": "algebra",
+      "sub": "matan",
+      "exercise": false
+    },
+    {
+      "id": "2",
+      "type": "geometry",
+      "sub": "stereometry",
+      "exercise": false
+    },
+    {
+      "id": "3",
+      "type": "geometry",
+      "sub": "planimetry",
+      "exercise": false
+    },
+    {
+      "id": "4",
+      "type": "numbers",
+      "sub": "klassika-2",
+      "exercise": false
+    },
+    {
+      "id": "5",
+      "type": "comb",
+      "sub": "cells",
+      "exercise": false
+    },
+    {
+      "id": "6",
+      "type": "comb",
+      "sub": "games",
+      "exercise": false
+    },
+    {
+      "id": "7а",
+      "type": "comb",
+      "sub": "graphs",
+      "exercise": false
+    },
+    {
+      "id": "7б",
+      "type": "comb",
+      "sub": "graphs",
+      "exercise": false
+    },
+    {
+      "id": "7в",
+      "type": "comb",
+      "sub": "graphs",
+      "exercise": false
+    }
+  ],
+  "solved": {
+    "aksenova-elizaveta": [
+      "0а",
+      "0б",
+      "1а",
+      "1б",
+      "1в",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7а",
+      "7б",
+      "7в"
+    ],
+    "afanasev-igor": [
+      "0а",
+      "0б",
+      "1а",
+      "1б",
+      "1в",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7а",
+      "7б",
+      "7в"
+    ],
+    "boyko-gleb": [
+      "0а",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7а"
+    ],
+    "budyanskiy-mihail": [
+      "0а",
+      "0б",
+      "1а",
+      "1б",
+      "1в",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7а",
+      "7б",
+      "7в"
+    ],
+    "velichko-platon": [
+      "0а",
+      "0б",
+      "1а",
+      "1б",
+      "2",
+      "3",
+      "4",
+      "5"
+    ],
+    "gulev-maksim": [
+      "0а",
+      "0б",
+      "2",
+      "4",
+      "5",
+      "7а",
+      "7б",
+      "7в"
+    ],
+    "zarechnyuk-georgiy": [
+      "0а",
+      "0б",
+      "3",
+      "4",
+      "5"
+    ],
+    "karonov-mihail": [
+      "0а",
+      "0б",
+      "1а",
+      "1б",
+      "2",
+      "3",
+      "4",
+      "5",
+      "7а"
+    ],
+    "karev-denis": [
+      "0а",
+      "0б",
+      "5",
+      "6",
+      "7а",
+      "7б",
+      "7в"
+    ],
+    "kovalev-artem": [
+      "0а",
+      "0б",
+      "2",
+      "3",
+      "4",
+      "5",
+      "7а"
+    ],
+    "kostylev-konstantin": [
+      "0а",
+      "0б",
+      "1а",
+      "1б",
+      "2",
+      "4",
+      "5",
+      "7а"
+    ],
+    "larionova-natalya": [
+      "0а",
+      "0б",
+      "1а",
+      "1б",
+      "2",
+      "4",
+      "5",
+      "6",
+      "7а",
+      "7б",
+      "7в"
+    ],
+    "lyubimov-slaven": [
+      "0а",
+      "0б",
+      "1а",
+      "1б",
+      "1в",
+      "2",
+      "3",
+      "5"
+    ],
+    "mahrov-aleksandr": [
+      "0а",
+      "0б",
+      "1а",
+      "1б",
+      "1в",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7а",
+      "7б",
+      "7в"
+    ],
+    "novoselov-maksim": [
+      "0а",
+      "0б",
+      "5",
+      "6",
+      "7а",
+      "7б",
+      "7в"
+    ],
+    "osipova-viktoriya": [
+      "0а",
+      "0б",
+      "2",
+      "4",
+      "5",
+      "7а"
+    ],
+    "pogorelov-denis": [
+      "0а",
+      "0б",
+      "1б",
+      "2",
+      "3",
+      "4",
+      "5"
+    ],
+    "rudakova-vasilisa": [
+      "0а",
+      "0б",
+      "2",
+      "4",
+      "5",
+      "7а",
+      "7б",
+      "7в"
+    ],
+    "strelkov-sergey": [
+      "0а",
+      "0б",
+      "1а",
+      "1б",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7а"
+    ],
+    "titov-viktor": [
+      "0а",
+      "0б",
+      "1а",
+      "1б",
+      "1в",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7а",
+      "7б",
+      "7в"
+    ],
+    "titov-dmitriy": [
+      "0а",
+      "0б",
+      "1а",
+      "1б",
+      "1в",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7а",
+      "7б",
+      "7в"
+    ],
+    "celikov-aleksandr": [
+      "0а",
+      "0б",
+      "1а",
+      "1б",
+      "1в",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7а"
+    ],
+    "shipilov-andrey": [
+      "0а",
+      "0б",
+      "1а",
+      "2",
+      "4",
+      "5",
+      "7а",
+      "7б",
+      "7в"
+    ],
+    "shirtanova-valeriya": [
+      "0а",
+      "0б",
+      "1а",
+      "1б",
+      "2",
+      "3",
+      "4",
+      "5",
+      "7а"
+    ]
+  }
+}
