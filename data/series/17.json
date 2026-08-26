@@ -1,0 +1,283 @@
+{
+  "n": 17,
+  "series": 15,
+  "date": "2026-08-26",
+  "kind": "series",
+  "title": "Серия 15",
+  "problems": [
+    {
+      "id": "0",
+      "type": "comb",
+      "sub": "graphs",
+      "exercise": true
+    },
+    {
+      "id": "1а",
+      "type": "algebra",
+      "sub": "mnogochleny",
+      "exercise": false
+    },
+    {
+      "id": "1б",
+      "type": "algebra",
+      "sub": "mnogochleny",
+      "exercise": false
+    },
+    {
+      "id": "1в",
+      "type": "algebra",
+      "sub": "mnogochleny",
+      "exercise": false
+    },
+    {
+      "id": "1г",
+      "type": "algebra",
+      "sub": "mnogochleny",
+      "exercise": false
+    },
+    {
+      "id": "2",
+      "type": "geometry",
+      "sub": "planimetry",
+      "exercise": false
+    },
+    {
+      "id": "3",
+      "type": "geometry",
+      "sub": "planimetry",
+      "exercise": false
+    },
+    {
+      "id": "4",
+      "type": "numbers",
+      "sub": "klassika-2",
+      "exercise": false
+    },
+    {
+      "id": "5",
+      "type": "comb",
+      "sub": "podschet",
+      "exercise": false
+    },
+    {
+      "id": "6",
+      "type": "comb",
+      "sub": "veroyatnosti",
+      "exercise": false
+    },
+    {
+      "id": "7а",
+      "type": "comb",
+      "sub": "graphs",
+      "exercise": false
+    },
+    {
+      "id": "7б",
+      "type": "comb",
+      "sub": "graphs",
+      "exercise": false
+    }
+  ],
+  "solved": {
+    "aksenova-elizaveta": [
+      "0",
+      "1а",
+      "1б",
+      "1в",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7а",
+      "7б"
+    ],
+    "afanasev-igor": [
+      "0",
+      "1а",
+      "1б",
+      "1в",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7а"
+    ],
+    "boyko-gleb": [
+      "2",
+      "4"
+    ],
+    "budyanskiy-mihail": [
+      "0",
+      "1а",
+      "1б",
+      "1в",
+      "1г",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7а",
+      "7б"
+    ],
+    "velichko-platon": [
+      "1а",
+      "1б",
+      "1в",
+      "2",
+      "3",
+      "4"
+    ],
+    "gulev-maksim": [
+      "1а",
+      "2",
+      "3",
+      "4",
+      "6"
+    ],
+    "zarechnyuk-georgiy": [
+      "1а",
+      "3",
+      "4"
+    ],
+    "karonov-mihail": [
+      "1а",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6"
+    ],
+    "karev-denis": [
+      "0",
+      "6",
+      "7а"
+    ],
+    "kovalev-artem": [
+      "0",
+      "1а",
+      "1б",
+      "1в",
+      "2",
+      "3",
+      "4"
+    ],
+    "kostylev-konstantin": [
+      "0",
+      "1а",
+      "4",
+      "6"
+    ],
+    "larionova-natalya": [
+      "0",
+      "1а",
+      "1б",
+      "1в",
+      "2",
+      "4"
+    ],
+    "lyubimov-slaven": [
+      "1а",
+      "1б",
+      "1в",
+      "2",
+      "4"
+    ],
+    "mahrov-aleksandr": [
+      "0",
+      "1а",
+      "1б",
+      "1в",
+      "2",
+      "4",
+      "6"
+    ],
+    "novoselov-maksim": [
+      "0",
+      "4",
+      "6",
+      "7а"
+    ],
+    "osipova-viktoriya": [
+      "0",
+      "1а",
+      "1б",
+      "1в",
+      "4"
+    ],
+    "pogorelov-denis": [
+      "1а",
+      "1б",
+      "1в",
+      "2",
+      "3",
+      "4",
+      "6"
+    ],
+    "rudakova-vasilisa": [
+      "0",
+      "4"
+    ],
+    "strelkov-sergey": [
+      "1а",
+      "1б",
+      "1в",
+      "4"
+    ],
+    "titov-viktor": [
+      "0",
+      "1а",
+      "1б",
+      "1в",
+      "1г",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7а",
+      "7б"
+    ],
+    "titov-dmitriy": [
+      "0",
+      "1а",
+      "1б",
+      "1в",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7а",
+      "7б"
+    ],
+    "celikov-aleksandr": [
+      "1а",
+      "1б",
+      "1в",
+      "1г",
+      "2",
+      "3",
+      "4",
+      "6"
+    ],
+    "shipilov-andrey": [
+      "0",
+      "1а",
+      "1б",
+      "1в",
+      "2",
+      "3",
+      "4"
+    ],
+    "shirtanova-valeriya": [
+      "0",
+      "1а",
+      "1б",
+      "1в",
+      "4"
+    ]
+  }
+}
